@@ -81,6 +81,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 add_executable(rog_map_node src/rog_map_ros/rog_map_ros.cpp)
 target_link_libraries(rog_map_node rog_map)
 
+
+
+
+
 install(TARGETS
         ${PROJECT_NAME}
         ARCHIVE DESTINATION lib
