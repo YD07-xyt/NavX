@@ -1,0 +1,72 @@
+# ROG-Map配置文件 - 适配Livox激光雷达和LIO里程计
+rog_map: 
+  # 地图基本参数
+  resolution: 0.1                    # 地图分辨率(m)
+  inflation_resolution: 0.2         # 膨胀分辨率(m)
+  inflation_step: 2                  # 膨胀步长
+  map_size: [30.0, 30.0, 3.0]      
+
+  # ESDF配置
+  esdf:
+    enable: true                   
+    resolution: 0.2
+    local_update_box: [20.0, 20.0, 2.0]
+
+  # 点云加载（如果需要加载已有地图）
+  load_pcd_en: false
+
+  # 地图滑动窗口
+  map_sliding:
+    enable: true                     # 启用滑动窗口
+    threshold: 5.0                   # 滑动阈值(m)
+
+  # 固定地图原点（如果不使用滑动窗口）
+  fix_map_origin: [0.0, 0.0, 0.0]
+
+  # 边界提取（可以先关闭）
+  frontier_extraction_en: false
+
+  # ROS回调配置
+  ros_callback:
+    enable: true
+    cloud_topic: "/lio/cloud_world"      # 使用Livox激光雷达话题
+    odom_topic: "/lio/odom"          # 使用LIO里程计话题
+    odom_timeout: 10.0                # 里程计超时(s)
+
+  # 可视化配置
+  visualization:
+    enable: true
+    frame_id: "world"
+    time_rate: 10.0                  # 10Hz可视化更新
+    frame_rate: 0.0
+    range: [20.0, 20.0, 2.5]        # 可视化范围(m)
+    pub_unknown_map_en: true
+    use_dynamic_reconfigure: false
+
+  # 点云滤波
+  point_filt_num: 2                  # 每个点处理次数
+
+  # 射线投射参数
+  raycasting:
+    enable: true
+    batch_update_size: 1
+    unk_thresh: 0.7                  # 未知区域阈值
+    p_hit: 0.7                       # 击中概率
+    p_miss: 0.4                      # 未击中概率
+    p_min: 0.12                      # 最小概率
+    p_max: 0.97                      # 最大概率
+    p_occ: 0.8                       # 占据阈值
+    p_free: 0.3                      # 自由阈值
+    ray_range: [0.5, 15.0]           # 射线范围 [最小, 最大] (m)
+    local_update_box: [12.0, 12.0, 2.0]  # 局部更新范围(m)
+
+  # 虚拟地面和天花板（用于限制地图范围）
+  virtual_ground_height: -0.5       # 地面高度(m)
+  virtual_ceil_height: 3.0          # 天花板高度(m)
+
+  # 未知区域膨胀
+  unk_inflation_en: false
+  unk_inflation_step: 1
+
+  # 强度阈值（如果点云有强度信息）
+  intensity_thresh: -1               # -1表示不使用强度滤波

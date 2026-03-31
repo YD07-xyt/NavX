@@ -80,7 +80,7 @@ namespace rog_map {
 #endif
 
             loader.LoadParam(name_space + "/esdf/resolution", esdf_resolution, 0.2);
-            loader.LoadParam(name_space + "/esdf/enable", esdf_en, false);
+            loader.LoadParam(name_space + "/esdf/enable", esdf_en, true);
             vector<double> temp_esdf_update_box;
             loader.LoadParam(name_space + "/esdf/local_update_box", temp_esdf_update_box, temp_esdf_update_box);
 
@@ -113,13 +113,13 @@ namespace rog_map {
 
             loader.LoadParam(name_space + "/frontier_extraction_en", frontier_extraction_en, false);
 
-            loader.LoadParam(name_space + "/ros_callback/enable", ros_callback_en, false);
-            loader.LoadParam(name_space + "/ros_callback/cloud_topic", cloud_topic, string("/cloud_registered"));
-            loader.LoadParam(name_space + "/ros_callback/odom_topic", odom_topic, string("/lidar_slam/odom"));
+            loader.LoadParam(name_space + "/ros_callback/enable", ros_callback_en, true);
+            loader.LoadParam(name_space + "/ros_callback/cloud_topic", cloud_topic, string("/lio/cloud_world"));
+            loader.LoadParam(name_space + "/ros_callback/odom_topic", odom_topic, string("/lio/odom"));
             loader.LoadParam(name_space + "/ros_callback/odom_timeout", odom_timeout, 0.05);
 
 
-            loader.LoadParam(name_space + "/visualization/enable", visualization_en, false);
+            loader.LoadParam(name_space + "/visualization/enable", visualization_en, true);
             loader.LoadParam(name_space + "/visualization/use_dynamic_reconfigure", use_dynamic_reconfigure, false);
             loader.LoadParam(name_space + "/visualization/pub_unknown_map_en", pub_unknown_map_en, false);
             loader.LoadParam(name_space + "/visualization/frame_id", frame_id, string("world"));

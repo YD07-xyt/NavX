@@ -78,12 +78,17 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 )
 
 
+add_executable(rog_map_node src/rog_map_ros/rog_map_ros.cpp)
+target_link_libraries(rog_map_node rog_map)
+
 install(TARGETS
         ${PROJECT_NAME}
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         RUNTIME DESTINATION bin
 )
+
+
 
 ament_export_libraries(${PROJECT_NAME}
         ${third_party_libs}
@@ -92,5 +97,19 @@ ament_export_include_directories(${includes})
 install(DIRECTORY include/
         DESTINATION include/
 )
+
+
+install(TARGETS rog_map_node
+    DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY config/
+    DESTINATION share/${PROJECT_NAME}/config
+)
+
+install(DIRECTORY launch/
+    DESTINATION share/${PROJECT_NAME}/launch
+)
+
 
 ament_package()
