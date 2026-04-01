@@ -4,7 +4,7 @@
 #include <Eigen/Eigen>
 #include <vector>
 #include <string>
-#include "gcopter/trajectory.hpp"
+#include "../gcopter/trajectory.hpp"
 
 namespace ddr_optimizer {
 

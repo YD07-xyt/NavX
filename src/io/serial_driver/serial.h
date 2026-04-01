@@ -4,9 +4,9 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/system/error_code.hpp>
 #include <cstdint>
-#include <iostream>
 #include <vector>
 #include <cstring>
+#include<iostream>
 #include"crc.hpp"
 
 constexpr uint16_t SOF_VALUE = {'MA'};
@@ -119,7 +119,8 @@ namespace io {
             SerialDriver(): io_(), port_(io_){
                 
             };
-            bool  open(std::string serial_name, int baud_rate);
+            bool open(std::string serial_name, int baud_rate);
+            bool reopen(std::string serial_name,int baud_rate,int max_try);
             bool receive(ReceiveData& data, int timeout_ms = 1000) ;
             bool send(const SendData & send_data);
             void init();

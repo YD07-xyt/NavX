@@ -1,5 +1,22 @@
 # TODO
 
+
+## 4.2
+
+## 4.1问题解决
+
+1.serial 重启 暂时解决 待优化
+
+2.path_search a*融合 rog_map  改为super_planner原生规划器
+
+3.rog_map esdf 显示问题 解决  参数设置问题
+
+6.planner 后端优化 ---
+                    |-------- super_planner
+7.路径跟随 mpc--------
+## 未解决
+
+
 ## 4.1
 
 ### 未解决

@@ -1,9 +1,10 @@
 #include"serial.h"
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace io {
-    bool  SerialDriver::open(std::string serial_name,int baud_rate){
+    bool SerialDriver::open(std::string serial_name,int baud_rate){
         boost::system::error_code ec;
         port_.open(serial_name, ec); 
         
@@ -56,5 +57,20 @@ namespace io {
                          sizeof(ReceiveData) - 2));
         
         return data.deserialize(buffer.data(), buffer.size());
+    }
+
+    bool SerialDriver::reopen(std::string serial_name,int baud_rate,int max_try){
+        if (port_.is_open()) {
+            // 步骤2：关闭系统句柄
+            port_.close();   // 可能抛出异常
+        }
+        bool is_open;
+        for(int i=0;i<max_try;i++){
+            is_open=open(serial_name, baud_rate);
+            if(is_open){
+                continue;
+            }
+        }
+        return is_open;
     }
 }

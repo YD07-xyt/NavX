@@ -5,8 +5,8 @@
  * 本示例展示如何使用DDR优化器生成一条简单的轨迹
  */
 
-#include "ddr_optimizer/optimizer_pure.h"
-#include "ddr_optimizer/collision_interface.h"
+#include "../include/ddr_optimizer/optimizer_pure.h"
+#include "../include/ddr_optimizer/collision_interface.h"
 #include <iostream>
 #include <iomanip>
 

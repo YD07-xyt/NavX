@@ -1,4 +1,5 @@
 #include"serial.h"
+
 //TODO:
 io::SendData get_send_data() {
     io::SendData data;
@@ -18,13 +19,20 @@ bool send_status() {
 }
 //TODO: 串口重连
 int main(){
-    
+    std::string serial_name="/dev/ttyUSB0";
+    int baud_rate =115200;
+    int max_try=1000000;
+
     io::SendData send_data=get_send_data();
     io::ReceiveData status;
     io::SerialDriver serial_driver;
     bool is_open;
     while(1){
-        is_open=serial_driver.open("/dev/ttyUSB0", 115200);
+        is_open=serial_driver.open(serial_name, baud_rate);
+        if(is_open){
+            serial_driver.reopen(serial_name,baud_rate,max_try);
+        }
+
         serial_driver.receive(status,2000);
         
         send_status();

@@ -7,7 +7,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'config_path',
-            default_value='/home/xyt/code/nav/NavX/src/rog_map/config/rog_map.yaml',
+            default_value='/home/xyt/code/nav/NavX/src/map/rog_map/config/rog_map.yaml',
             description='Path to config file'
         ),
         
