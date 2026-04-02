@@ -3,6 +3,9 @@
 
 ## 4.2
 
+增加nav2_planner(<---- cod_nav)
+解决livox_ros_diver2 一起编译 (colcon 指定humble版本)
+
 ## 4.1问题解决
 
 4.1.1.serial 重启 暂时解决 待优化

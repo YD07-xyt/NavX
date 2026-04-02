@@ -1,1 +1,1 @@
-colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=YES --symlink-install
+colcon build --cmake-args -DHUMBLE_ROS=humble -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=YES --symlink-install 

@@ -1,16 +1,10 @@
-#pragma  once
-
-#include <boost/asio.hpp>
-#include <boost/asio/io_context.hpp>
-#include <boost/system/error_code.hpp>
-#include <cstdint>
-#include <vector>
+#pragma once
+#include <cstdio>
 #include <cstring>
-#include<iostream>
+#include<vector>
 #include"crc.hpp"
-
+#include <cstdint>
 constexpr uint16_t SOF_VALUE = {'MA'};
-
 namespace io {
     struct SendData{
         uint16_t sof;
@@ -71,14 +65,14 @@ namespace io {
     };
     struct ReceiveData{
         uint16_t sof;
-        uint8_t is_game;
+        uint8_t game_progress;
         uint16_t current_hp;
         uint16_t projectile_allowance;
         uint16_t crc16;
         
         void init() {
             sof = SOF_VALUE;
-            is_game = 0;
+            game_progress = 0;
             current_hp = 0;
             projectile_allowance = 0;
             crc16 = 0;
@@ -107,26 +101,10 @@ namespace io {
         void print() const {
             printf("=== Robot Status ===\n");
             printf("SOF: %c%c\n", (sof >> 8) & 0xFF, sof & 0xFF);
-            printf("Game: %s\n", is_game ? "Running" : "Stopped");
+            printf("Game: %s\n", game_progress ? "Running" : "Stopped");
             printf("HP: %u\n", current_hp);
             printf("Ammo: %u\n", projectile_allowance);
             printf("CRC: 0x%04X\n", crc16);
         }
     };
-
-    class SerialDriver{
-        public:
-            SerialDriver(): io_(), port_(io_){
-                
-            };
-            bool open(std::string serial_name, int baud_rate);
-            bool reopen(std::string serial_name,int baud_rate,int max_try);
-            bool receive(ReceiveData& data, int timeout_ms = 1000) ;
-            bool send(const SendData & send_data);
-            void init();
-        private:
-            boost::asio::io_service io_;
-            boost::asio::serial_port port_;
-            
-        };
 }
