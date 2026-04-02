@@ -9,28 +9,26 @@ def generate_launch_description():
 
     file_path = Path(__file__).resolve()
 
-    setup_path = file_path.parent.parent.parent / "install" / "setup.sh"
-
-    
-
+    setup_path = file_path.parent.parent.parent.parent / "install" / "setup.sh"
     auto_map = file_path.parent.parent / "maps" / "auto_save"
 
-
-    def create_save_command(suffix: str) -> list:
-        map_path = auto_map / f"auto_map_{suffix}"
-        return [
-            'bash', '-c',
-            'source /opt/ros/humble/setup.bash && '
-            'source {setup_path} && '
-            'mkdir -p {auto_map} && '
-            f'ros2 run nav2_map_server map_saver_cli -f {map_path}'
-        ]
-
-    intervals = [ 30, 60, 90, 120, 150, 180, 210, 240, 270, 300]
+    intervals = [30, 60, 90, 120, 150, 180, 210, 240, 270, 300]
+    
     for t in intervals:
+        # 构建完整的 shell 命令字符串
+        cmd = (
+            f'source /opt/ros/humble/setup.bash && '
+            f'source {setup_path} && '
+            f'mkdir -p {auto_map} && '
+            f'ros2 run nav2_map_server map_saver_cli -f {auto_map}/auto_map_$(date +%H%M%S)'
+        )
+        
         action = TimerAction(
             period=float(t),
-            actions=[ExecuteProcess(cmd=create_save_command("$(date +%H%M%S)"), output='screen')]
+            actions=[ExecuteProcess(
+                cmd=['bash', '-c', cmd],
+                output='screen'
+            )]
         )
         ld.add_action(action)
 

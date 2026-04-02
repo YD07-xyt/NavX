@@ -28,7 +28,7 @@ from nav2_common.launch import ReplaceString
 
 def generate_launch_description():
     # Get the launch directory
-    bringup_dir = get_package_share_directory('cod_bringup')
+    bringup_dir = get_package_share_directory('bringup')
 
     # Create the launch configuration variables
     namespace = LaunchConfiguration('namespace')

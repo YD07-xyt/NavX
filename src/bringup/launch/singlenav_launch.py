@@ -11,7 +11,7 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     # 获取包的共享目录
-    bring_up_dir = get_package_share_directory('cod_bringup')
+    bring_up_dir = get_package_share_directory('bringup')
 
     rviz_config_file = os.path.join(bring_up_dir, 'rviz', 'cod_nav.rviz')
 
