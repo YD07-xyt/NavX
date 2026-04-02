@@ -55,11 +55,11 @@
 - 运行方式（启动导航前先启动雷达）
   - 多点导航
   ```shell
-  ros2 launch cod_bringup multiplenav_launch.py
+  ros2 launch bringup multiplenav_launch.py
   ```
   - 单点导航
   ```shell
-  ros2 launch cod_bringup singlenav_launch.py
+  ros2 launch bringup singlenav_launch.py
   ```
 
 
