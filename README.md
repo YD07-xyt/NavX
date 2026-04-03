@@ -7,3 +7,8 @@
 ## Run
 
 [RUN](docs/run.md)
+
+```bash
+source install/setup.sh
+ros2 launch bringup singlenav_launch.py
+```
