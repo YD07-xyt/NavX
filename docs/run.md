@@ -23,6 +23,12 @@ source install/setup.sh
 ros2 launch bringup multiplenav_launch.py
 ```
 
+## super_planner
+```bash
+source install/setup.sh
+ros2 launch super_planner fsm.launch.py
+```
+
 ### tf
 ```bash
 ros2 run tf2_tools view_frames
