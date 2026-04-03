@@ -47,21 +47,21 @@ def generate_launch_description():
                     'leaf_size': 0.05   # 降采样
                 }]
             ),
-            Node(
-                    package="small_point_lio",
-                    executable="small_point_lio_node",
-                    name="small_point_lio",
-                    output="screen",
-                    parameters=[
-                        PathJoinSubstitution(
-                            [
-                                FindPackageShare("small_point_lio"),
-                                "config",
-                                "mid360.yaml",
-                            ]
-                        )
-                    ],
-            ),
+            # Node(
+            #         package="small_point_lio",
+            #         executable="small_point_lio_node",
+            #         name="small_point_lio",
+            #         output="screen",
+            #         parameters=[
+            #             PathJoinSubstitution(
+            #                 [
+            #                     FindPackageShare("small_point_lio"),
+            #                     "config",
+            #                     "mid360.yaml",
+            #                 ]
+            #             )
+            #         ],
+            # ),
             Node(
                 package='pointcloud_to_laserscan', executable='pointcloud_to_laserscan_node',
                 remappings=[('cloud_in',  '/livox/lidar'),
