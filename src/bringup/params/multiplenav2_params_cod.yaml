@@ -209,7 +209,7 @@ local_costmap:
         transform_tolerance: 0.2    # seconds
         mapping_mode: false  # default off, saves map not for navigation
         map_save_duration: 60.0     #default 60s, how often to autosave
-        observation_sources: livox_source realsense_source
+        observation_sources: livox_source #realsense_source
         livox_source:
           data_type: PointCloud2
           topic:  /livox/lidar_filtered
@@ -299,7 +299,7 @@ global_costmap:
         transform_tolerance: 0.2    # seconds
         mapping_mode: false  # default off, saves map not for navigation
         map_save_duration: 60.0     #default 60s, how often to autosave
-        observation_sources: livox_source realsense_source
+        observation_sources: livox_source #realsense_source
         livox_source:
           data_type: PointCloud2
           topic:  /livox/lidar_filtered

@@ -44,71 +44,108 @@ bool SerialDriver::send(const SendData &send_data) {
 
 
 bool SerialDriver::receive(ReceiveData &data, int timeout_ms) {
-  auto buffer = std::make_shared<std::vector<uint8_t>>(sizeof(ReceiveData));
-  auto completed = std::make_shared<bool>(false);
-  auto header = std::make_shared<uint8_t>();
-
-  timer_.expires_from_now(boost::posix_time::milliseconds(timeout_ms));
-  timer_.async_wait([completed, this](const boost::system::error_code &ec) {
-    if (!ec && !(*completed)) {
-      port_.cancel();
+    // 检查端口是否打开
+    if (!port_.is_open()) {
+        reopen(serial_name_,baud_rate_, max_try_);
+        std::cerr << "端口未打开，无法接收数据" << std::endl;
+        return false;
     }
-  });
-
-  // 读取第一个字节
-  boost::asio::async_read(
-      port_, boost::asio::buffer(header.get(), 1),
-      [this, header, buffer, completed,
-       &data](const boost::system::error_code &ec, size_t) {
-        if (!ec && *header == 'M') {
-          // 读取第二个字节
-          boost::asio::async_read(
-              port_, boost::asio::buffer(header.get(), 1),
-              [this, header, buffer, completed,
-               &data](const boost::system::error_code &ec, size_t) {
-                if (!ec && *header == 'A') {
-                  // 设置帧头
-                  (*buffer)[0] = 'M';
-                  (*buffer)[1] = 'A';
-                  // 读取剩余数据
-                  boost::asio::async_read(
-                      port_,
-                      boost::asio::buffer(buffer->data() + 2,
-                                          sizeof(ReceiveData) - 2),
-                      [buffer, completed,
-                       &data](const boost::system::error_code &ec, size_t) {
-                        if (!ec) {
-                          *completed = true;
-                          data.deserialize(buffer->data(), buffer->size());
-                        }
-                      });
-                }
-              });
+    
+    auto buffer = std::make_shared<std::vector<uint8_t>>(sizeof(ReceiveData));
+    auto completed = std::make_shared<bool>(false);
+    auto header = std::make_shared<uint8_t>();
+    
+    // 重置 io_service
+    io_.reset();
+    
+    // 设置超时定时器
+    timer_.expires_from_now(boost::posix_time::milliseconds(timeout_ms));
+    timer_.async_wait([completed, this](const boost::system::error_code &ec) {
+        // 只有在端口打开且未完成时才取消
+        if (!ec && !(*completed) && port_.is_open()) {
+            boost::system::error_code cancel_ec;
+            port_.cancel(cancel_ec);
+            if (cancel_ec) {
+                std::cerr << "取消操作失败: " << cancel_ec.message() << std::endl;
+            }
         }
-      });
-
-  io_.run();
-  io_.reset();
-  timer_.cancel();
-  return *completed;
+    });
+    
+    // 读取第一个字节
+    boost::asio::async_read(
+        port_, boost::asio::buffer(header.get(), 1),
+        [this, header, buffer, completed, &data, timeout_ms]
+        (const boost::system::error_code &ec, size_t) {
+            if (!ec && port_.is_open() && *header == 'M') {
+                // 读取第二个字节
+                boost::asio::async_read(
+                    port_, boost::asio::buffer(header.get(), 1),
+                    [this, header, buffer, completed, &data, timeout_ms]
+                    (const boost::system::error_code &ec, size_t) {
+                        if (!ec && port_.is_open() && *header == 'A') {
+                            // 设置帧头
+                            (*buffer)[0] = 'M';
+                            (*buffer)[1] = 'A';
+                            // 读取剩余数据
+                            boost::asio::async_read(
+                                port_,
+                                boost::asio::buffer(buffer->data() + 2,
+                                                    sizeof(ReceiveData) - 2),
+                                [buffer, completed, &data]
+                                (const boost::system::error_code &ec, size_t) {
+                                    if (!ec) {
+                                        *completed = true;
+                                        data.deserialize(buffer->data(), buffer->size());
+                                    }
+                                });
+                        }
+                    });
+            }
+        });
+    
+    // 运行 io_service
+    io_.run();
+    io_.reset();
+    
+    // 取消定时器
+    boost::system::error_code timer_ec;
+    timer_.cancel(timer_ec);
+    
+    return *completed;
 }
 
 bool SerialDriver::reopen(std::string serial_name, int baud_rate, int max_try) {
-  if (port_.is_open()) {
-    // 步骤2：关闭系统句柄
-    port_.close(ec);
-    if (ec) {
-      std::cerr << "关闭端口失败: " << ec.message() << std::endl;
+    boost::system::error_code ec;  // 在这里声明 ec
+    
+    if (port_.is_open()) {
+        // 先取消所有异步操作
+        port_.cancel(ec);
+        if (ec) {
+            std::cerr << "取消端口操作失败: " << ec.message() << std::endl;
+        }
+        
+        // 关闭端口
+        port_.close(ec);
+        if (ec) {
+            std::cerr << "关闭端口失败: " << ec.message() << std::endl;
+            return false;
+        }
     }
-  }
-  bool is_open;
-  for (int i = 0; i < max_try; i++) {
-    is_open = open(serial_name, baud_rate);
-    if (is_open) {
-      break;
+    
+    bool is_open = false;
+    std::cout<<"尝试重新打开端口："<< ec.message() << std::endl;
+    for (int i = 0; i < max_try; i++) {
+        is_open = open(serial_name, baud_rate);
+        if (is_open) {
+          std::cout<<"重新打开端口成功："<< ec.message() << std::endl;
+            break;
+        }
+        if(i==(max_try-1)){
+           std::cout<<"尝试重新打开端口失败"<<std::endl;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  }
-  return is_open;
+
+    return is_open;
 }
 } // namespace io

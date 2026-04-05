@@ -161,12 +161,12 @@ def generate_launch_description():
                 output="screen",
                 parameters=[{"use_sim_time": use_sim_time}],
             ),
-            Node(
-                package="cod_serial_ul26",
-                executable="cod_serial",
-                output="screen",
-                parameters=[{"use_sim_time": use_sim_time}],
-            ),
+            # Node(
+            #     package="cod_serial_ul26",
+            #     executable="cod_serial",
+            #     output="screen",
+            #     parameters=[{"use_sim_time": use_sim_time}],
+            # ),
             # IncludeLaunchDescription(
             #     PythonLaunchDescriptionSource(
             #         os.path.join(get_package_share_directory('realsense2_camera'),'launch','rs_launch.py')

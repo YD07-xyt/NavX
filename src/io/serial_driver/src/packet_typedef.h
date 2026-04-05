@@ -11,10 +11,9 @@ namespace io {
         float v_x;
         float v_y;
         float w_z;
+        
         uint16_t crc16;
-
-
-
+        
         uint16_t calculateCRC16() const {
             const uint8_t* data = reinterpret_cast<const uint8_t*>(this);
             size_t len = offsetof(SendData, crc16);  // 只计算到 w_z 为止
@@ -68,6 +67,9 @@ namespace io {
         uint8_t game_progress;
         uint16_t current_hp;
         uint16_t projectile_allowance;
+        float vx;
+        float vy;
+        float wz;
         uint16_t crc16;
         
         void init() {
