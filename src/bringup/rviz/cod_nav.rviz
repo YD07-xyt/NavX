@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Status1
         - /TF1/Tree1
+        - /viz1
       Splitter Ratio: 0.5
     Tree Height: 483
   - Class: rviz_common/Selection
@@ -161,7 +162,7 @@ Visualization Manager:
             Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
-            Value: /local_plan
+            Value: /plan
           Value: true
         - Alpha: 1
           Autocompute Intensity Bounds: true
@@ -243,7 +244,7 @@ Visualization Manager:
           Buffer Length: 1
           Class: rviz_default_plugins/Path
           Color: 51; 209; 122
-          Enabled: true
+          Enabled: false
           Head Diameter: 0.30000001192092896
           Head Length: 0.20000000298023224
           Length: 0.30000001192092896
@@ -266,7 +267,7 @@ Visualization Manager:
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /plan
-          Value: true
+          Value: false
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
@@ -349,7 +350,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 11.820329666137695
+      Distance: 11.788354873657227
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -364,10 +365,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.0447978973388672
+      Pitch: 0.9047977924346924
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.9666824340820312
+      Yaw: 2.7916793823242188
     Saved: ~
 Window Geometry:
   Displays:

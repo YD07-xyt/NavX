@@ -11,7 +11,57 @@ void StPlanner::configure(
     std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros)
 {
     RCLCPP_INFO(logger_, "StPlanner::configure START");
+    node_ = parent.lock();
+    plugin_name_ = name;
     
+    // 声明轨迹参数组的每个成员
+    auto param_namespace = plugin_name_ + ".trajectory";
+    
+    // double 类型参数
+    node_->declare_parameter(param_namespace + ".rho_v", rclcpp::ParameterValue(10000.0));
+    node_->declare_parameter(param_namespace + ".rho_collision", rclcpp::ParameterValue(100000.0));
+    node_->declare_parameter(param_namespace + ".rho_T", rclcpp::ParameterValue(100.0));
+    node_->declare_parameter(param_namespace + ".rho_energy", rclcpp::ParameterValue(100.0));
+    node_->declare_parameter(param_namespace + ".max_v", rclcpp::ParameterValue(1.0));
+    node_->declare_parameter(param_namespace + ".safe_threshold", rclcpp::ParameterValue(0.75));
+    
+    // int 类型参数
+    node_->declare_parameter(param_namespace + ".int_K", rclcpp::ParameterValue(32));
+    node_->declare_parameter(param_namespace + ".mem_size", rclcpp::ParameterValue(256));
+    node_->declare_parameter(param_namespace + ".past", rclcpp::ParameterValue(3));
+    node_->declare_parameter(param_namespace + ".max_iter", rclcpp::ParameterValue(10000));
+    
+    // double 类型（小数值）
+    node_->declare_parameter(param_namespace + ".g_epsilon", rclcpp::ParameterValue(1e-6));
+    node_->declare_parameter(param_namespace + ".min_step", rclcpp::ParameterValue(1e-32));
+    node_->declare_parameter(param_namespace + ".delta", rclcpp::ParameterValue(1e-5));
+    
+    node_->declare_parameter(param_namespace + ".timeout_ms", rclcpp::ParameterValue(5000));
+    node_->declare_parameter(param_namespace + ".min_obstacle_cost", rclcpp::ParameterValue(220));
+    node_->declare_parameter(param_namespace + ".max_obstacle_cost", rclcpp::ParameterValue(254));
+    node_->declare_parameter(param_namespace + ".max_radius_grid_num", rclcpp::ParameterValue(50));
+    // 读取参数到结构体
+    TrajOpt::TrajectoryParams params;
+    Config config;
+    node_->get_parameter(param_namespace + ".max_radius_grid_num", config.max_radius_grid_num);
+    node_->get_parameter(param_namespace + ".timeout_ms", config.timeout_ms);
+    node_->get_parameter(param_namespace + ".min_obstacle_cost", config.min_obstacle_cost);
+    node_->get_parameter(param_namespace + ".max_obstacle_cost", config.max_obstacle_cost);
+    node_->get_parameter(param_namespace + ".rho_v", params.rho_v);
+    node_->get_parameter(param_namespace + ".rho_collision", params.rho_collision);
+    node_->get_parameter(param_namespace + ".rho_T", params.rho_T);
+    node_->get_parameter(param_namespace + ".rho_energy", params.rho_energy);
+    node_->get_parameter(param_namespace + ".max_v", params.max_v);
+    node_->get_parameter(param_namespace + ".safe_threshold", params.safe_threshold);
+    node_->get_parameter(param_namespace + ".int_K", params.int_K);
+    node_->get_parameter(param_namespace + ".mem_size", params.mem_size);
+    node_->get_parameter(param_namespace + ".past", params.past);
+    node_->get_parameter(param_namespace + ".max_iter", params.max_iter);
+    node_->get_parameter(param_namespace + ".g_epsilon", params.g_epsilon);
+    node_->get_parameter(param_namespace + ".min_step", params.min_step);
+    node_->get_parameter(param_namespace + ".delta", params.delta);
+    
+    params_ = params;  // 保存到成员变量
     if (!costmap_ros) {
         RCLCPP_ERROR(logger_, "costmap_ros is null!");
         return;
@@ -52,7 +102,8 @@ bool StPlanner::ensureValidPoint(Eigen::Vector2d& point) {
     }
     
     unsigned char cost = costmap_->getCost(mx, my);
-    if (cost >= nav2_costmap_2d::LETHAL_OBSTACLE) {
+    //if (cost>config_.min_obstacle_cost&&cost<config_.max_obstacle_cost) {
+    if (cost==config_.max_obstacle_cost) {
         RCLCPP_WARN(logger_, "Point (%.2f, %.2f) is in obstacle! Searching for nearby free point...", 
                     point.x(), point.y());
         
@@ -60,14 +111,14 @@ bool StPlanner::ensureValidPoint(Eigen::Vector2d& point) {
         unsigned int size_x = costmap_->getSizeInCellsX();
         unsigned int size_y = costmap_->getSizeInCellsY();
         
-        for (int radius = 1; radius <= 20; radius++) {
+        for (int radius = 1; radius <= config_.max_radius_grid_num; radius++) {
             for (int dx = -radius; dx <= radius; dx++) {
                 for (int dy = -radius; dy <= radius; dy++) {
                     int nx = mx + dx;
                     int ny = my + dy;
                     if (nx >= 0 && nx < (int)size_x && ny >= 0 && ny < (int)size_y) {
                         unsigned char test_cost = costmap_->getCost(nx, ny);
-                        if (test_cost < nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
+                        if (test_cost != nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
                             // 找到空闲点
                             double wx, wy;
                             costmap_->mapToWorld(nx, ny, wx, wy);
@@ -90,8 +141,8 @@ nav_msgs::msg::Path StPlanner::createPlan(
     const geometry_msgs::msg::PoseStamped& start,
     const geometry_msgs::msg::PoseStamped& goal)
 {
-    RCLCPP_ERROR(logger_, "=================== ST_PLANNER CREATE PLAN CALLED ===================");
-    
+    RCLCPP_INFO(logger_, "=================== ST_PLANNER CREATE PLAN CALLED ===================");
+    auto start_time = std::chrono::steady_clock::now();
     nav_msgs::msg::Path nav2_path;
     
     // 检查指针有效性
@@ -112,7 +163,7 @@ nav_msgs::msg::Path StPlanner::createPlan(
     Eigen::Vector2d start_world(start.pose.position.x, start.pose.position.y);
     Eigen::Vector2d goal_world(goal.pose.position.x, goal.pose.position.y);
     
-    // ✅ 关键修复：检查并修复起点和终点
+    // 检查并修复起点和终点
     if (!ensureValidPoint(start_world)) {
         RCLCPP_ERROR(logger_, "Cannot find valid start point!");
         return nav2_path;
@@ -145,8 +196,8 @@ nav_msgs::msg::Path StPlanner::createPlan(
             unsigned char cost = costmap_data[index];
             
             // 致命障碍物视为障碍物
-        //if (cost>220&&cost<=nav2_costmap_2d::LETHAL_OBSTACLE) {
-        if (cost==nav2_costmap_2d::LETHAL_OBSTACLE) {
+        if (cost>config_.min_obstacle_cost&&cost<=config_.max_obstacle_cost) {
+        //if (cost==nav2_costmap_2d::LETHAL_OBSTACLE) {
             occupancy(mx, my) = 1;
                 obstacle_count++;
             } else {
@@ -176,17 +227,16 @@ nav_msgs::msg::Path StPlanner::createPlan(
     
     RCLCPP_INFO(logger_, "A* found path with %zu points, length: %.2f", 
                 astar_traj.optimized_path.size(), astar_traj.total_length);
-    
+    auto start_time_opt = std::chrono::steady_clock::now();
     // 轨迹优化
-    TrajOpt::TrajectoryParams params;
-    params.piece_len = 0.1;
-    params.total_time = astar_traj.total_time;
-    params.total_len = astar_traj.total_length;
+    params_.piece_len = astar_traj.total_length / astar_traj.total_time;;
+    params_.total_time = astar_traj.total_time;
+    params_.total_len = astar_traj.total_length;
     
     TrajOpt::TrajectoryOptimizer optimizer(
         esdf_map,
         astar_traj.optimized_path,
-        params
+        params_
     );
     
     nav2_path.header.frame_id = costmap_ros_->getGlobalFrameID();
@@ -222,7 +272,9 @@ nav_msgs::msg::Path StPlanner::createPlan(
         pose.pose.orientation.w = 1.0;
         nav2_path.poses.push_back(pose);
     }
-    
+    auto end_time = std::chrono::steady_clock::now();
+    auto timer=std::chrono::duration<double>(end_time - start_time).count();
+    RCLCPP_INFO(logger_," ST_planner 规划时间：%f 秒",timer);
     RCLCPP_INFO(logger_, "createPlan SUCCESS, path size: %zu", nav2_path.poses.size());
     return nav2_path;
 }

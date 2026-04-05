@@ -5,6 +5,7 @@
 #include <nav2_costmap_2d/costmap_2d_ros.hpp>
 #include "perception_tool/grid_map.hpp"
 #include <nav2_core/global_planner.hpp>
+#include <rclcpp/node.hpp>
 #include "astar.hpp"
 #include "traj_opt.hpp"
 
@@ -12,7 +13,9 @@ namespace st {
 
 struct Config{
     int timeout_ms = 5000;
-    double min_obstacle_cost = nav2_costmap_2d::LETHAL_OBSTACLE;
+    int min_obstacle_cost = 220;
+    int max_obstacle_cost = nav2_costmap_2d::LETHAL_OBSTACLE;
+    int max_radius_grid_num = 50;
 };
 
 class StPlanner: public nav2_core::GlobalPlanner {
@@ -48,11 +51,12 @@ private:
     std::shared_ptr<grid_map::GridMap> esdf_map;
     rclcpp::Logger logger_{rclcpp::get_logger("StPlanner")};
     Config config_;
-    
+    TrajOpt::TrajectoryParams params_;
+    std::shared_ptr<rclcpp_lifecycle::LifecycleNode> node_;
+    std::string plugin_name_;
     // 地图原点
     double map_origin_x_{0.0};
     double map_origin_y_{0.0};
-    
     // 辅助函数
     Eigen::Vector2d worldToMap(const Eigen::Vector2d& world_pt);
     bool ensureValidPoint(Eigen::Vector2d& point);

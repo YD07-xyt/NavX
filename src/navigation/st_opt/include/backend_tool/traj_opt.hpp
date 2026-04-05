@@ -392,7 +392,7 @@ private:
             }
         }
 
-        std::cout << "Cost breakdown - Vel: " << v_cost << ", Coll: " << occ_cost << std::endl;
+        //std::cout << "Cost breakdown - Vel: " << v_cost << ", Coll: " << occ_cost << std::endl;
     }
 
     void calGradCTtoQT(
@@ -410,8 +410,8 @@ private:
         gradPpos = gradByPoints.transpose();
         gradTpos_out = gradByTimes;
         
-        std::cout << "Gradient norm - Ppos: " << gradPpos.norm() 
-                << ", Tpos: " << gradTpos_out.norm() << std::endl;
+        // std::cout << "Gradient norm - Ppos: " << gradPpos.norm() 
+        //         << ", Tpos: " << gradTpos_out.norm() << std::endl;
     }
 
     void generateTrajectory(const MatrixXd& initPos, const MatrixXd& endPos,

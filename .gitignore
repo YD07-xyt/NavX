@@ -3,8 +3,7 @@ install
 log
 .vscode
 .cache
-/home/xyt/code/nav/NavX/src/bringup/maps/auto_map
-
+src/bringup/maps/auto_save
 
 # Prerequisites
 *.d

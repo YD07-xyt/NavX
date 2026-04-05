@@ -3,7 +3,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, GroupAction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, TextSubstitution
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 from launch_ros.substitutions import FindPackageShare
@@ -14,6 +14,11 @@ def generate_launch_description():
     bring_up_dir = get_package_share_directory('bringup')
 
     rviz_config_file = os.path.join(bring_up_dir, 'rviz', 'cod_nav.rviz')
+
+
+
+    world = LaunchConfiguration("world") 
+
 
     # 声明启动参数
     declare_use_sim_time = DeclareLaunchArgument(
@@ -115,7 +120,7 @@ def generate_launch_description():
                     "--y",
                     "0.0",
                     "--z",
-                    "0.05",
+                    "0.0",
                     "--roll",
                     "0.0",
                     "--pitch",
