@@ -4,7 +4,7 @@
 #include<vector>
 #include"crc.hpp"
 #include <cstdint>
-constexpr uint16_t SOF_VALUE = {'MA'};
+constexpr uint16_t SOF_VALUE = (('M' << 8) | 'A');
 namespace io {
     struct SendData{
         uint16_t sof;

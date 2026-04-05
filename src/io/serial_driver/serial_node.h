@@ -14,20 +14,22 @@
 #include"src/packet_typedef.h"
 #include "src/serial.h"
 namespace io {
-class SerialNode : public rclcpp::Node {
+class SerialNode {
     public:
-        SerialNode(const std::string& serial_name, int& baud_rate, int& max_try): Node("serial_node"){
+        SerialNode(const std::string& serial_name, int& baud_rate, int& max_try,const rclcpp::Node::SharedPtr node):node_(node){
+            
+            
             serial_driver = std::make_shared<io::SerialDriver>(serial_name,baud_rate,max_try);
             this->is_open_serial=this->serial_driver->open(serial_name, baud_rate);
             if(!is_open_serial){
                 serial_driver->reopen(serial_name,baud_rate,max_try);
             }else{
-                this->cmd_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
-                "aft_cmd_vel", 10, 
+                this->cmd_sub_ = node_->create_subscription<geometry_msgs::msg::Twist>(
+                "cmd_vel", 10, 
                 std::bind(&SerialNode::cmd_callback, this, std::placeholders::_1));
-                this->rm_data_pub_ = this->create_publisher<rm_interfaces::msg::RmData>("rm_data", 10);
+                this->rm_data_pub_ = node_->create_publisher<rm_interfaces::msg::RmData>("rm_data", 10);
 
-                io_timer_ = this->create_wall_timer(
+                io_timer_ = node_->create_wall_timer(
                 std::chrono::milliseconds(1),
                 [this]() {
                     read_callback();  // 处理异步事件
@@ -36,6 +38,7 @@ class SerialNode : public rclcpp::Node {
             
         }
     private:
+        rclcpp::Node::SharedPtr node_;
         rclcpp::TimerBase::SharedPtr io_timer_;
         bool is_open_serial;
         std::shared_ptr<io::SerialDriver> serial_driver;
@@ -58,7 +61,7 @@ class SerialNode : public rclcpp::Node {
             send_cmd.v_x =cmd_data->linear.x;
             send_cmd.v_y =cmd_data->linear.y;
             send_cmd.w_z =cmd_data->angular.z;
-            RCLCPP_INFO(this->get_logger(),"serial 发送 cmd vx: %f ,vy : %f,wz : %f",
+            RCLCPP_INFO(node_->get_logger(),"serial 发送 cmd vx: %f ,vy : %f,wz : %f",
                     send_cmd.v_x,send_cmd.v_y,send_cmd.w_z);
             serial_driver->send(send_cmd);
         };
