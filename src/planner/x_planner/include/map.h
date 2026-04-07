@@ -27,5 +27,8 @@ namespace planner {
             bool is_in_map(Point current){
                 return vis_map_.isInMap(current);
             };
+             double getDistWithGradBilinear( Eigen::Vector2d bpt,Eigen::Vector2d gradESDF2d, double safeDis);
+              double  getDistWithGradBilinear(Eigen::Vector2d pos);
+                double getDistanceReal(Eigen::Vector2d pos) ;
     };
 }

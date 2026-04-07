@@ -45,104 +45,159 @@ bool SerialDriver::send(const SendData &send_data) {
 bool SerialDriver::receive(ReceiveData &data, int timeout_ms) {
   // 检查端口是否打开
   if (!port_.is_open()) {
-    reopen(serial_name_, baud_rate_, max_try_);
-    std::cerr << "端口未打开，无法接收数据" << std::endl;
-    return false;
+    if (!reopen(serial_name_, baud_rate_, max_try_)) {
+      std::cerr << "端口未打开，无法接收数据" << std::endl;
+      return false;
+    }
   }
-
-  auto buffer = std::make_shared<std::vector<uint8_t>>(sizeof(ReceiveData));
-  auto completed = std::make_shared<bool>(false);
-  auto header = std::make_shared<uint8_t>();
-  auto crc_valid = std::make_shared<bool>(false);
-
-  // 重置 io_service
-  io_.reset();
-
-  // 设置超时定时器
-  timer_.expires_from_now(boost::posix_time::milliseconds(timeout_ms));
-  timer_.async_wait([completed, this](const boost::system::error_code &ec) {
-    if (!ec && !(*completed) && port_.is_open()) {
-      boost::system::error_code cancel_ec;
-      port_.cancel(cancel_ec);
-      if (cancel_ec) {
-        std::cerr << "取消操作失败: " << cancel_ec.message() << std::endl;
+  
+  // 设置总超时
+  auto start_time = std::chrono::steady_clock::now();
+  boost::system::error_code ec;
+  
+  // 帧同步：最多尝试100次
+  const int max_sync_attempts = 100;
+  for (int attempt = 0; attempt < max_sync_attempts; attempt++) {
+    // 检查是否超时
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start_time).count();
+    if (elapsed >= timeout_ms) {
+      std::cerr << "接收数据总超时" << std::endl;
+      return false;
+    }
+    
+    uint8_t byte;
+    size_t bytes_read = boost::asio::read(port_, boost::asio::buffer(&byte, 1), ec);
+    
+    if (ec) {
+      if (ec == boost::asio::error::eof) {
+        std::cerr << "串口连接断开" << std::endl;
+      } else if (ec == boost::asio::error::operation_aborted) {
+        std::cerr << "读取操作被取消" << std::endl;
+      } else {
+        std::cerr << "读取失败: " << ec.message() << std::endl;
+      }
+      return false;
+    }
+    
+    // 找到 'M'
+    if (byte == 'M') {
+      // 尝试读取下一个字节
+      bytes_read = boost::asio::read(port_, boost::asio::buffer(&byte, 1), ec);
+      
+      if (ec) {
+        std::cerr << "读取第二个字节失败: " << ec.message() << std::endl;
+        return false;
+      }
+      
+      // 检查是否为 'A'
+      if (byte == 'A') {
+        // 找到完整帧头，开始读取数据
+        std::vector<uint8_t> buffer(sizeof(ReceiveData));
+        buffer[0] = 'M';
+        buffer[1] = 'A';
+        
+        // 读取剩余数据，剩余超时时间
+        int remaining_timeout = timeout_ms - elapsed;
+        if (remaining_timeout < 0) {
+          return false;
+        }
+        
+        // 设置剩余数据的读取超时
+        boost::asio::deadline_timer data_timer(io_);
+        data_timer.expires_from_now(boost::posix_time::milliseconds(remaining_timeout));
+        bool data_timeout = false;
+        data_timer.async_wait([&](const boost::system::error_code &ec) {
+          if (!ec) data_timeout = true;
+        });
+        
+        // 读取剩余数据
+        bytes_read = boost::asio::read(port_, 
+                                        boost::asio::buffer(buffer.data() + 2, 
+                                                            sizeof(ReceiveData) - 2), 
+                                        ec);
+        data_timer.cancel();
+        
+        if (data_timeout) {
+          std::cerr << "读取数据超时" << std::endl;
+          continue;  // 重新同步
+        }
+        
+        if (ec) {
+          std::cerr << "读取数据失败: " << ec.message() << std::endl;
+          continue;  // 重新同步
+        }
+        
+        // 反序列化和校验
+        data.deserialize(buffer.data(), buffer.size());
+        if (data.verify()) {
+          std::cout << "数据接收成功，CRC校验通过" << std::endl;
+          return true;
+        } else {
+          std::cerr << "CRC校验失败，重新同步" << std::endl;
+          continue;  // CRC失败，重新同步
+        }
+      } else {
+        // 第二个字节不是'A'，继续查找
+        std::cerr << "期望 'A'，收到: 0x" << std::hex << (int)byte 
+                  << std::dec << "，重新同步" << std::endl;
+        // 注意：当前字节可能是新的'M'，所以不退回到查找状态
+        if (byte == 'M') {
+          // 回退一个字节，让下一次循环处理
+          continue;
+        }
       }
     }
-  });
+  }
+  
+  std::cerr << "帧同步失败，已达到最大尝试次数" << std::endl;
+  return false;
+}
 
-  // 读取第一个字节
-  boost::asio::async_read(
-      port_, boost::asio::buffer(header.get(), 1),
-      [this, header, buffer, completed, &data, timeout_ms,
-       crc_valid](const boost::system::error_code &ec, size_t) {
-        if (!ec && port_.is_open() && *header == 'M') {
-          // 读取第二个字节
-          boost::asio::async_read(
-              port_, boost::asio::buffer(header.get(), 1),
-              [this, header, buffer, completed, &data, timeout_ms,
-               crc_valid](const boost::system::error_code &ec, size_t) {
-                if (!ec && port_.is_open() && *header == 'A') {
-                  // 设置帧头
-                  (*buffer)[0] = 'M';
-                  (*buffer)[1] = 'A';
-                  // 读取剩余数据
-                  boost::asio::async_read(
-                      port_,
-                      boost::asio::buffer(buffer->data() + 2,
-                                          sizeof(ReceiveData) - 2),
-                      [buffer, completed, &data,
-                       crc_valid](const boost::system::error_code &ec, size_t) {
-                        if (!ec) {
-                          // 反序列化数据
-                          data.deserialize(buffer->data(), buffer->size());
-                          if (data.verify()) {
-                            *crc_valid = true;
-                            *completed = true;
-                          } else {
-                            // CRC校验失败
-                            std::cerr << "CRC校验失败" << std::endl;
-                            std::cerr << "期望CRC: " << data.crc16 << std::endl;
-                            std::cerr << "计算CRC: " << data.calculateCRC()
-                                      << std::endl;
-                            *completed = false;
-                          }
-                        } else {
-                          std::cerr << "读取剩余数据失败: " << ec.message()
-                                    << std::endl;
-                        }
-                      });
-                } else {
-                  std::cerr << "第二个字节不是 'A'，收到: 0x" << std::hex
-                            << (int)*header << std::dec << std::endl;
-                }
-              });
-        } else {
-          if (ec) {
-            std::cerr << "读取第一个字节失败: " << ec.message() << std::endl;
-          } else if (*header != 'M') {
-            std::cerr << "帧头错误，期望 'M'，收到: 0x" << std::hex
-                      << (int)*header << std::dec << std::endl;
-          }
-        }
-      });
-
-  // 运行 io_service
-  io_.run();
-  io_.reset();
-
-  // 取消定时器
-  boost::system::error_code timer_ec;
-  timer_.cancel(timer_ec);
-
-  return *completed && *crc_valid;
+bool SerialDriver::receive1(ReceiveData &data, int timeout_ms) {
+  // 检查端口是否打开
+  if (!port_.is_open()) {
+    if (!reopen(serial_name_, baud_rate_, max_try_)) {
+      std::cerr << "端口未打开，无法接收数据" << std::endl;
+      return false;
+    }
+  }
+  
+  std::vector<uint8_t> buffer(sizeof(ReceiveData));
+  
+  // 设置超时（可选，取决于串口驱动）
+  // 注意：boost::asio::read 本身没有超时参数，需要配合 deadline_timer
+  uint8_t byte;
+  // 一次性读取完整数据包
+  size_t bytes_read = boost::asio::read(port_, boost::asio::buffer(buffer), ec);
+ 
+  if (ec) {
+    std::cerr << "读取失败: " << ec.message() << std::endl;
+    return false;
+  }
+  
+  if (bytes_read != sizeof(ReceiveData)) {
+    std::cerr << "读取字节数不足，期望" << sizeof(ReceiveData) 
+              << "字节，实际" << bytes_read << std::endl;
+    return false;
+  }
+  if(buffer[0]=='M'&&buffer[1]=='A'){ 
+      // 反序列化和校验
+      data.deserialize(buffer.data(), buffer.size());
+      
+      if (!data.verify()) {
+        std::cerr << "crc16数据校验失败" << std::endl;
+        return false;
+      }
+  }
+  return true;
 }
 
 bool SerialDriver::reopen(std::string serial_name, int baud_rate, int max_try) {
-  boost::system::error_code ec; // 在这里声明 ec
 
   if (port_.is_open()) {
     // 先取消所有异步操作
-    port_.cancel(ec);
+    //port_.cancel(ec);
     if (ec) {
       std::cerr << "取消端口操作失败: " << ec.message() << std::endl;
     }

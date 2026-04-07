@@ -34,13 +34,13 @@
 #include <cfloat>
 #include <vector>
 
-template <int D>
+template <int D, int Freedom>
 class Piece
 {
 public:
-    typedef Eigen::Matrix<double, 3, D + 1> CoefficientMat;
-    typedef Eigen::Matrix<double, 3, D> VelCoefficientMat;
-    typedef Eigen::Matrix<double, 3, D - 1> AccCoefficientMat;
+    typedef Eigen::Matrix<double, Freedom, D + 1> CoefficientMat;
+    typedef Eigen::Matrix<double, Freedom, D> VelCoefficientMat;
+    typedef Eigen::Matrix<double, Freedom, D - 1> AccCoefficientMat;
 
 private:
     double duration;
@@ -54,7 +54,7 @@ public:
 
     inline int getDim() const
     {
-        return 3;
+        return Freedom;
     }
 
     inline int getDegree() const
@@ -72,9 +72,11 @@ public:
         return coeffMat;
     }
 
-    inline Eigen::Vector3d getPos(const double &t) const
+    inline Eigen::VectorXd getPos(const double &t) const
     {
-        Eigen::Vector3d pos(0.0, 0.0, 0.0);
+        Eigen::VectorXd pos;
+        pos.resize(Freedom);
+        pos.setZero();
         double tn = 1.0;
         for (int i = D; i >= 0; i--)
         {
@@ -84,9 +86,11 @@ public:
         return pos;
     }
 
-    inline Eigen::Vector3d getVel(const double &t) const
+    inline Eigen::VectorXd getVel(const double &t) const
     {
-        Eigen::Vector3d vel(0.0, 0.0, 0.0);
+        Eigen::VectorXd vel;
+        vel.resize(Freedom);
+        vel.setZero();
         double tn = 1.0;
         int n = 1;
         for (int i = D - 1; i >= 0; i--)
@@ -98,9 +102,11 @@ public:
         return vel;
     }
 
-    inline Eigen::Vector3d getAcc(const double &t) const
+    inline Eigen::VectorXd getAcc(const double &t) const
     {
-        Eigen::Vector3d acc(0.0, 0.0, 0.0);
+        Eigen::VectorXd acc;
+        acc.resize(Freedom);
+        acc.setZero();
         double tn = 1.0;
         int m = 1;
         int n = 2;
@@ -114,9 +120,11 @@ public:
         return acc;
     }
 
-    inline Eigen::Vector3d getJer(const double &t) const
+    inline Eigen::VectorXd getJer(const double &t) const
     {
-        Eigen::Vector3d jer(0.0, 0.0, 0.0);
+        Eigen::VectorXd jer;
+        jer.resize(Freedom);
+        jer.setZero();
         double tn = 1.0;
         int l = 1;
         int m = 2;
@@ -130,6 +138,28 @@ public:
             n++;
         }
         return jer;
+    }
+
+    inline Eigen::VectorXd getSna(const double &t) const
+    {
+        Eigen::VectorXd sna;
+        sna.resize(Freedom);
+        sna.setZero();
+        double tn = 1.0;
+        int l = 1;
+        int m = 2;
+        int n = 3;
+        int o = 4;
+        for (int i = D - 4; i >= 0; i--)
+        {
+            sna += l * m * n * o * tn * coeffMat.col(i);
+            tn *= t;
+            l++;
+            m++;
+            n++;
+            o++;
+        }
+        return sna;
     }
 
     inline CoefficientMat normalizePosCoeffMat() const
@@ -314,18 +344,18 @@ public:
     }
 };
 
-template <int D>
+template <int D, int Freedom>
 class Trajectory
 {
 private:
-    typedef std::vector<Piece<D>> Pieces;
+    typedef std::vector<Piece<D, Freedom>> Pieces;
     Pieces pieces;
 
 public:
     Trajectory() = default;
 
     Trajectory(const std::vector<double> &durs,
-               const std::vector<typename Piece<D>::CoefficientMat> &cMats)
+               const std::vector<typename Piece<D, Freedom>::CoefficientMat> &cMats)
     {
         int N = std::min(durs.size(), cMats.size());
         pieces.reserve(N);
@@ -339,7 +369,11 @@ public:
     {
         return pieces.size();
     }
-
+    
+    inline int getDim() const
+    {
+        return Freedom;
+    }
     inline Eigen::VectorXd getDurations() const
     {
         int N = getPieceNum();
@@ -362,10 +396,10 @@ public:
         return totalDuration;
     }
 
-    inline Eigen::Matrix3Xd getPositions() const
+    inline Eigen::MatrixXd getPositions() const
     {
         int N = getPieceNum();
-        Eigen::Matrix3Xd positions(3, N + 1);
+        Eigen::MatrixXd positions(Freedom, N + 1);
         for (int i = 0; i < N; i++)
         {
             positions.col(i) = pieces[i].getCoeffMat().col(D);
@@ -374,12 +408,12 @@ public:
         return positions;
     }
 
-    inline const Piece<D> &operator[](int i) const
+    inline const Piece<D, Freedom> &operator[](int i) const
     {
         return pieces[i];
     }
 
-    inline Piece<D> &operator[](int i)
+    inline Piece<D, Freedom> &operator[](int i)
     {
         return pieces[i];
     }
@@ -416,20 +450,20 @@ public:
         return;
     }
 
-    inline void emplace_back(const Piece<D> &piece)
+    inline void emplace_back(const Piece<D, Freedom> &piece)
     {
         pieces.emplace_back(piece);
         return;
     }
 
     inline void emplace_back(const double &dur,
-                             const typename Piece<D>::CoefficientMat &cMat)
+                             const typename Piece<D, Freedom>::CoefficientMat &cMat)
     {
         pieces.emplace_back(dur, cMat);
         return;
     }
 
-    inline void append(const Trajectory<D> &traj)
+    inline void append(const Trajectory<D, Freedom> &traj)
     {
         pieces.insert(pieces.end(), traj.begin(), traj.end());
         return;
@@ -455,31 +489,37 @@ public:
         return idx;
     }
 
-    inline Eigen::Vector3d getPos(double t) const
+    inline Eigen::VectorXd getPos(double t) const
     {
         int pieceIdx = locatePieceIdx(t);
         return pieces[pieceIdx].getPos(t);
     }
 
-    inline Eigen::Vector3d getVel(double t) const
+    inline Eigen::VectorXd getVel(double t) const
     {
         int pieceIdx = locatePieceIdx(t);
         return pieces[pieceIdx].getVel(t);
     }
 
-    inline Eigen::Vector3d getAcc(double t) const
+    inline Eigen::VectorXd getAcc(double t) const
     {
         int pieceIdx = locatePieceIdx(t);
         return pieces[pieceIdx].getAcc(t);
     }
 
-    inline Eigen::Vector3d getJer(double t) const
+    inline Eigen::VectorXd getJer(double t) const
     {
         int pieceIdx = locatePieceIdx(t);
         return pieces[pieceIdx].getJer(t);
     }
 
-    inline Eigen::Vector3d getJuncPos(int juncIdx) const
+    inline Eigen::VectorXd getSna(double t) const
+    {
+        int pieceIdx = locatePieceIdx(t);
+        return pieces[pieceIdx].getSna(t);
+    }
+
+    inline Eigen::VectorXd getJuncPos(int juncIdx) const
     {
         if (juncIdx != getPieceNum())
         {
@@ -491,7 +531,7 @@ public:
         }
     }
 
-    inline Eigen::Vector3d getJuncVel(int juncIdx) const
+    inline Eigen::VectorXd getJuncVel(int juncIdx) const
     {
         if (juncIdx != getPieceNum())
         {
@@ -503,7 +543,7 @@ public:
         }
     }
 
-    inline Eigen::Vector3d getJuncAcc(int juncIdx) const
+    inline Eigen::VectorXd getJuncAcc(int juncIdx) const
     {
         if (juncIdx != getPieceNum())
         {

@@ -9,15 +9,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
 
+#  libqpOASES.a
+link_directories("/usr/local/lib")
+include_directories("/usr/local/include")
+
 file(GLOB_RECURSE x_planner_src CONFIGURE_DEPENDS src/path_search/*.cc 
-src/trajectory_optimization/*.cc)
+src/trajectory_optimization/*.cc
+src/control/*.cc)
 
 
 add_library(x_planner ${x_planner_src})
 
 target_link_directories(x_planner PUBLIC include)
 
-target_link_libraries(x_planner PRIVATE Eigen3::Eigen ${OpenCV_LIBS})
+target_link_libraries(x_planner PRIVATE Eigen3::Eigen ${OpenCV_LIBS} libqpOASES.a)
 
 add_executable(test src/test/test.cpp)
 target_link_libraries(test x_planner)

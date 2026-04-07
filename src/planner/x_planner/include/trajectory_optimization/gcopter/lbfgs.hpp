@@ -298,7 +298,6 @@ namespace lbfgs
 
         /* Compute the initial gradient in the search direction. */
         dginit = gp.dot(s);
-
         /* Make sure that s points to a descent direction. */
         if (0.0 < dginit)
         {
@@ -323,6 +322,11 @@ namespace lbfgs
             {
                 return LBFGSERR_INVALID_FUNCVAL;
             }
+
+            if(param.past > 0 && fabs(finit-f)/(fabs(finit)+1.0)<param.delta/param.past)
+            {
+                return count;
+            }
             /* Check the Armijo condition. */
             if (f > finit + stp * dgtest)
             {
@@ -343,6 +347,8 @@ namespace lbfgs
             }
             if (param.max_linesearch <= count)
             {
+                // std::cout<< fabs(dginit)/finit<<std::endl;
+                // std::cout << fabs(finit-f)/(fabs(finit)+1.0) << std::endl;
                 /* Maximum number of iteration. */
                 return LBFGSERR_MAXIMUMLINESEARCH;
             }
@@ -566,6 +572,34 @@ namespace lbfgs
 
                 /* Search for an optimal step. */
                 ls = line_search_lewisoverton(x, fx, g, step, d, xp, gp, step_min, step_max, cd, param);
+                
+                // int idx = 1;
+                // step = 1.0;
+                // if(d.norm()>1.0){
+                //         d = d.normalized().eval()*1.0;
+                // }
+                // while(1){
+                //     // std::cout<<"step * d"<<(step * d).transpose()<<std::endl;
+                //     x = xp + step * d;
+                //     /* Evaluate the function and gradient values. */
+                //     double f = cd.proc_evaluate(cd.instance, x, g);
+                //     if(g.norm()>1.0){
+                //         g = g.normalized().eval()*1.0;
+                //     }
+                //     std::cout<<"fx: "<<fx<<"  f: "<<f<<"step: "<<step<<std::endl;
+                //     if(f < fx || step <= step_min){
+                //         fx = f;
+                //         break;
+                //     }
+                    
+                //     step  = 1.0 / (++idx);
+                // }
+                // ls  = 1;
+
+                
+
+
+                
 
                 if (ls < 0)
                 {

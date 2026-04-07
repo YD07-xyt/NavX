@@ -19,16 +19,6 @@ namespace io {
             size_t len = offsetof(SendData, crc16);  // 只计算到 w_z 为止
             return crc16::get_CRC16_check_sum(data, len,crc16);
         }
-
-        void init() {
-            sof =SOF_VALUE;
-            v_x = 0.0f;
-            v_y = 0.0f;
-            w_z = 0.0f;
-            crc16 = 0;
-            crc16 = calculateCRC16();
-        }
-
         // 验证数据包
         bool verify() const {
             // 验证帧头
@@ -71,16 +61,7 @@ namespace io {
         float vy;
         float wz;
         uint16_t crc16;
-        
-        void init() {
-            sof = SOF_VALUE;
-            game_progress = 0;
-            current_hp = 0;
-            projectile_allowance = 0;
-            crc16 = 0;
-            crc16 = calculateCRC();
-        }
-        
+            
         uint16_t calculateCRC() const {
             const uint8_t* data = reinterpret_cast<const uint8_t*>(this);
             size_t len = offsetof(ReceiveData, crc16);

@@ -21,6 +21,7 @@ namespace io {
             bool open(std::string serial_name, int baud_rate);
             bool reopen(std::string serial_name,int baud_rate,int max_try);
             bool receive(ReceiveData& data, int timeout_ms = 1000) ;
+            bool receive1(ReceiveData& data, int timeout_ms = 1000) ;
             bool send(const SendData & send_data);
             void init();
         private:

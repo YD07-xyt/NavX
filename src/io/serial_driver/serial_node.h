@@ -28,30 +28,26 @@ class SerialNode {
                 "cmd_vel", 10, 
                 std::bind(&SerialNode::cmd_callback, this, std::placeholders::_1));
                 this->rm_data_pub_ = node_->create_publisher<rm_interfaces::msg::RmData>("rm_data", 10);
-
-                io_timer_ = node_->create_wall_timer(
-                std::chrono::milliseconds(1),
-                [this]() {
-                    read_callback();  // 处理异步事件
-                });
+                recv_thread_ = std::thread(&SerialNode::read_callback, this);
             }
             
         }
     private:
         rclcpp::Node::SharedPtr node_;
-        rclcpp::TimerBase::SharedPtr io_timer_;
         bool is_open_serial;
         std::shared_ptr<io::SerialDriver> serial_driver;
         SendData send_cmd;
         ReceiveData receive_data;
         rm_interfaces::msg::RmData rm_data;       
+        std::thread recv_thread_;
     private:
         
         rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_sub_;
         /*TODO: pub receive*/
         rclcpp::Publisher<rm_interfaces::msg::RmData>::SharedPtr rm_data_pub_;
         void read_callback(){
-            serial_driver->receive(receive_data);
+            //TODO timeout
+            serial_driver->receive1(receive_data);
             rm_data.current_hp = receive_data.current_hp;
             rm_data.game_progress= receive_data.game_progress;
             rm_data.projectile_allowance_17mm =receive_data.projectile_allowance;
