@@ -1,5 +1,18 @@
 # TODO
 
+## 4.7
+## 问题解决
+1.x_planner 增加minco(DDR-opt版)
+2.x_planner 增加mpc 实现
+
+## 未解决
+4.8.1 x_planner map 未实现 (rog_map-->map)
+4.8.2 x_planner planner_manager 未实现
+
+## 4.6
+## 问题解决
+1. serial 改为独立线程接受
+
 ## 4.3
 
 ## 问题解决

@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
-
+find_package(rog_map REQUIRED)
 #  libqpOASES.a
 link_directories("/usr/local/lib")
 include_directories("/usr/local/include")
@@ -22,7 +22,7 @@ add_library(x_planner ${x_planner_src})
 
 target_link_directories(x_planner PUBLIC include)
 
-target_link_libraries(x_planner PRIVATE Eigen3::Eigen ${OpenCV_LIBS} libqpOASES.a ipopt)
+target_link_libraries(x_planner PRIVATE Eigen3::Eigen ${OpenCV_LIBS} libqpOASES.a ipopt rog_map)
 
 add_executable(test src/test/test.cpp)
 target_link_libraries(test x_planner)
@@ -33,4 +33,4 @@ add_executable(main main.cpp)
 target_link_libraries(main x_planner)
 
 add_executable(test1 src/test/planner_manager.cpp)
-target_link_libraries(test x_planner)
+target_link_libraries(test1 x_planner)
