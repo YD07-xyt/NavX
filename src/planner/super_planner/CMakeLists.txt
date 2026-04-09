@@ -74,7 +74,6 @@ set(ros_libs
         rog_map
         tf2_ros
         pcl_conversions
-
 )
 
 include_directories(

@@ -24,6 +24,8 @@
 #ifndef ROG_MAP_ROS_HPP
 #define ROG_MAP_ROS_HPP
 
+#include "rog_map/esdf_map.h"
+#include <memory>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -37,6 +39,10 @@ namespace rog_map {
 using namespace super_utils;
 
 class ROGMapROS : public ROGMap {
+  public:
+    std::shared_ptr<ESDFMap> get_esdf_map(){
+      return esdf_map_;
+    };
   rclcpp::Node::SharedPtr nh_;
   std::shared_ptr<tf2_ros::TransformBroadcaster> br_map_ego_;
 

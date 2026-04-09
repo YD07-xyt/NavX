@@ -10,7 +10,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 add_library(serial src/serial.cc
 src/crc.cpp)
 
-target_include_directories(serial PUBLIC src/serial.h src/crc.hpp)
+target_include_directories(serial PUBLIC src)
 
 target_link_libraries(serial PRIVATE  ${Boost_LIBRARIES})
 
