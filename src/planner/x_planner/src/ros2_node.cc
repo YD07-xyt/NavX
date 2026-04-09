@@ -8,7 +8,14 @@ namespace ros2 {
 //   map_->sdf_map_->odom_ = *msg;
 //   map_->sdf_map_->has_odom_ = true;
 // }
-
+void XPlannerROS2::goalCloudCallback(const geometry_msgs::msg::PoseStamped goal){
+  this->goal.x()=goal.pose.position.x;
+  this->goal.y()=goal.pose.position.y;
+  //TODO:
+    double yaw = std::atan2(2.0 * (goal.pose.orientation.w * goal.pose.orientation.z + goal.pose.orientation.x * goal.pose.orientation.y),
+                          1.0 - 2.0 * (goal.pose.orientation.y * goal.pose.orientation.y + goal.pose.orientation.z * goal.pose.orientation.z));
+  this->goal.z()=yaw;
+};
 void XPlannerROS2::pointCloudCallback(
     const sensor_msgs::msg::PointCloud2::SharedPtr &msg) {
   static auto clock = std::make_shared<rclcpp::Clock>(RCL_SYSTEM_TIME);
@@ -33,6 +40,7 @@ void XPlannerROS2::pointCloudCallback(
   auto &q = transformStamped.transform.rotation;
   double yaw = std::atan2(2.0 * (q.w * q.z + q.x * q.y),
                           1.0 - 2.0 * (q.y * q.y + q.z * q.z));
+  //////////////////// ////////////////////////// ///////////
   map_->sdf_map_->odom_pos_[2] = yaw;
 
   // Perform coordinate transformation
