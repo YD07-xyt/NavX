@@ -30,16 +30,16 @@ public:
             "pub_gradESDF_", 10);
 
     goal_sub_ = node_->create_subscription<geometry_msgs::msg::PoseStamped>(
-        "cloud_map", 10, [this](const geometry_msgs::msg::PoseStamped goal) {
+        "goal", 10, [this]( geometry_msgs::msg::PoseStamped::SharedPtr goal) {
           goalCloudCallback(goal);
         });
     cloud_sub_ = node_->create_subscription<sensor_msgs::msg::PointCloud2>(
         "cloud_map", 10,
-        [this](const sensor_msgs::msg::PointCloud2::SharedPtr &msg) {
+        [this]( sensor_msgs::msg::PointCloud2::SharedPtr msg) {
           pointCloudCallback(msg);
         });
     odom_sub_ = node_->create_subscription<nav_msgs::msg::Odometry>(
-        "cloud_map", 10, [this](const nav_msgs::msg::Odometry::SharedPtr &msg) {
+        "odom", 10, [this]( nav_msgs::msg::Odometry::SharedPtr msg) {
           odomCallback(msg);
         });
         
@@ -74,7 +74,7 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_sub_;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
-  void goalCloudCallback(const geometry_msgs::msg::PoseStamped goal);
+  void goalCloudCallback(const geometry_msgs::msg::PoseStamped::SharedPtr &goal);
   void pointCloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr &msg);
   void odomCallback(const nav_msgs::msg::Odometry::SharedPtr &msg);
   void publish_gridmap();

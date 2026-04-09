@@ -8,13 +8,17 @@ namespace ros2 {
 //   map_->sdf_map_->odom_ = *msg;
 //   map_->sdf_map_->has_odom_ = true;
 // }
-void XPlannerROS2::goalCloudCallback(const geometry_msgs::msg::PoseStamped goal){
-  this->goal.x()=goal.pose.position.x;
-  this->goal.y()=goal.pose.position.y;
-  //TODO:
-    double yaw = std::atan2(2.0 * (goal.pose.orientation.w * goal.pose.orientation.z + goal.pose.orientation.x * goal.pose.orientation.y),
-                          1.0 - 2.0 * (goal.pose.orientation.y * goal.pose.orientation.y + goal.pose.orientation.z * goal.pose.orientation.z));
-  this->goal.z()=yaw;
+void XPlannerROS2::goalCloudCallback(
+    const geometry_msgs::msg::PoseStamped::SharedPtr &goal) {
+  this->goal.x() = goal->pose.position.x;
+  this->goal.y() = goal->pose.position.y;
+  // TODO:
+  double yaw = std::atan2(
+      2.0 * (goal->pose.orientation.w * goal->pose.orientation.z +
+             goal->pose.orientation.x * goal->pose.orientation.y),
+      1.0 - 2.0 * (goal->pose.orientation.y * goal->pose.orientation.y +
+                   goal->pose.orientation.z * goal->pose.orientation.z));
+  this->goal.z() = yaw;
 };
 void XPlannerROS2::pointCloudCallback(
     const sensor_msgs::msg::PointCloud2::SharedPtr &msg) {
@@ -107,8 +111,8 @@ void XPlannerROS2::publish_ESDF() {
   const double max_dist = 5.0;
   int size = map_->sdf_map_->distance_buffer_all_.size();
   for (int i = 1; i < size; i++) {
-    Eigen::Vector2d coord =
-        map_->sdf_map_->gridIndex2coordd(map_->sdf_map_->vectornum2gridIndex(i));
+    Eigen::Vector2d coord = map_->sdf_map_->gridIndex2coordd(
+        map_->sdf_map_->vectornum2gridIndex(i));
     pcl::PointXYZI pt;
     pt.x = coord.x();
     pt.y = coord.y();
@@ -124,58 +128,61 @@ void XPlannerROS2::publish_ESDF() {
   surf_vis.header.frame_id = "world";
   pub_ESDF_->publish(surf_vis);
 }
-void XPlannerROS2::publish_ESDFGrad(){
-    visualization_msgs::msg::MarkerArray grad_all;
-    
-    Eigen::Vector2i min_cut(0,0);
-    Eigen::Vector2i max_cut(map_->sdf_map_->GLX_SIZE_-1, map_->sdf_map_->GLY_SIZE_-1);
+void XPlannerROS2::publish_ESDFGrad() {
+  visualization_msgs::msg::MarkerArray grad_all;
 
-    for (int x = min_cut(0)+2; x < max_cut(0); x+=5)
-      for (int y = min_cut(1)+2; y < max_cut(1); y+=5) {
-        Eigen::Vector2d pos = map_->sdf_map_->gridIndex2coordd(x,y);        
-        Eigen::Vector2d d(0.025,0.025);
-        pos = pos + d;
-        Eigen::Vector2d grad;
-        map_->sdf_map_->getDistWithGradBilinear(pos,grad);
-        visualization_msgs::msg::Marker grad_Marker;
-        grad_Marker.header.frame_id = "world";
-        grad_Marker.header.stamp = node_->now();
-        grad_Marker.ns = "world";
-        grad_Marker.type = visualization_msgs::msg::Marker::ARROW;
-        grad_Marker.action = visualization_msgs::msg::Marker::ADD;
-        grad_Marker.id = (x+1) + (y*100000);
-        grad_Marker.pose.position.x = pos[0];
-        grad_Marker.pose.position.y = pos[1];
-        grad_Marker.pose.position.z = 0.0;
-        
-        Eigen::Quaterniond Quat;
-        Eigen::Vector3d vectorBefore(1, 0, 0);
-        Eigen::Vector3d vectorAfter(grad.x(), grad.y(), 0.0);
-        Quat = Eigen::Quaterniond::FromTwoVectors(vectorBefore, vectorAfter);
+  Eigen::Vector2i min_cut(0, 0);
+  Eigen::Vector2i max_cut(map_->sdf_map_->GLX_SIZE_ - 1,
+                          map_->sdf_map_->GLY_SIZE_ - 1);
 
-        grad_Marker.pose.orientation.w = Quat.w();
-        grad_Marker.pose.orientation.x = Quat.x();
-        grad_Marker.pose.orientation.y = Quat.y();
-        grad_Marker.pose.orientation.z = Quat.z();
+  for (int x = min_cut(0) + 2; x < max_cut(0); x += 5)
+    for (int y = min_cut(1) + 2; y < max_cut(1); y += 5) {
+      Eigen::Vector2d pos = map_->sdf_map_->gridIndex2coordd(x, y);
+      Eigen::Vector2d d(0.025, 0.025);
+      pos = pos + d;
+      Eigen::Vector2d grad;
+      map_->sdf_map_->getDistWithGradBilinear(pos, grad);
+      visualization_msgs::msg::Marker grad_Marker;
+      grad_Marker.header.frame_id = "world";
+      grad_Marker.header.stamp = node_->now();
+      grad_Marker.ns = "world";
+      grad_Marker.type = visualization_msgs::msg::Marker::ARROW;
+      grad_Marker.action = visualization_msgs::msg::Marker::ADD;
+      grad_Marker.id = (x + 1) + (y * 100000);
+      grad_Marker.pose.position.x = pos[0];
+      grad_Marker.pose.position.y = pos[1];
+      grad_Marker.pose.position.z = 0.0;
 
-        grad_Marker.scale.x = (grad.norm()+0.01)/10.0;
-        if(grad.norm()>1000){
-          RCLCPP_INFO(node_->get_logger(),"grad error!!!  position: %f  %f    grad:%f  %f   grad.norm(): %f",pos.x(),pos.y(),grad.x(),grad.y(),grad.norm());
-        }
-        grad_Marker.scale.y = 0.01;
-        grad_Marker.scale.z = 0.01;
+      Eigen::Quaterniond Quat;
+      Eigen::Vector3d vectorBefore(1, 0, 0);
+      Eigen::Vector3d vectorAfter(grad.x(), grad.y(), 0.0);
+      Quat = Eigen::Quaterniond::FromTwoVectors(vectorBefore, vectorAfter);
 
-        grad_Marker.color.r = 0.0f;
-        grad_Marker.color.g = 1.0f;
-        grad_Marker.color.b = 0.0f;
-        grad_Marker.color.a = 1.0;
-        grad_Marker.lifetime = rclcpp::Duration(0.0,100.0);
-        grad_Marker.frame_locked = true;
+      grad_Marker.pose.orientation.w = Quat.w();
+      grad_Marker.pose.orientation.x = Quat.x();
+      grad_Marker.pose.orientation.y = Quat.y();
+      grad_Marker.pose.orientation.z = Quat.z();
 
-        grad_all.markers.push_back(grad_Marker);
+      grad_Marker.scale.x = (grad.norm() + 0.01) / 10.0;
+      if (grad.norm() > 1000) {
+        RCLCPP_INFO(
+            node_->get_logger(),
+            "grad error!!!  position: %f  %f    grad:%f  %f   grad.norm(): %f",
+            pos.x(), pos.y(), grad.x(), grad.y(), grad.norm());
       }
+      grad_Marker.scale.y = 0.01;
+      grad_Marker.scale.z = 0.01;
 
-    pub_gradESDF_->publish(grad_all);
+      grad_Marker.color.r = 0.0f;
+      grad_Marker.color.g = 1.0f;
+      grad_Marker.color.b = 0.0f;
+      grad_Marker.color.a = 1.0;
+      grad_Marker.lifetime = rclcpp::Duration(0.0, 100.0);
+      grad_Marker.frame_locked = true;
 
+      grad_all.markers.push_back(grad_Marker);
+    }
+
+  pub_gradESDF_->publish(grad_all);
 }
 } // namespace ros2
