@@ -5,14 +5,13 @@
 #include <boost/system/error_code.hpp>
 #include <cstring>
 #include"packet_typedef.h"
-
 namespace io {
 
 
     class SerialDriver{
         public:
             SerialDriver(std::string serial_name, int baud_rate, int max_try): 
-                io_(), port_(io_),timer_(io_),
+                io_(),io_context(), port_(io_context),timer_(io_),
                 serial_name_(serial_name),baud_rate_(baud_rate),max_try_(max_try){
             };
             ~SerialDriver(){
@@ -30,7 +29,10 @@ namespace io {
             int max_try_;
             boost::system::error_code ec;
             boost::asio::io_service io_;
-            boost::asio::serial_port port_;
+            boost::asio::io_context io_context;
+            //boost::asio::serial_port port_;
+            boost::asio::local::datagram_protocol::socket port_;
+            
             boost::asio::deadline_timer timer_; 
         };
 }

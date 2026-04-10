@@ -9,24 +9,27 @@
 namespace io {
 bool SerialDriver::open(std::string serial_name, int baud_rate) {
   boost::system::error_code ec;
-  port_.open(serial_name, ec);
+
+  boost::asio::local::datagram_protocol::endpoint ep(serial_name);
+  port_.connect(ep);
+  // port_.open(serial_name, ec);
 
   if (ec) {
     std::cerr << "打开端口失败: " << ec.message() << std::endl;
     return false;
   }
-  ////波特率
-  port_.set_option(boost::asio::serial_port::baud_rate(baud_rate));
-  //字符大小
-  port_.set_option(boost::asio::serial_port::character_size(8));
-  //停止位，
-  port_.set_option(boost::asio::serial_port::stop_bits(
-      boost::asio::serial_port::stop_bits::one));
-  port_.set_option(
-      boost::asio::serial_port::parity(boost::asio::serial_port::parity::none));
-  //流量控制，
-  port_.set_option(boost::asio::serial_port::flow_control(
-      boost::asio::serial_port::flow_control::none));
+  // ////波特率
+  // port_.set_option(boost::asio::serial_port::baud_rate(baud_rate));
+  // //字符大小
+  // port_.set_option(boost::asio::serial_port::character_size(8));
+  // //停止位，
+  // port_.set_option(boost::asio::serial_port::stop_bits(
+  //     boost::asio::serial_port::stop_bits::one));
+  // port_.set_option(
+  //     boost::asio::serial_port::parity(boost::asio::serial_port::parity::none));
+  // //流量控制，
+  // port_.set_option(boost::asio::serial_port::flow_control(
+  //     boost::asio::serial_port::flow_control::none));
 
   return true;
 }
@@ -176,19 +179,20 @@ bool SerialDriver::receive1(ReceiveData &data, int timeout_ms) {
     return false;
   }
   
-  if (bytes_read != sizeof(ReceiveData)) {
-    std::cerr << "读取字节数不足，期望" << sizeof(ReceiveData) 
-              << "字节，实际" << bytes_read << std::endl;
-    return false;
-  }
+  // if (bytes_read != sizeof(ReceiveData)) {
+  //   std::cerr << "读取字节数不足，期望" << sizeof(ReceiveData) 
+  //             << "字节，实际" << bytes_read << std::endl;
+  //   return false;
+  // }
+  
   if(buffer[0]=='M'&&buffer[1]=='A'){ 
       // 反序列化和校验
       data.deserialize(buffer.data(), buffer.size());
       
-      if (!data.verify()) {
-        std::cerr << "crc16数据校验失败" << std::endl;
-        return false;
-      }
+      // if (!data.verify()) {
+      //   std::cerr << "crc16数据校验失败" << std::endl;
+      //   return false;
+      // }
   }
   return true;
 }

@@ -22,7 +22,7 @@ class SerialNode {
             serial_driver = std::make_shared<io::SerialDriver>(serial_name,baud_rate,max_try);
             this->is_open_serial=this->serial_driver->open(serial_name, baud_rate);
             if(!is_open_serial){
-                serial_driver->reopen(serial_name,baud_rate,max_try);
+                //serial_driver->reopen(serial_name,baud_rate,max_try);
             }else{
                 this->cmd_sub_ = node_->create_subscription<geometry_msgs::msg::Twist>(
                 "cmd_vel", 10, 
