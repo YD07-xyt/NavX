@@ -10,7 +10,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 add_library(serial src/serial.cc
 src/crc.cpp)
 
-target_include_directories(serial PUBLIC src/serial.h src/crc.hpp)
+target_include_directories(serial PUBLIC src)
 
 target_link_libraries(serial PRIVATE  ${Boost_LIBRARIES})
 
@@ -24,4 +24,6 @@ target_link_libraries(serial_node  serial)
 ament_auto_package(
   USE_SCOPED_HEADER_INSTALL_DIR
   INSTALL_TO_SHARE
+  config
+  launch
 )
