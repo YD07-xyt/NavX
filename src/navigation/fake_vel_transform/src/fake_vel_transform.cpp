@@ -11,7 +11,7 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
 {
   RCLCPP_INFO(get_logger(), "Start FakeVelTransform!");
 
-  this->declare_parameter<std::string>("robot_base_frame", "imu");
+  this->declare_parameter<std::string>("robot_base_frame", "base_link");
   this->declare_parameter<std::string>("fake_robot_base_frame", "base_link_fake");
   this->declare_parameter<std::string>("odom_topic", "/lio/odom");
   this->declare_parameter<std::string>("input_cmd_vel_topic", "cmd_vel");

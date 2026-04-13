@@ -12,13 +12,13 @@ class LidarFilterNode : public rclcpp::Node
 public:
   LidarFilterNode() : Node("lidar_filter_node")
   {
-    this->declare_parameter("input_topic", "/lio/cloud_world");
+    this->declare_parameter("input_topic", "/livox/lidar");
     this->declare_parameter("output_topic", "/livox/lidar_filtered");
     // 裁剪参数 (CropBox)
-    this->declare_parameter("min_x", -0.4);
-    this->declare_parameter("max_x", 0.4);
-    this->declare_parameter("min_y", -0.3);
-    this->declare_parameter("max_y", 0.3);
+    this->declare_parameter("min_x", -0.39);
+    this->declare_parameter("max_x", 0.39);
+    this->declare_parameter("min_y", -0.39);
+    this->declare_parameter("max_y", 0.39);
     this->declare_parameter("min_z", -0.1);
     this->declare_parameter("max_z", 0.6);
     this->declare_parameter("negative", true); // true = 挖掉中间

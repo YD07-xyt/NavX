@@ -62,7 +62,8 @@ namespace LI2Sup{
   bool g_2_plan_env_body  = false;
   bool g_2_ml_map = false;
   bool g_visual_map = true;
-  bool g_visual_dense = false;
+  // 点云 实时 true or 累积 false
+  bool g_visual_dense = true;
   int  g_pub_step;
 
   /// for planner
