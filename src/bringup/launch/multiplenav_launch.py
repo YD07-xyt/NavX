@@ -43,6 +43,7 @@ def generate_launch_description():
                 name='my_lidar_filter',
                 output='screen',
                 parameters=[{
+                    # 'input_topic': '/patchworkpp/nonground',
                     'input_topic': '/lio/cloud_world',
                     'output_topic': '/livox/lidar_filtered',
                     'min_x': -0.2, 'max_x': 0.2,
@@ -86,7 +87,7 @@ def generate_launch_description():
                 remappings=[('cloud_in',  '/lio/cloud_world'),
                             ('scan', '/scan')],
                 parameters=[{
-                    'target_frame': 'imu',
+                    'target_frame': 'base_link',
                     'transform_tolerance': 0.5,
                     'min_height': 0.1,
                     'max_height': 1.00,

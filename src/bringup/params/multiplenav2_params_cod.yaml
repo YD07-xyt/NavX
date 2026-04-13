@@ -3,7 +3,7 @@ bt_navigator:
     use_sim_time: false
     global_frame: map
     robot_base_frame: base_link_fake
-    odom_topic: /lio/odom
+    odom_topic: /lio/robo/odom
     bt_loop_duration: 10
     timeout: 100
     wait_for_service_timeout: 1000
@@ -60,7 +60,7 @@ bt_navigator:
 controller_server:
   ros__parameters:
     use_sim_time: False
-    controller_frequency: 50.0
+    controller_frequency: 20.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.001
     min_theta_velocity_threshold: 0.001
@@ -209,7 +209,7 @@ local_costmap:
         transform_tolerance: 0.2    # seconds
         mapping_mode: false  # default off, saves map not for navigation
         map_save_duration: 60.0     #default 60s, how often to autosave
-        observation_sources: livox_source #realsense_source
+        observation_sources: livox_source realsense_source
         livox_source:
           data_type: PointCloud2
           topic:  /livox/lidar_filtered
@@ -264,7 +264,7 @@ global_costmap:
       height: 50
       update_frequency: 20.0
       publish_frequency: 20.0
-      global_frame: map
+      global_frame: world
       robot_base_frame: base_link_fake
       rolling_window: true
       use_sim_time: False
@@ -280,7 +280,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 15.0 #与local_costmap一致
-        inflation_radius: 0.2
+        inflation_radius: 0.75
       stvl_voxel_layer:
         plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"
         enabled: true
@@ -299,7 +299,7 @@ global_costmap:
         transform_tolerance: 0.2    # seconds
         mapping_mode: false  # default off, saves map not for navigation
         map_save_duration: 60.0     #default 60s, how often to autosave
-        observation_sources: livox_source #realsense_source
+        observation_sources: livox_source realsense_source
         livox_source:
           data_type: PointCloud2
           topic:  /livox/lidar_filtered
@@ -366,6 +366,25 @@ planner_server:
     use_sim_time: false
     expected_planner_frequency: 10.0
     planner_plugins: ["GridBased"]
+    # GridBased:
+    #   plugin: "st::StPlanner"
+    #   trajectory:
+    #     rho_v: 20000.0 #速度惩罚权重
+    #     rho_collision: 150000.0 #碰撞惩罚权重
+    #     rho_T: 200.0 #时间惩罚权重
+    #     rho_energy: 150.0 #能量/平滑度惩罚权重
+    #     max_v: 0.8  #最大线速度（米/秒）
+    #     safe_threshold: 0.6 # 安全距离阈值（米）
+    #     int_K: 64 #每个轨迹段的采样点数
+    #     mem_size: 512 #L-BFGS 存储的历史梯度数量
+    #     past: 5 #L-BFGS 用于收敛检测的迭代次数
+    #     max_iter: 20000  #最大迭代次数
+    #     g_epsilon: 1.0e-8 #梯度范数收敛阈值
+    #     min_step: 1.0e-35 #最小步长
+    #     delta: 1.0e-7   #函数值变化收敛阈值
+    #     timeout_ms: 5000 #a* 规划 超时时间
+    #     min_obstacle_cost: 200 # 规划 障碍物的上下限
+    #     max_obstacle_cost: 254
     GridBased:
       plugin: "nav2_smac_planner/SmacPlanner2D"
       tolerance: 0.5                      # 如果无法到达精确位置的规划容差，单位：米
@@ -473,5 +492,5 @@ velocity_smoother:
     velocity_timeout: 1.0
     max_accel: [2.5, 2.5, 3.0] #与 MPPI 加速度一致
     max_decel: [-3.5, -3.5, -3.0] #与 MPPI 制动一致
-    odom_topic: "lio/odom"
+    odom_topic: "/lio/robo/odom"
     odom_duration: 0.1
