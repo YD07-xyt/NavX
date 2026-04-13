@@ -102,3 +102,17 @@ or
 ```bash
 sudo apt install libgoogle-glog-dev libtbb-dev
 ```
+
+
+### io
+
+#### serial
+```bash
+sudo apt install libboost-all-dev
+```
+
+### nav2
+```bash
+# 安装 spatio_temporal_voxel_layer
+sudo apt install ros-humble-spatio-temporal-voxel-layer
+```
