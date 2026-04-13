@@ -5,9 +5,15 @@
 #include"crc.hpp"
 #include <cstdint>
 constexpr uint16_t SOF_VALUE = (('M' << 8) | 'A');
+constexpr uint8_t SOF0 = 'M';
+constexpr uint8_t SOF1 = 'A';
 namespace io {
-    struct SendData{
-        uint16_t sof;
+   
+    struct  __attribute__((packed))  SendData{
+        //uint16_t sof;
+        uint8_t sof_0;
+        uint8_t sof_1;
+        //uint8_t sentry_pose;
         float v_x;
         float v_y;
         float w_z;
@@ -17,12 +23,12 @@ namespace io {
         uint16_t calculateCRC16() const {
             const uint8_t* data = reinterpret_cast<const uint8_t*>(this);
             size_t len = offsetof(SendData, crc16);  // 只计算到 w_z 为止
-            return crc16::get_CRC16_check_sum(data, len,crc16);
+            return crc16::get_CRC16_check_sum(data, len,0xffff);
         }
         // 验证数据包
         bool verify() const {
             // 验证帧头
-            if (sof != SOF_VALUE) {
+            if (sof_0 != SOF0||sof_1!=SOF1) {
                 return false;
             }
             // 验证 CRC
@@ -52,24 +58,28 @@ namespace io {
             crc16 = calculateCRC16();  // 更新 CRC
         }
     };
-    struct ReceiveData{
-        uint16_t sof;
-        uint8_t game_progress;
-        uint16_t current_hp;
-        uint16_t projectile_allowance;
-        float vx;
-        float vy;
+    
+    struct  __attribute__((packed))  ReceiveData{
+         //uint16_t sof;
+        uint8_t sof_0;
+        uint8_t sof_1;
+
+        uint8_t game_progress; //比赛是否开始 开始：1 / 未开始：0
+        uint16_t current_hp; //哨兵当前血量
+        uint16_t projectile_allowance; //哨兵可发弹量
+        float vx; // 当前速度
+        float vy; 
         float wz;
         uint16_t crc16;
             
         uint16_t calculateCRC() const {
             const uint8_t* data = reinterpret_cast<const uint8_t*>(this);
             size_t len = offsetof(ReceiveData, crc16);
-            return crc16::get_CRC16_check_sum(data, len,crc16);
+            return crc16::get_CRC16_check_sum(data, len, 0xffff);
         }
         
         bool verify() const {
-            if (sof != SOF_VALUE){
+            if (sof_0 != SOF0||sof_1!=SOF1){
                 return false;
             }
             return calculateCRC() == crc16;
@@ -81,13 +91,13 @@ namespace io {
             return verify();
         }
         
-        void print() const {
-            printf("=== Robot Status ===\n");
-            printf("SOF: %c%c\n", (sof >> 8) & 0xFF, sof & 0xFF);
-            printf("Game: %s\n", game_progress ? "Running" : "Stopped");
-            printf("HP: %u\n", current_hp);
-            printf("Ammo: %u\n", projectile_allowance);
-            printf("CRC: 0x%04X\n", crc16);
-        }
+        // void print() const {
+        //     printf("=== Robot Status ===\n");
+        //     printf("SOF: %c%c\n", (sof >> 8) & 0xFF, sof & 0xFF);
+        //     printf("Game: %s\n", game_progress ? "Running" : "Stopped");
+        //     printf("HP: %u\n", current_hp);
+        //     printf("Ammo: %u\n", projectile_allowance);
+        //     printf("CRC: 0x%04X\n", crc16);
+        // }
     };
 }

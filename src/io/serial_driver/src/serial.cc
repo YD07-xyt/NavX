@@ -5,58 +5,41 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <iomanip>
 
 namespace io {
-bool SerialDriver::open_socket(std::string serial_name, int baud_rate) {
-
+bool SerialDriver::open_socket(std::string serial_name) {
 
   boost::asio::local::stream_protocol::endpoint ep(serial_name);
   port_.connect(ep,ec);
-  // port_.open(serial_name, ec);
 
   if (ec) {
     std::cerr << "打开端口失败: " << ec.message() << std::endl;
     return false;
   }
-  // ////波特率
-  // port_.set_option(boost::asio::serial_port::baud_rate(baud_rate));
-  // //字符大小
-  // port_.set_option(boost::asio::serial_port::character_size(8));
-  // //停止位，
-  // port_.set_option(boost::asio::serial_port::stop_bits(
-  //     boost::asio::serial_port::stop_bits::one));
-  // port_.set_option(
-  //     boost::asio::serial_port::parity(boost::asio::serial_port::parity::none));
-  // //流量控制，
-  // port_.set_option(boost::asio::serial_port::flow_control(
-  //     boost::asio::serial_port::flow_control::none));
-
   return true;
 }
 
 bool SerialDriver::open_serial(std::string serial_name, int baud_rate) {
 
-
-  boost::asio::local::stream_protocol::endpoint ep(serial_name);
-  port_.connect(ep,ec);
-  // port_.open(serial_name, ec);
+  serial_port_.open(serial_name, ec);
 
   if (ec) {
     std::cerr << "打开端口失败: " << ec.message() << std::endl;
     return false;
   }
-  // ////波特率
-  // port_.set_option(boost::asio::serial_port::baud_rate(baud_rate));
-  // //字符大小
-  // port_.set_option(boost::asio::serial_port::character_size(8));
-  // //停止位，
-  // port_.set_option(boost::asio::serial_port::stop_bits(
-  //     boost::asio::serial_port::stop_bits::one));
-  // port_.set_option(
-  //     boost::asio::serial_port::parity(boost::asio::serial_port::parity::none));
-  // //流量控制，
-  // port_.set_option(boost::asio::serial_port::flow_control(
-  //     boost::asio::serial_port::flow_control::none));
+  ////波特率
+  serial_port_.set_option(boost::asio::serial_port::baud_rate(baud_rate));
+  //字符大小
+  serial_port_.set_option(boost::asio::serial_port::character_size(8));
+  //停止位，
+  serial_port_.set_option(boost::asio::serial_port::stop_bits(
+      boost::asio::serial_port::stop_bits::one));
+  serial_port_.set_option(
+      boost::asio::serial_port::parity(boost::asio::serial_port::parity::none));
+  //流量控制，
+  serial_port_.set_option(boost::asio::serial_port::flow_control(
+      boost::asio::serial_port::flow_control::none));
 
   return true;
 }
@@ -71,17 +54,66 @@ bool SerialDriver::send(const SendData &send_data) {
   }
   return sent == buffer.size();
 }
+void printBuffer(const std::vector<uint8_t>& buffer) {
+    std::cout << "Buffer size: " << buffer.size() << " bytes" << std::endl;
+    std::cout << "Data: ";
+    for (size_t i = 0; i < buffer.size(); ++i) {
+        std::cout << std::hex << std::setw(2) << std::setfill('0') 
+                  << static_cast<int>(buffer[i]) << " ";
+    }
+    std::cout << std::dec << std::endl;
+}
 
+bool SerialDriver::send_serial(const SendData &send_data) {
+  std::vector<uint8_t> buffer = send_data.serialize();
 
+  size_t sent = boost::asio::write(serial_port_, boost::asio::buffer(buffer), ec);
+  printBuffer(buffer);
+  if (ec) {
+    std::cerr << "Send error: " << ec.message() << std::endl;
+    return false;
+  }
+  return sent == buffer.size();
+}
+bool SerialDriver::receive_all_serial(std::vector<ReceiveData> &data, int timeout_ms) {
+    std::lock_guard<std::mutex> lock(buffer_mutex_);
+    
+    if (!serial_port_.is_open()) {
+        if (!reopen(serial_name_, baud_rate_, max_try_)) {
+            std::cerr << "端口未打开" << std::endl;
+            return false;
+        }
+    }
+    
+    data.clear();  
+    
+    // 读取可用数据
+    uint8_t temp_buffer[1024];
+    size_t bytes_read = serial_port_.read_some(
+        boost::asio::buffer(temp_buffer, sizeof(temp_buffer)), ec);
+    
+    if (ec && ec != boost::asio::error::would_block) {
+        std::cerr << "读取失败: " << ec.message() << std::endl;
+        return false;
+    }
+    
+    // 将新数据推入环形缓冲区
+    for (size_t i = 0; i < bytes_read; i++) {
+        rx_buffer_.push_back(temp_buffer[i]);
+    }
+    
+    // 从缓冲区解析数据包
+    return find_packet_in_buffer(data);
+}
 
 bool SerialDriver::receive_all(std::vector<ReceiveData> &data, int timeout_ms) {
     std::lock_guard<std::mutex> lock(buffer_mutex_);
     
-    if (!port_.is_open()) {
-        // if (!reopen(serial_name_, baud_rate_, max_try_)) {
-        //     std::cerr << "端口未打开" << std::endl;
-        //     return false;
-        // }
+    if (!serial_port_.is_open()) {
+        if (!reopen(serial_name_, baud_rate_, max_try_)) {
+            std::cerr << "端口未打开" << std::endl;
+            return false;
+        }
         std::cerr << "端口未打开" << std::endl;
         return false;
     }
@@ -126,6 +158,9 @@ bool SerialDriver::find_packet_in_buffer(std::vector<ReceiveData> &data) {
 
       ReceiveData new_data;
       new_data.deserialize(packet, sizeof(ReceiveData));
+      if(new_data.crc16!= new_data.calculateCRC()){
+        std::cerr<<"crc16 error"<<std::endl;
+      }
       data.push_back(new_data); 
 
       i += sizeof(ReceiveData);
@@ -169,19 +204,17 @@ bool SerialDriver::find_packet_in_buffer(std::vector<ReceiveData> &data) {
 
 bool SerialDriver::reopen(std::string serial_name, int baud_rate, int max_try) {
 
-  if (port_.is_open()) {
-    // 先取消所有异步操作
-    // port_.cancel(ec);
-    if (ec) {
-      std::cerr << "取消端口操作失败: " << ec.message() << std::endl;
-    }
-
-    // 关闭端口
-    port_.close(ec);
-    if (ec) {
-      std::cerr << "关闭端口失败: " << ec.message() << std::endl;
-      return false;
-    }
+  if (serial_port_.is_open()) {
+    // if (ec) {
+    //   std::cerr << "取消端口操作失败: " << ec.message() << std::endl;
+    // }
+    // // 关闭端口
+    // port_.close(ec);
+    // if (ec) {
+    //   std::cerr << "关闭端口失败: " << ec.message() << std::endl;
+    //   return false;
+    // }
+    return true;
   }
 
   bool is_open = false;

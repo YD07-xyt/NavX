@@ -1,6 +1,6 @@
 # config/serial_params.yaml
 serial_node:
   ros__parameters:
-    serial_name: "/dev/ttyUSB0"
+    serial_name: "/dev/ttyACM1"
     baud_rate: 115200
     max_try: 10

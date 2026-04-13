@@ -19,24 +19,35 @@ public:
   SerialNode(const std::string &serial_name, int &baud_rate, int &max_try,
              const rclcpp::Node::SharedPtr node)
       : node_(node), running_(true) {
+    
+    
+    send_cmd.sof_0 = SOF0;
+    send_cmd.sof_1 = SOF1;
+    //send_cmd.sentry_pose=3;
+    send_cmd.v_x = 0;
+    send_cmd.v_y = 0;
+    send_cmd.w_z = 0;
+    send_cmd.crc16=send_cmd.calculateCRC16();
+
 
     serial_driver =
         std::make_shared<io::SerialDriver>(serial_name, baud_rate, max_try);
+    // this->is_open_serial =
+    //     this->serial_driver->open_socket(serial_name, baud_rate);
     this->is_open_serial =
-        this->serial_driver->open_socket(serial_name, baud_rate);
-
+        this->serial_driver->open_serial(serial_name, baud_rate);
     receive_data.reserve(100);    
-    
+    std::cout<<"is_open_serial:"<<this->is_open_serial<<std::endl;
     if (!is_open_serial) {
-      // serial_driver->reopen(serial_name,baud_rate,max_try);
-    } else {
+      serial_driver->reopen(serial_name,baud_rate,max_try);
+    } 
       this->cmd_sub_ = node_->create_subscription<geometry_msgs::msg::Twist>(
           "cmd_vel", 10,
           std::bind(&SerialNode::cmd_callback, this, std::placeholders::_1));
       this->rm_data_pub_ =
           node_->create_publisher<rm_interfaces::msg::RmData>("rm_data", 10);
       recv_thread_ = std::thread(&SerialNode::read_callback, this);
-    }
+  
   }
     ~SerialNode() {
         running_ = false;
@@ -68,7 +79,7 @@ private:
     while (running_) {
       receive_data.clear();
       // 接收所有可用数据包
-      if (serial_driver->receive_all(receive_data, timeout_ms)) {
+      if (serial_driver->receive_all_serial(receive_data, timeout_ms)) {
         if (!receive_data.empty()) {
           std::lock_guard<std::mutex> lock(data_mutex_);
 
@@ -80,10 +91,10 @@ private:
 
             rm_data_pub_->publish(rm_data_);
 
-            RCLCPP_INFO(node_->get_logger(),
-                        "Received - HP: %d, Progress: %d, Ammo: %d",
-                        packet.current_hp, packet.game_progress,
-                        packet.projectile_allowance);
+            // RCLCPP_INFO(node_->get_logger(),
+            //             "Received - HP: %d, Progress: %d, projectile_allowance: %d",
+            //             packet.current_hp, packet.game_progress,
+            //             packet.projectile_allowance);
           }
         }
       } else {
@@ -93,12 +104,18 @@ private:
     }
   }
   void cmd_callback(geometry_msgs::msg::Twist::SharedPtr cmd_data) {
+    send_cmd.sof_0 = SOF0;
+    send_cmd.sof_1 = SOF1;
+    //send_cmd.sentry_pose=3;
     send_cmd.v_x = cmd_data->linear.x;
     send_cmd.v_y = cmd_data->linear.y;
     send_cmd.w_z = cmd_data->angular.z;
+    send_cmd.crc16=send_cmd.calculateCRC16();
     RCLCPP_INFO(node_->get_logger(), "serial 发送 cmd vx: %f ,vy : %f,wz : %f",
                 send_cmd.v_x, send_cmd.v_y, send_cmd.w_z);
-    serial_driver->send(send_cmd);
+    RCLCPP_INFO(node_->get_logger(), "serial 发送 crc16: 0x%04X",
+                send_cmd.crc16);
+    serial_driver->send_serial(send_cmd);
   };
 };
 } // namespace io

@@ -12,20 +12,23 @@ namespace io {
     class SerialDriver{
         public:
             SerialDriver(std::string serial_name, int baud_rate, int max_try): 
-                io_(),io_context(), port_(io_context),timer_(io_),
-                serial_name_(serial_name),baud_rate_(baud_rate),max_try_(max_try){
+                io_(),io_context(),serial_port_(io_),port_(io_context),timer_(io_),
+                serial_name_(serial_name),baud_rate_(baud_rate),max_try_(max_try),rx_buffer_(1024) {
             };
             ~SerialDriver(){
                port_.close(); 
             }
-            bool open_socket(std::string serial_name, int baud_rate);
+            bool open_socket(std::string serial_name);
             bool open_serial(std::string serial_name, int baud_rate);
             bool reopen(std::string serial_name,int baud_rate,int max_try);
             //bool receive(ReceiveData& data, int timeout_ms = 1000) ;
             bool send(const SendData & send_data);
+            bool send_serial(const SendData &send_data);
             void init();
             bool find_packet_in_buffer(std::vector<ReceiveData> & data);
+            bool receive_all_serial(std::vector<ReceiveData> &data, int timeout_ms);
             bool receive_all(std::vector<ReceiveData> &data, int timeout_ms);
+
         private:
             std::string serial_name_;
             int baud_rate_;
@@ -33,7 +36,7 @@ namespace io {
             boost::system::error_code ec;
             boost::asio::io_service io_;
             boost::asio::io_context io_context;
-            //boost::asio::serial_port port_;
+            boost::asio::serial_port serial_port_;
             boost::asio::local::stream_protocol::socket port_;
             boost::circular_buffer<uint8_t> rx_buffer_; 
             boost::asio::deadline_timer timer_; 
