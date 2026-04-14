@@ -1,6 +1,6 @@
 #pragma once
 #include"../serial_node.h"
-#include "serial.h"
+#include "serial/serial.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>

@@ -1,8 +1,10 @@
 #include "serial_node.h"
-#include "src/decision.h"
-#include "src/serial.h"
+#include "src/decision/decision.h"
+#include "src/serial/serial.h"
+#include <rclcpp/logging.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/utilities.hpp>
+#include <string>
 
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
@@ -11,7 +13,8 @@ int main(int argc, char *argv[]) {
   std::string serial_name;
   int baud_rate, max_try;
   decision::GoalPoint temp_goal_point;
-  bool is_decision;
+  std::string socket_send_name;
+  std::string socket_receive_name;
   // 参数初始化
   serial_node->declare_parameter<std::string>("serial_name", "/dev/ttyUSB0");
   serial_node->declare_parameter<int>("baud_rate", 115200);
@@ -39,14 +42,16 @@ int main(int argc, char *argv[]) {
   serial_node->get_parameter("serial_name", serial_name);
   serial_node->get_parameter("baud_rate", baud_rate);
   serial_node->get_parameter("max_try", max_try);
-  
+    
+serial_node->get_parameter("socket_send_name", socket_send_name);
+  serial_node->get_parameter("socket_receive_name", socket_receive_name);
   auto node = std::make_shared<io::SerialNode>(serial_name, baud_rate, max_try,
-                                               serial_node);
+                                               serial_node,socket_send_name,socket_receive_name);
 
   // 读取参数
   serial_node->get_parameter("is_decision", node->is_decision_);
-  serial_node->get_parameter("socket_send_name", node->socket_send_name);
-  serial_node->get_parameter("socket_receive_name", node->socket_receive_name);
+
+
   temp_goal_point.Patrol1.x =
       serial_node->get_parameter("patrol1.x").as_double();
   temp_goal_point.Patrol1.y =

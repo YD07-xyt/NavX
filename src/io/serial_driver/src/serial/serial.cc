@@ -177,24 +177,27 @@ bool SerialDriver::reopen(std::string serial_name, int baud_rate, int max_try) {
   return is_open;
 }
 bool SerialDriver::open_socket(std::string receive_name,std::string send_name){
+  printf("socket_send_name:%s,socket_receive_name:%s\n",send_name.c_str(),receive_name.c_str());
   // 清理可能存在的旧 socket 文件
-  ::unlink(send_name.c_str());
-  boost::asio::local::datagram_protocol::endpoint ep_receive(receive_name);
+  ::unlink(receive_name.c_str());
   boost::asio::local::datagram_protocol::endpoint ep_send(send_name);
+  boost::asio::local::datagram_protocol::endpoint ep_receive(receive_name);
+  
   
   port_.open();
-  port_.bind(ep_send,ec);
-  if (ec) {
-    std::cerr << "打开send端口失败: " << ec.message() << std::endl;
-    return false;
-  }
-  port_.connect(ep_receive,ec);
- 
+  port_.bind(ep_receive,ec);
   if (ec) {
     std::cerr << "打开receive端口失败: " << ec.message() << std::endl;
     return false;
   }
-
+  std::cout << "打开receive端口success: " << ec.message() << std::endl;
+  port_.connect(ep_send,ec);
+ 
+  if (ec) {
+    std::cerr << "打开send端口失败: " << ec.message() << std::endl;
+    return false;
+  }
+  std::cout << "打开send端口success: " << ec.message() << std::endl;
   return true;
 }
 

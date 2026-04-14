@@ -18,6 +18,8 @@ namespace decision {
         public:
             FSM(rclcpp::Node::SharedPtr node);
             void decision(int is_game,int current_hp,int projectile_allowance);
+            void advancePatrolIndex();
+            Point selectTarget(int current_hp, int projectile_allowance);
         private:
             std::string map_tf_name_="map";
             rclcpp::Node::SharedPtr node_;
