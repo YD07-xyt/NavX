@@ -4,9 +4,9 @@
 #include<vector>
 #include"crc.hpp"
 #include <cstdint>
-constexpr uint16_t SOF_VALUE = (('M' << 8) | 'A');
+constexpr uint16_t SOF_VALUE = (('M' << 8) | 'B');
 constexpr uint8_t SOF0 = 'M';
-constexpr uint8_t SOF1 = 'A';
+constexpr uint8_t SOF1 = 'B';
 namespace io {
    
     struct  __attribute__((packed))  SendData{
@@ -58,7 +58,26 @@ namespace io {
             crc16 = calculateCRC16();  // 更新 CRC
         }
     };
+    struct  __attribute__((packed))  ReceiveSocketData{
+         //uint16_t sof;
+        uint8_t sof_0;
+        uint8_t sof_1;
+
+        uint8_t game_progress; //比赛是否开始 开始：1 / 未开始：0
+        uint16_t current_hp; //哨兵当前血量
+        uint16_t projectile_allowance; //哨兵可发弹量
+        float vx; // 当前速度
+        float vy; 
+        float wz;
     
+     
+        bool deserialize(const uint8_t* data, size_t size) {
+            if (size < sizeof(ReceiveSocketData)) return false;
+            memcpy(this, data, sizeof(ReceiveSocketData));
+            return true;
+        }
+    };
+
     struct  __attribute__((packed))  ReceiveData{
          //uint16_t sof;
         uint8_t sof_0;

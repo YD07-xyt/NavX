@@ -3,4 +3,17 @@ serial_node:
   ros__parameters:
     serial_name: "/dev/ttyACM1"
     baud_rate: 115200
-    max_try: 10
+    max_try: 100
+    patrol1:
+      x: -0.86
+      y: 1.27
+      yaw: 0.0
+    patrol2:
+      x: 2.0
+      y: 2.0
+      yaw: 2.0
+    home:
+      x: 0.297
+      y: 0.986
+      yaw: 0.0
+    is_decision: false

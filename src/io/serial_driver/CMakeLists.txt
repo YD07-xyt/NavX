@@ -7,12 +7,13 @@ ament_auto_find_build_dependencies()
 
 find_package(Boost REQUIRED COMPONENTS system)
 
-add_library(serial src/serial.cc
-src/crc.cpp)
+ament_auto_add_library(serial src/serial.cc
+src/crc.cpp
+src/decision.cc)
 
 target_include_directories(serial PUBLIC src)
 
-target_link_libraries(serial PRIVATE  ${Boost_LIBRARIES})
+target_link_libraries(serial  ${Boost_LIBRARIES})
 
 
 ament_auto_add_executable(serial_node

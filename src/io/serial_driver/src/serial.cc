@@ -1,4 +1,6 @@
 #include "serial.h"
+#include <boost/asio/local/datagram_protocol.hpp>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <iostream>
@@ -10,13 +12,14 @@
 namespace io {
 bool SerialDriver::open_socket(std::string serial_name) {
 
-  boost::asio::local::stream_protocol::endpoint ep(serial_name);
+  boost::asio::local::datagram_protocol::endpoint ep(serial_name);
   port_.connect(ep,ec);
-
+  //port_.bind(ep,ec);
   if (ec) {
     std::cerr << "打开端口失败: " << ec.message() << std::endl;
     return false;
   }
+  std::cout << "打开端口success: " << ec.message() << std::endl;
   return true;
 }
 
@@ -47,7 +50,8 @@ bool SerialDriver::open_serial(std::string serial_name, int baud_rate) {
 bool SerialDriver::send(const SendData &send_data) {
   std::vector<uint8_t> buffer = send_data.serialize();
 
-  size_t sent = boost::asio::write(port_, boost::asio::buffer(buffer), ec);
+  //size_t sent = boost::asio::write(port_, boost::asio::buffer(buffer), ec);
+  size_t sent= port_.send(boost::asio::buffer(buffer), 0,ec);
   if (ec) {
     std::cerr << "Send error: " << ec.message() << std::endl;
     return false;
@@ -106,24 +110,20 @@ bool SerialDriver::receive_all_serial(std::vector<ReceiveData> &data, int timeou
     return find_packet_in_buffer(data);
 }
 
-bool SerialDriver::receive_all(std::vector<ReceiveData> &data, int timeout_ms) {
+bool SerialDriver::receive_all(std::vector<ReceiveSocketData> &data, int timeout_ms) {
     std::lock_guard<std::mutex> lock(buffer_mutex_);
     
-    if (!serial_port_.is_open()) {
-        if (!reopen(serial_name_, baud_rate_, max_try_)) {
-            std::cerr << "端口未打开" << std::endl;
-            return false;
-        }
-        std::cerr << "端口未打开" << std::endl;
-        return false;
-    }
+    // if (!port_.is_open()) {
+    //     std::cerr << "端口未打开" << std::endl;
+    //     return false;
+    // }
     
     data.clear();  
     
     // 读取可用数据
     uint8_t temp_buffer[1024];
-    size_t bytes_read = port_.read_some(
-        boost::asio::buffer(temp_buffer, sizeof(temp_buffer)), ec);
+    size_t bytes_read = port_.receive(
+        boost::asio::buffer(temp_buffer, sizeof(temp_buffer)),0, ec);
     
     if (ec && ec != boost::asio::error::would_block) {
         std::cerr << "读取失败: " << ec.message() << std::endl;
@@ -136,7 +136,68 @@ bool SerialDriver::receive_all(std::vector<ReceiveData> &data, int timeout_ms) {
     }
     
     // 从缓冲区解析数据包
-    return find_packet_in_buffer(data);
+    return find_packet_in_buffer_socket(data);
+}
+
+bool SerialDriver::find_packet_in_buffer_socket(std::vector<ReceiveSocketData> &data) {
+  if (rx_buffer_.size() < sizeof(ReceiveSocketData)) {
+    return false; // 数据不足
+  }
+
+  bool found_packet = false;
+  size_t i = 0;
+
+  // 遍历环形缓冲区查找包头
+  while (i <= rx_buffer_.size() - sizeof(ReceiveSocketData)) {
+    if (rx_buffer_[i] == SOF0 && rx_buffer_[i + 1] == SOF1) {
+      // 找到包头，提取数据
+      uint8_t packet[sizeof(ReceiveSocketData)];
+      for (size_t j = 0; j < sizeof(ReceiveSocketData); j++) {
+        packet[j] = rx_buffer_[(i + j) % rx_buffer_.capacity()];
+      }
+
+      ReceiveSocketData new_data;
+      new_data.deserialize(packet, sizeof(ReceiveSocketData));
+
+      data.push_back(new_data); 
+
+      i += sizeof(ReceiveSocketData);
+      found_packet = true;
+    } else {
+      i++;
+    }
+  }
+
+
+  if (found_packet) {
+
+    size_t last_packet_end = 0;
+    i = 0;
+    while (i <= rx_buffer_.size() - sizeof(ReceiveSocketData)) {
+      if (rx_buffer_[i] == 'M' && rx_buffer_[i + 1] == 'A') {
+        last_packet_end = i + sizeof(ReceiveSocketData);
+        i += sizeof(ReceiveSocketData);
+      } else {
+        i++;
+      }
+    }
+
+
+    if (last_packet_end > 0) {
+      rx_buffer_.erase_begin(last_packet_end);
+    }
+
+    return true;
+  }
+
+
+  if (rx_buffer_.size() > sizeof(ReceiveSocketData)) {
+    size_t keep = sizeof(ReceiveSocketData) - 1;
+    size_t remove = rx_buffer_.size() - keep;
+    rx_buffer_.erase_begin(remove);
+  }
+  std::cerr << "读取good " << std::endl;
+  return false;
 }
 
 bool SerialDriver::find_packet_in_buffer(std::vector<ReceiveData> &data) {
@@ -149,7 +210,7 @@ bool SerialDriver::find_packet_in_buffer(std::vector<ReceiveData> &data) {
 
   // 遍历环形缓冲区查找包头
   while (i <= rx_buffer_.size() - sizeof(ReceiveData)) {
-    if (rx_buffer_[i] == 'M' && rx_buffer_[i + 1] == 'A') {
+    if (rx_buffer_[i] == SOF0 && rx_buffer_[i + 1] == SOF1) {
       // 找到包头，提取数据
       uint8_t packet[sizeof(ReceiveData)];
       for (size_t j = 0; j < sizeof(ReceiveData); j++) {
