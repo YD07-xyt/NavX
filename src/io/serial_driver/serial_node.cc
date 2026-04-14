@@ -17,10 +17,10 @@ int main(int argc, char *argv[]) {
   serial_node->declare_parameter<int>("baud_rate", 115200);
   serial_node->declare_parameter<int>("max_try", 10);
 
-  // 读取参数
-  serial_node->get_parameter("serial_name", serial_name);
-  serial_node->get_parameter("baud_rate", baud_rate);
-  serial_node->get_parameter("max_try", max_try);
+  serial_node->declare_parameter<std::string>("socket_send_name",
+                                              "/tmp/serial_mux.sock");
+  serial_node->declare_parameter<std::string>("socket_receive_name",
+                                              "/tmp/serial_nav.sock");
 
   // 声明参数（带默认值）
   serial_node->declare_parameter("patrol1.x", 1.0);
@@ -35,11 +35,18 @@ int main(int argc, char *argv[]) {
   serial_node->declare_parameter("home.y", 0.807);
   serial_node->declare_parameter("home.yaw", 0.0);
   serial_node->declare_parameter("is_decision", true);
-  serial_node->get_parameter("is_decision", is_decision);
+
+  serial_node->get_parameter("serial_name", serial_name);
+  serial_node->get_parameter("baud_rate", baud_rate);
+  serial_node->get_parameter("max_try", max_try);
+  
   auto node = std::make_shared<io::SerialNode>(serial_name, baud_rate, max_try,
                                                serial_node);
-  node->is_decision_ = is_decision;
+
   // 读取参数
+  serial_node->get_parameter("is_decision", node->is_decision_);
+  serial_node->get_parameter("socket_send_name", node->socket_send_name);
+  serial_node->get_parameter("socket_receive_name", node->socket_receive_name);
   temp_goal_point.Patrol1.x =
       serial_node->get_parameter("patrol1.x").as_double();
   temp_goal_point.Patrol1.y =

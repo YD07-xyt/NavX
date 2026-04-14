@@ -7,6 +7,7 @@
 #include <cstring>
 #include"packet_typedef.h"
 #include <boost/circular_buffer.hpp>
+#include <string>
 namespace io {
 
 
@@ -17,19 +18,18 @@ namespace io {
                 serial_name_(serial_name),baud_rate_(baud_rate),max_try_(max_try),rx_buffer_(1024) {
             };
             ~SerialDriver(){
-               port_.close(); 
+               port_.close();
             }
-            bool open_socket(std::string serial_name);
+            bool open_socket(std::string receive_name,std::string send_name);
             bool open_serial(std::string serial_name, int baud_rate);
             bool reopen(std::string serial_name,int baud_rate,int max_try);
-            //bool receive(ReceiveData& data, int timeout_ms = 1000) ;
-            bool send(const SendData & send_data);
+            bool send_socket(const SendData & send_data);
             bool send_serial(const SendData &send_data);
             void init();
             bool find_packet_in_buffer(std::vector<ReceiveData> & data);
             bool find_packet_in_buffer_socket(std::vector<ReceiveSocketData> &data);
             bool receive_all_serial(std::vector<ReceiveData> &data, int timeout_ms);
-            bool receive_all(std::vector<ReceiveSocketData> &data, int timeout_ms);
+            bool receive_all_socket(std::vector<ReceiveSocketData> &data, int timeout_ms);
 
         private:
             std::string serial_name_;

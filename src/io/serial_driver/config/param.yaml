@@ -17,3 +17,5 @@ serial_node:
       y: 0.986
       yaw: 0.0
     is_decision: false
+    socket_send_name: "/tmp/serial_mux.sock"
+    socket_receive_name: "/tmp/serial_nav.sock"

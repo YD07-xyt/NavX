@@ -9,6 +9,7 @@
 
 #include <rclcpp/timer.hpp>
 #include <rm_interfaces/msg/rm_data.hpp>
+#include <string>
 #include <vector>
 
 #include "decision.h"
@@ -32,7 +33,7 @@ public:
     serial_driver =
         std::make_shared<io::SerialDriver>(serial_name, baud_rate, max_try);
     this->is_open_serial =
-        this->serial_driver->open_socket("/tmp/nav.sock");
+        this->serial_driver->open_socket("/tmp/serial_mux.sock","/tmp/serial_nav.sock");
     // this->is_open_serial =
     //     this->serial_driver->open_serial(serial_name, baud_rate);
     receive_data.reserve(100);
@@ -73,7 +74,8 @@ private:
 
 public:
   bool is_decision_ = true;
-
+  std::string socket_send_name ;
+  std::string socket_receive_name ;
 public:
   void init_goal(decision::GoalPoint goal_point_sum) {
     fsm_decision_.goal_point_sum_ = goal_point_sum;
@@ -91,7 +93,7 @@ private:
       receive_data.clear();
       // 接收所有可用数据包
       //if (serial_driver->receive_all_serial(receive_data, timeout_ms)) {
-      if (serial_driver->receive_all(receive_data, timeout_ms)) {
+      if (serial_driver->receive_all_socket(receive_data, timeout_ms)) {
         if (!receive_data.empty()) {
           std::lock_guard<std::mutex> lock(data_mutex_);
 
