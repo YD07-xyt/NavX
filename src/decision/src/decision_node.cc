@@ -1,4 +1,4 @@
-#include "fsm.h"
+#include "../include/fsm.h"
 #include "rclcpp/rclcpp.hpp"
 
 int main(int argc, char** argv)

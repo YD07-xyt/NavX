@@ -5,16 +5,16 @@ serial_node:
     baud_rate: 115200
     max_try: 100
     patrol1:
-      x: -0.86
-      y: 1.27
+      x: -3.29
+      y: 2.11
       yaw: 0.0
     patrol2:
-      x: 2.0
-      y: 2.0
-      yaw: 2.0
+      x: 1.28
+      y: 1.16
+      yaw: 0.0
     home:
-      x: 0.297
-      y: 0.986
+      x: -0.019
+      y: -0.138
       yaw: 0.0
     is_decision: true
     socket_send_name: "/tmp/serial_mux.sock"

@@ -34,25 +34,25 @@ void FSM::nav2_status_callback(const action_msgs::msg::GoalStatusArray msg) {
 }
 
 void FSM::decision(int is_game, int current_hp, int projectile_allowance) {
-  if (is_game) {
+  if (!is_game) {
     RCLCPP_INFO(node_->get_logger(), "game is not start");
     return;
   }
   if (this->nav2_status_ == 2) {
     //导航执行中
-    RCLCPP_INFO(node_->get_logger(), "🚀 导航执行中, not pub goal");
+    // RCLCPP_INFO(node_->get_logger(), "🚀 导航执行中, not pub goal");
     return;
   }
   decision::Point target_goal(0, 0, 0);
-  if(this->nav2_status_==4){
+  if (this->nav2_status_ == 4) {
     RCLCPP_INFO(node_->get_logger(), "✅ 导航成功！");
     advancePatrolIndex();
-    nav2_status_ = 0;      // 重置状态，避免重复切换
+    nav2_status_ = 0; // 重置状态，避免重复切换
   }
 
-  target_goal=this->selectTarget(current_hp, projectile_allowance);
+  target_goal = this->selectTarget(current_hp, projectile_allowance);
 
-    // std::this_thread::sleep_for(std::chrono::seconds(10));
+  // std::this_thread::sleep_for(std::chrono::seconds(10));
 
   // 检查是否重复发送相同目标
   // if (this->nav2_status_!=4&&std::abs(last_sent_goal_.x - target_goal.x) <
@@ -67,35 +67,39 @@ void FSM::decision(int is_game, int current_hp, int projectile_allowance) {
 }
 // 分离：选择目标点
 Point FSM::selectTarget(int current_hp, int projectile_allowance) {
-    // 紧急情况
-    if (current_hp < 200 || projectile_allowance < 0) {
-        current_patrol_index_ = 0;  // 重置巡逻
-        return goal_point_sum_.home;
-    }
-    
-    // 正常巡逻
-    switch (current_patrol_index_) {
-        case 0: return goal_point_sum_.Patrol1;
-        case 1: return goal_point_sum_.Patrol2;
-        //case 2: return goal_point_sum_.Patrol3;
-        default: 
-            current_patrol_index_ = 0;
-            return goal_point_sum_.Patrol1;
-    }
+  // 紧急情况
+  if (current_hp < 200 || projectile_allowance < 0) {
+    current_patrol_index_ = 0; // 重置巡逻
+    return goal_point_sum_.home;
+  }
+
+  // 正常巡逻
+  switch (current_patrol_index_) {
+  case 0:
+    return goal_point_sum_.Patrol1;
+  case 1:
+    return goal_point_sum_.Patrol2;
+  // case 2: return goal_point_sum_.Patrol3;
+  default:
+    current_patrol_index_ = 0;
+    return goal_point_sum_.Patrol1;
+  }
 }
 
 // 分离：推进巡逻索引
 void FSM::advancePatrolIndex() {
-    switch (current_patrol_index_) {
-        case 0:
-            current_patrol_index_ = 1;
-            RCLCPP_INFO(node_->get_logger(), "Patrol1 -> Patrol2");
-            break;
-        case 1:
-            current_patrol_index_ = 0;  // 循环
-            RCLCPP_INFO(node_->get_logger(), "Patrol2 -> Patrol1 (loop)");
-            break;
-    }
+  switch (current_patrol_index_) {
+  case 0:
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    current_patrol_index_ = 1;
+    RCLCPP_INFO(node_->get_logger(), "Patrol1 -> Patrol2");
+    break;
+  case 1:
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    current_patrol_index_ = 0; // 循环
+    RCLCPP_INFO(node_->get_logger(), "Patrol2 -> Patrol1 (loop)");
+    break;
+  }
 }
 void FSM::pub_goal(Point goal_point) {
   auto msg = geometry_msgs::msg::PoseStamped();

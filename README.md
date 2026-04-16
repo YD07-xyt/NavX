@@ -1,40 +1,84 @@
-# NavX
+# MA-sentry-2026
+
 
 ## env
 
-[构建环境](docs/build.md)
-
-## Run
-
-[RUN](docs/run.md)
-export RCUTILS_COLORIZED_OUTPUT=1
 ```bash
-source install/setup.sh
-ros2 launch bringup singlenav_launch.py
-```
-```bash
-source install/setup.sh
-ros2 launch cod_bringup multiplenav_launch.py
+wget http://fishros.com/install -O fishros && . fishros 
+rosdepc install -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO -y
 ```
 
 ```bash
- ros2 run tf2_ros static_transform_publisher --x 0.038 --y 0.0 --z 0.433 --yaw 3.14159 --pitch  3.14159  --roll 0.0 --frame-id imu --child-frame-id base_link
+# 更新软件源索引
+sudo apt update
+
+sudo apt install ros-humble-serial-driver
+sudo apt install ros-humble-asio-cmake-module
+```
+```bash
+sudo apt install -y libeigen3-dev libomp-dev
+
+git clone https://github.com/koide3/small_gicp.git
+cd small_gicp
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release && make -j
+sudo make install
+```
+
+## build
+```bash
+./build.sh
+```
+```bash
+colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+```
+
+## run
+### 导航
+
+```bash
+./run.sh
+```
+使用串口
+```bash
+./serial.sh
 ```
 
 ```bash
-source install/setup.bash
-ros2 launch livox_ros_driver2 msg_MID360_launch.py
+source install/setup.bash  
+ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py \
+world:=rmuc_2025 \
+slam:=False \
+use_robot_state_pub:=True
+```
+### 建图
+
+```bash
+./map.sh
 ```
 
 ```bash
-source install/setup.bash
-ros2 launch serial serial.launch.py
+source install/setup.bash  
+ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py \
+slam:=True \
+use_robot_state_pub:=True
 ```
 
+#### 建图补tf
+
+map.sh 中已补tf
+
+/map -> /odom
 ```bash
-source install/setup.bash
-ros2 launch super_lio Livox_mid360.py
+ros2 run tf2_ros static_transform_publisher \
+  --x 0 --y 0 --z 0 \
+  --roll 0 --pitch 0 --yaw 0 \
+  --frame-id odom \
+  --child-frame-id base_footprint \
+  --ros-args -r __ns:=/red_standard_robot1
 ```
 
-  // 点云 实时 true or 累积 false
-  bool g_visual_dense = true;
+/odom -> /base_footprint
+```bash
+ros2 run tf2_ros static_transform_publisher --x 0 --y 0 --z 0 --roll 0 --pitch 0 --yaw 0 --frame-id map --child-frame-id odom --ros-args -r __ns:=/red_standard_robot1
+```

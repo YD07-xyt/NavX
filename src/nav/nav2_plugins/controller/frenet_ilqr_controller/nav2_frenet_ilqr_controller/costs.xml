@@ -1,0 +1,17 @@
+<class_libraries>
+  <library path="nav2_frenet_ilqr_controller_costs">
+
+    <class type="nav2_frenet_ilqr_controller::costs::LateralDistanceCost" base_class_type="nav2_frenet_ilqr_controller::costs::RclcppNodeCost">
+      <description>frenet trajectory planner cost checker for lateral distance</description>
+    </class>
+
+    <class type="nav2_frenet_ilqr_controller::costs::LongtitutalVelocityCost" base_class_type="nav2_frenet_ilqr_controller::costs::RclcppNodeCost">
+      <description>frenet trajectory planner cost checker for logntitutal velocity</description>
+    </class>
+
+    <class type="nav2_frenet_ilqr_controller::costs::ObstacleCost" base_class_type="nav2_frenet_ilqr_controller::costs::RclcppNodeCost">
+      <description>frenet trajectory planner cost checker for obstacle costs</description>
+    </class>
+
+  </library>
+</class_libraries>
