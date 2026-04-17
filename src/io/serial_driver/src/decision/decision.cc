@@ -9,29 +9,7 @@ FSM::FSM(rclcpp::Node::SharedPtr node) : node_(node), last_sent_goal_(0, 0, 0) {
           "/navigate_to_pose/_action/status", 10,
           std::bind(&FSM::nav2_status_callback, this, std::placeholders::_1));
 }
-void FSM::nav2_status_callback(const action_msgs::msg::GoalStatusArray msg) {
-  for (const auto &status : msg.status_list) {
-    if (status.status == action_msgs::msg::GoalStatus::STATUS_SUCCEEDED) {
-      this->nav2_status_ = 4;
-      // RCLCPP_INFO(node_->get_logger(), "✅ 导航成功！");
-    } else if (status.status == action_msgs::msg::GoalStatus::STATUS_ABORTED) {
-      this->nav2_status_ = 6;
-      // RCLCPP_ERROR(node_->get_logger(), "❌ 导航失败/终止");
-    } else if (status.status == action_msgs::msg::GoalStatus::STATUS_CANCELED) {
-      this->nav2_status_ = 5;
-      // RCLCPP_WARN(node_->get_logger(), "⚠️ 导航被取消");
-    } else if (status.status ==
-               action_msgs::msg::GoalStatus::STATUS_EXECUTING) {
-      this->nav2_status_ = 2;
-      // RCLCPP_INFO(node_->get_logger(), "🚀 导航执行中");
-    }
-  }
-  // 打印更多信息
-  // RCLCPP_INFO(node_->get_logger(),
-  //             "Goal ID: %s, Status: %d",
-  //             msg->goal_id.c_str(),
-  //             msg->status);
-}
+
 
 void FSM::decision(int is_game, int current_hp, int projectile_allowance) {
   if (!is_game) {
@@ -65,6 +43,8 @@ void FSM::decision(int is_game, int current_hp, int projectile_allowance) {
   pub_goal(target_goal);
   this->last_sent_goal_ = target_goal;
 }
+
+
 // 分离：选择目标点
 Point FSM::selectTarget(int current_hp, int projectile_allowance) {
   // 紧急情况
@@ -88,25 +68,33 @@ Point FSM::selectTarget(int current_hp, int projectile_allowance) {
 
 // 分离：推进巡逻索引
 void FSM::advancePatrolIndex() {
+  auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::steady_clock::now() - waitStartTime
+  ).count();
   switch (current_patrol_index_) {
   case 0:
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-    current_patrol_index_ = 1;
-    RCLCPP_INFO(node_->get_logger(), "Patrol1 -> Patrol2");
+    //std::this_thread::sleep_for(std::chrono::seconds(1));
+    if(elapsed>wait_point1_time_){
+      current_patrol_index_ = 1;
+      RCLCPP_INFO(node_->get_logger(), "Patrol1 -> Patrol2");
+    }
     break;
   case 1:
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-    current_patrol_index_ = 0; // 循环
+    //std::this_thread::sleep_for(std::chrono::seconds(1));
+    if(elapsed>wait_point2_time_){
+      current_patrol_index_ = 0; // 循环
+    }
     RCLCPP_INFO(node_->get_logger(), "Patrol2 -> Patrol1 (loop)");
     break;
   }
 }
+
 void FSM::pub_goal(Point goal_point) {
   auto msg = geometry_msgs::msg::PoseStamped();
 
   // 设置时间戳和坐标系
   msg.header.stamp = node_->now();
-  msg.header.frame_id = this->map_tf_name_; //!!!
+  msg.header.frame_id = this->fsm_config_.map_tf_name_; //!!!
 
   // 设置位置
   msg.pose.position.x = goal_point.x;
@@ -122,5 +110,29 @@ void FSM::pub_goal(Point goal_point) {
   goal_pub_->publish(msg);
   RCLCPP_INFO(node_->get_logger(), "Published goal: (%.2f, %.2f, %.2f rad)",
               goal_point.x, goal_point.y, goal_point.yaw);
+}
+void FSM::nav2_status_callback(const action_msgs::msg::GoalStatusArray msg) {
+  for (const auto &status : msg.status_list) {
+    if (status.status == action_msgs::msg::GoalStatus::STATUS_SUCCEEDED) {
+      this->nav2_status_ = 4;
+      waitStartTime = std::chrono::steady_clock::now();
+      // RCLCPP_INFO(node_->get_logger(), "✅ 导航成功！");
+    } else if (status.status == action_msgs::msg::GoalStatus::STATUS_ABORTED) {
+      this->nav2_status_ = 6;
+      // RCLCPP_ERROR(node_->get_logger(), "❌ 导航失败/终止");
+    } else if (status.status == action_msgs::msg::GoalStatus::STATUS_CANCELED) {
+      this->nav2_status_ = 5;
+      // RCLCPP_WARN(node_->get_logger(), "⚠️ 导航被取消");
+    } else if (status.status ==
+               action_msgs::msg::GoalStatus::STATUS_EXECUTING) {
+      this->nav2_status_ = 2;
+      // RCLCPP_INFO(node_->get_logger(), "🚀 导航执行中");
+    }
+  }
+  // 打印更多信息
+  // RCLCPP_INFO(node_->get_logger(),
+  //             "Goal ID: %s, Status: %d",
+  //             msg->goal_id.c_str(),
+  //             msg->status);
 }
 } // namespace decision

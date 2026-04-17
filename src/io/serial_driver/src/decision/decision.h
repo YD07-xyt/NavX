@@ -2,26 +2,17 @@
 #include<rclcpp/rclcpp.hpp>
 #include<geometry_msgs/msg/pose_stamped.hpp>
 #include <action_msgs/msg/goal_status_array.hpp>
+#include"type.h"
 namespace decision {
-    struct Point{
-        double x;
-        double y;
-        double yaw;
-        Point(double x,double y,double yaw):x(x),y(y),yaw(yaw){};
-    };
-    struct GoalPoint{
-        Point Patrol1=Point(1,1,1);
-        Point Patrol2=Point(2,2,2);
-        Point home=Point(0.229,0.807,0.0);
-    };
     class FSM {
         public:
             FSM(rclcpp::Node::SharedPtr node);
             void decision(int is_game,int current_hp,int projectile_allowance);
+        private:
             void advancePatrolIndex();
             Point selectTarget(int current_hp, int projectile_allowance);
         private:
-            std::string map_tf_name_="map";
+            FSMConfig fsm_config_;
             rclcpp::Node::SharedPtr node_;
             void pub_goal(Point goal);
             rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr goal_pub_;
@@ -32,6 +23,9 @@ namespace decision {
             int nav2_status_=0;
             int current_patrol_index_ = 0; 
             decision::Point last_sent_goal_;
+            std::chrono::steady_clock::time_point waitStartTime;
+            float wait_point1_time_ =5.0;
+            float wait_point2_time_ =5.0;
 
     };
 }
