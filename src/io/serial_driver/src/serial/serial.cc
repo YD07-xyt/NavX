@@ -201,7 +201,7 @@ bool SerialDriver::open_socket(std::string receive_name,std::string send_name){
   return true;
 }
 
-bool SerialDriver::send_socket(const SendData &send_data) {
+bool SerialDriver::send_socket(const SendSocketData &send_data) {
   std::vector<uint8_t> buffer = send_data.serialize();
 
   size_t sent= port_.send(boost::asio::buffer(buffer), 0,ec);

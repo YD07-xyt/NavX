@@ -19,3 +19,4 @@ serial_node:
     is_decision: true
     socket_send_name: "/tmp/serial_mux.sock"
     socket_receive_name: "/tmp/serial_nav.sock"
+    sending_method: "socket"  # 可选值: "serial" 或 "socket"

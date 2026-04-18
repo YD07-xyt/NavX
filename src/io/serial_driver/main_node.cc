@@ -1,5 +1,5 @@
-#include "serial_node.h"
 #include "src/decision/decision.h"
+#include "src/ros2/serial_node.h"
 #include "src/serial/serial.h"
 #include <rclcpp/logging.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -15,6 +15,8 @@ int main(int argc, char *argv[]) {
   decision::GoalPoint temp_goal_point;
   std::string socket_send_name;
   std::string socket_receive_name;
+  io::SendingMethod sending_method;
+  std::string sending_method_name;
   // 参数初始化
   serial_node->declare_parameter<std::string>("serial_name", "/dev/ttyUSB0");
   serial_node->declare_parameter<int>("baud_rate", 115200);
@@ -24,6 +26,7 @@ int main(int argc, char *argv[]) {
                                               "/tmp/serial_mux.sock");
   serial_node->declare_parameter<std::string>("socket_receive_name",
                                               "/tmp/serial_nav.sock");
+  serial_node->declare_parameter<std::string>("sending_method", "socket");
 
   // 声明参数（带默认值）
   serial_node->declare_parameter("patrol1.x", 1.0);
@@ -42,15 +45,23 @@ int main(int argc, char *argv[]) {
   serial_node->get_parameter("serial_name", serial_name);
   serial_node->get_parameter("baud_rate", baud_rate);
   serial_node->get_parameter("max_try", max_try);
-    
-serial_node->get_parameter("socket_send_name", socket_send_name);
+
+  serial_node->get_parameter("socket_send_name", socket_send_name);
   serial_node->get_parameter("socket_receive_name", socket_receive_name);
-  auto node = std::make_shared<io::SerialNode>(serial_name, baud_rate, max_try,
-                                               serial_node,socket_send_name,socket_receive_name);
+  serial_node->get_parameter("sending_method", sending_method_name);
+  if (sending_method_name == "socket") {
+    RCLCPP_INFO(serial_node->get_logger(), "Using socket for communication");
+    sending_method = io::SendingMethod::socket;
+  } else {
+    RCLCPP_INFO(serial_node->get_logger(), "Using serial for communication");
+    sending_method = io::SendingMethod::serial;
+  }
+  auto node = std::make_shared<io::SerialNode>(
+      serial_name, baud_rate, max_try, serial_node, socket_send_name,
+      socket_receive_name, sending_method);
 
   // 读取参数
   serial_node->get_parameter("is_decision", node->is_decision_);
-
 
   temp_goal_point.Patrol1.x =
       serial_node->get_parameter("patrol1.x").as_double();

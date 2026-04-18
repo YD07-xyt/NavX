@@ -1,17 +1,17 @@
 #include "decision.h"
 #include <iostream>
 namespace decision {
-FSM::FSM(rclcpp::Node::SharedPtr node) : node_(node), last_sent_goal_(0, 0, 0) {
+FSMRos2::FSMRos2(rclcpp::Node::SharedPtr node) : node_(node), last_sent_goal_(0, 0, 0),waitStartTime(std::chrono::steady_clock::now()) {
   this->goal_pub_ = node_->create_publisher<geometry_msgs::msg::PoseStamped>(
       "/goal_pose", 10);
   this->nav2_status_sub_ =
       node_->create_subscription<action_msgs::msg::GoalStatusArray>(
           "/navigate_to_pose/_action/status", 10,
-          std::bind(&FSM::nav2_status_callback, this, std::placeholders::_1));
+          std::bind(&FSMRos2::nav2_status_callback, this, std::placeholders::_1));
 }
 
 
-void FSM::decision(int is_game, int current_hp, int projectile_allowance) {
+void FSMRos2::decision(int is_game, int current_hp, int projectile_allowance) {
   if (!is_game) {
     RCLCPP_INFO(node_->get_logger(), "game is not start");
     return;
@@ -46,7 +46,7 @@ void FSM::decision(int is_game, int current_hp, int projectile_allowance) {
 
 
 // 分离：选择目标点
-Point FSM::selectTarget(int current_hp, int projectile_allowance) {
+Point FSMRos2::selectTarget(int current_hp, int projectile_allowance) {
   // 紧急情况
   if (current_hp < 200 || projectile_allowance < 0) {
     current_patrol_index_ = 0; // 重置巡逻
@@ -67,10 +67,11 @@ Point FSM::selectTarget(int current_hp, int projectile_allowance) {
 }
 
 // 分离：推进巡逻索引
-void FSM::advancePatrolIndex() {
+void FSMRos2::advancePatrolIndex() {
   auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
             std::chrono::steady_clock::now() - waitStartTime
   ).count();
+  std::cout<<"elapsed time: "<<elapsed<<"s"<<std::endl;
   switch (current_patrol_index_) {
   case 0:
     //std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -89,7 +90,7 @@ void FSM::advancePatrolIndex() {
   }
 }
 
-void FSM::pub_goal(Point goal_point) {
+void FSMRos2::pub_goal(Point goal_point) {
   auto msg = geometry_msgs::msg::PoseStamped();
 
   // 设置时间戳和坐标系
@@ -111,7 +112,9 @@ void FSM::pub_goal(Point goal_point) {
   RCLCPP_INFO(node_->get_logger(), "Published goal: (%.2f, %.2f, %.2f rad)",
               goal_point.x, goal_point.y, goal_point.yaw);
 }
-void FSM::nav2_status_callback(const action_msgs::msg::GoalStatusArray msg) {
+
+
+void FSMRos2::nav2_status_callback(const action_msgs::msg::GoalStatusArray msg) {
   for (const auto &status : msg.status_list) {
     if (status.status == action_msgs::msg::GoalStatus::STATUS_SUCCEEDED) {
       this->nav2_status_ = 4;

@@ -4,9 +4,9 @@
 #include <action_msgs/msg/goal_status_array.hpp>
 #include"type.h"
 namespace decision {
-    class FSM {
+    class FSMRos2 {
         public:
-            FSM(rclcpp::Node::SharedPtr node);
+            FSMRos2 (rclcpp::Node::SharedPtr node);
             void decision(int is_game,int current_hp,int projectile_allowance);
         private:
             void advancePatrolIndex();

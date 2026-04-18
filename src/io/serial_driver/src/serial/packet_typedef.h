@@ -58,6 +58,23 @@ namespace io {
             crc16 = calculateCRC16();  // 更新 CRC
         }
     };
+     struct  __attribute__((packed))  SendSocketData{
+        //uint16_t sof;
+        uint8_t sof_0;
+        uint8_t sof_1;
+        //uint8_t sentry_pose;
+        float v_x;
+        float v_y;
+        float w_z;
+        
+        // 序列化
+        std::vector<uint8_t> serialize() const {
+            std::vector<uint8_t> buffer(sizeof(SendData));
+            memcpy(buffer.data(), this, sizeof(SendData));
+            return buffer;
+        }
+         
+    };
     struct  __attribute__((packed))  ReceiveSocketData{
          //uint16_t sof;
         uint8_t sof_0;
