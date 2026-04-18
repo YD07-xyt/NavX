@@ -102,3 +102,12 @@ or
 ```bash
 sudo apt install libgoogle-glog-dev libtbb-dev
 ```
+
+
+### x_planner
+
+#### contoller
+
+##### mpc 
+
+libqpOASES ipopt

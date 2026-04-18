@@ -2,13 +2,13 @@
 #include <rclcpp/rclcpp.hpp>
 
 int main(int argc, char **argv) {
-  // 1. 初始化ROS2
+  // 初始化ROS2
   rclcpp::init(argc, argv);
 
-  // 2. 创建节点
+  // 创建节点
   auto node = rclcpp::Node::make_shared("x_planner_node");
 
-  // 3. 配置地图参数（可以从参数服务器读取，也可以硬编码）
+  // 配置地图参数
   MapConfig map_config;
   
   // 从参数服务器读取参数，如果不存在则使用默认值
@@ -27,6 +27,9 @@ int main(int argc, char **argv) {
   node->declare_parameter("p_min", 0.1);
   node->declare_parameter("p_max", 0.9);
   node->declare_parameter("p_occ", 0.5);
+  node->declare_parameter("goal_sub_name", "goal");
+  node->declare_parameter("cloud_sub_name", "cloud_map");
+  node->declare_parameter("odom_sub_name", "odom");
 
   // 获取参数值
   node->get_parameter("gridmap_interval", map_config.gridmap_interval);
@@ -44,6 +47,9 @@ int main(int argc, char **argv) {
   node->get_parameter("p_min", map_config.p_min);
   node->get_parameter("p_max", map_config.p_max);
   node->get_parameter("p_occ", map_config.p_occ);
+  node->get_parameter("goal_sub_name", map_config.goal_sub_name);
+  node->get_parameter("cloud_sub_name", map_config.cloud_sub_name);
+  node->get_parameter("odom_sub_name", map_config.odom_sub_name);
 
   // 4. 创建XPlannerROS2实例
   auto planner = std::make_shared<ros2::XPlannerROS2>(node, map_config);

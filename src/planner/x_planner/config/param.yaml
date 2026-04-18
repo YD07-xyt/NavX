@@ -1,0 +1,27 @@
+x_planner_node:
+  ros__parameters:
+    # 地图参数
+    gridmap_interval: 0.1
+    detection_range: 10.0
+    global_x_lower: -50.0
+    global_x_upper: 50.0
+    global_y_lower: -50.0
+    global_y_upper: 50.0
+    
+    # 功能开关
+    if_perspective: false
+    if_cirSupRaycast: true
+    hrz_limited: false
+    hrz_laser_range_dgr: 360.0
+    
+    # 概率参数
+    p_hit: 0.7
+    p_miss: 0.3
+    p_min: 0.1
+    p_max: 0.9
+    p_occ: 0.5
+    
+    # 话题名称
+    goal_sub_name: "goal"
+    cloud_sub_name: "cloud_map"
+    odom_sub_name: "odom"

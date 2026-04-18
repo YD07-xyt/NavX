@@ -11,22 +11,22 @@ XPlannerROS2::XPlannerROS2(rclcpp::Node::SharedPtr node,
       map_config, [this]() { publish_ESDF(); },
       [this]() { publish_gridmap(); });
   pub_ESDF_ =
-      node_->create_publisher<sensor_msgs::msg::PointCloud2>("esdf", 10);
+      node_->create_publisher<sensor_msgs::msg::PointCloud2>("Xmap/esdf", 10);
   pub_gridmap_ =
-      node_->create_publisher<sensor_msgs::msg::PointCloud2>("grid_map", 10);
+      node_->create_publisher<sensor_msgs::msg::PointCloud2>("Xmap/grid_map", 10);
   pub_gradESDF_ = node_->create_publisher<visualization_msgs::msg::MarkerArray>(
-      "pub_gradESDF_", 10);
+      "Xmap/gradESDF", 10);
 
   goal_sub_ = node_->create_subscription<geometry_msgs::msg::PoseStamped>(
-      "goal", 10, [this](geometry_msgs::msg::PoseStamped::SharedPtr goal) {
+      map_config.goal_sub_name, 10, [this](geometry_msgs::msg::PoseStamped::SharedPtr goal) {
         goalCloudCallback(goal);
       });
   cloud_sub_ = node_->create_subscription<sensor_msgs::msg::PointCloud2>(
-      "cloud_map", 10, [this](sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+      map_config.cloud_sub_name, 10, [this](sensor_msgs::msg::PointCloud2::SharedPtr msg) {
         pointCloudCallback(msg);
       });
   odom_sub_ = node_->create_subscription<nav_msgs::msg::Odometry>(
-      "odom", 10,
+      map_config.odom_sub_name, 10,
       [this](nav_msgs::msg::Odometry::SharedPtr msg) { odomCallback(msg); });
 
   occ_timer_ =

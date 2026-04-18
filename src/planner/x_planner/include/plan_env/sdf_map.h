@@ -27,6 +27,9 @@ class PathSDFmap;
 class UnknownMap;
 
 struct MapConfig{
+  std::string cloud_sub_name;
+  std::string odom_sub_name;
+  std::string goal_sub_name;
   double gridmap_interval;
   double detection_range;
   double global_x_lower;
