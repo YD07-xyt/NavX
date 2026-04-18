@@ -3,9 +3,9 @@ install
 log
 .vscode
 .cache
-
-
-
+/src/nav
+/src/tool/pcd2pgm
+src/tool/pcd2pgm
 # Prerequisites
 *.d
 
