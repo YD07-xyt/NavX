@@ -423,11 +423,13 @@ void SDFmap::updateESDFCallback(){
 
 void SDFmap::visCallback(){
   if(has_map_){
-    pub_gridmap_fun();
+     if (pub_gridmap_fun_){
+    pub_gridmap_fun_();}
     // exit(0);
   }
   if(has_esdf_){
-    pub_esdf_fun();
+    if (pub_esdf_fun_){
+    pub_esdf_fun_();}
     // publish_ESDFGrad();
   }
 }

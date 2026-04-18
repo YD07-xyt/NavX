@@ -40,13 +40,6 @@ struct MapConfig{
   double p_hit, p_miss, p_min, p_max, p_occ;
 };
 
-class visualization{
-  public:
-    void publish_gridmap();
-    void publish_ESDF();
-    void publish_ESDFGrad();
-};
-
 
 class SDFmap
 {
@@ -58,10 +51,9 @@ class SDFmap
           // for ESDF
     std::vector<double> distance_buffer_all_;
 
-            // visualization
-    void pub_gridmap_fun();
-    void pub_esdf_fun();
-
+    // visualization
+    std::function<void()> pub_esdf_fun_;
+    std::function<void()> pub_gridmap_fun_;
   private:
     // ros::NodeHandle nh_;
     // ros::Publisher pub_gridmap_;
@@ -134,7 +126,10 @@ class SDFmap
 	  int GLXY_SIZE_;
     Eigen::Vector2i EIXY_SIZE_;
 
-    SDFmap(MapConfig map_config,std::function<void()> pub_esdf_fun,std::function<void()> pub_gridmap_fun){
+    SDFmap(MapConfig map_config,std::function<void()> pub_esdf_fun,std::function<void()> pub_gridmap_fun)
+            : pub_esdf_fun_(pub_esdf_fun),      // 保存回调
+          pub_gridmap_fun_(pub_gridmap_fun) // 保存回调
+    {
 
 
     // debug

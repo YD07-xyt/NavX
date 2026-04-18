@@ -16,45 +16,7 @@
 namespace ros2 {
 class XPlannerROS2 {
 public:
-  XPlannerROS2(rclcpp::Node::SharedPtr node, const MapConfig map_config)
-      : node_(node) {
-    map_ = std::make_shared<planner::Map>(
-        map_config, [this]() { publish_ESDF(); },
-        [this]() { publish_gridmap(); });
-    pub_ESDF_ =
-        node_->create_publisher<sensor_msgs::msg::PointCloud2>("esdf", 10);
-    pub_gridmap_ =
-        node_->create_publisher<sensor_msgs::msg::PointCloud2>("grid_map", 10);
-    pub_gradESDF_ =
-        node_->create_publisher<visualization_msgs::msg::MarkerArray>(
-            "pub_gradESDF_", 10);
-
-    goal_sub_ = node_->create_subscription<geometry_msgs::msg::PoseStamped>(
-        "goal", 10, [this]( geometry_msgs::msg::PoseStamped::SharedPtr goal) {
-          goalCloudCallback(goal);
-        });
-    cloud_sub_ = node_->create_subscription<sensor_msgs::msg::PointCloud2>(
-        "cloud_map", 10,
-        [this]( sensor_msgs::msg::PointCloud2::SharedPtr msg) {
-          pointCloudCallback(msg);
-        });
-    odom_sub_ = node_->create_subscription<nav_msgs::msg::Odometry>(
-        "odom", 10, [this]( nav_msgs::msg::Odometry::SharedPtr msg) {
-          odomCallback(msg);
-        });
-        
-    occ_timer_ = node_->create_wall_timer(
-        std::chrono::milliseconds(50),
-        std::bind(&SDFmap::updateOccupancyCallback, map_->sdf_map_.get()));
-
-    esdf_timer_ = node_->create_wall_timer(
-        std::chrono::milliseconds(50),
-        std::bind(&SDFmap::updateESDFCallback, map_->sdf_map_.get()));
-
-    vis_timer_ = node_->create_wall_timer(
-        std::chrono::milliseconds(500),
-        std::bind(&SDFmap::visCallback, map_->sdf_map_.get()));
-  };
+  XPlannerROS2(rclcpp::Node::SharedPtr node, const MapConfig map_config);
 
 private:
   Eigen::Vector3d goal;

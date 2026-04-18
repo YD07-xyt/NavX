@@ -2,12 +2,55 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <tf2_ros/buffer.hpp>
 #include <tf2_ros/transform_listener.hpp>
+#include <tf2_sensor_msgs/tf2_sensor_msgs.hpp>
 namespace ros2 {
+XPlannerROS2::XPlannerROS2(rclcpp::Node::SharedPtr node,
+                           const MapConfig map_config)
+    : node_(node) {
+  map_ = std::make_shared<planner::Map>(
+      map_config, [this]() { publish_ESDF(); },
+      [this]() { publish_gridmap(); });
+  pub_ESDF_ =
+      node_->create_publisher<sensor_msgs::msg::PointCloud2>("esdf", 10);
+  pub_gridmap_ =
+      node_->create_publisher<sensor_msgs::msg::PointCloud2>("grid_map", 10);
+  pub_gradESDF_ = node_->create_publisher<visualization_msgs::msg::MarkerArray>(
+      "pub_gradESDF_", 10);
+
+  goal_sub_ = node_->create_subscription<geometry_msgs::msg::PoseStamped>(
+      "goal", 10, [this](geometry_msgs::msg::PoseStamped::SharedPtr goal) {
+        goalCloudCallback(goal);
+      });
+  cloud_sub_ = node_->create_subscription<sensor_msgs::msg::PointCloud2>(
+      "cloud_map", 10, [this](sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+        pointCloudCallback(msg);
+      });
+  odom_sub_ = node_->create_subscription<nav_msgs::msg::Odometry>(
+      "odom", 10,
+      [this](nav_msgs::msg::Odometry::SharedPtr msg) { odomCallback(msg); });
+
+  occ_timer_ =
+      node_->create_wall_timer(std::chrono::milliseconds(50), [this]() {
+        map_->sdf_map_->updateOccupancyCallback();
+      });
+
+  esdf_timer_ =
+      node_->create_wall_timer(std::chrono::milliseconds(50), [this]() {
+        map_->sdf_map_->updateESDFCallback();
+      });
+
+  vis_timer_ =
+      node_->create_wall_timer(std::chrono::milliseconds(500),
+                               [this]() { map_->sdf_map_->visCallback(); });
+};
 
 // void XPlannerROS2::odomCallback(const carstatemsgs::CarState::ConstPtr &msg){
 //   map_->sdf_map_->odom_ = *msg;
 //   map_->sdf_map_->has_odom_ = true;
 // }
+void XPlannerROS2::odomCallback(const nav_msgs::msg::Odometry::SharedPtr &msg){
+
+};
 void XPlannerROS2::goalCloudCallback(
     const geometry_msgs::msg::PoseStamped::SharedPtr &goal) {
   this->goal.x() = goal->pose.position.x;

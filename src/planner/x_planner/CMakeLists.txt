@@ -41,13 +41,14 @@ target_link_libraries(x_planner PRIVATE Eigen3::Eigen ${OpenCV_LIBS} ${PCL_LIBRA
 # add_executable(main main.cpp)
 # target_link_libraries(main x_planner)
 
-add_executable(test1 src/test/planner_manager.cpp)
-target_link_libraries(test1 x_planner)
-
 ament_auto_add_library(ros2_node src/ros2_node.cc)
 
 # 不需要手动添加 include 目录，ament_auto 会处理
 target_include_directories(ros2_node PRIVATE include)
+target_link_libraries(ros2_node  x_planner)
+
+ament_auto_add_executable(main main.cpp)
+target_link_libraries(main ros2_node x_planner)
 
 ament_auto_package(
   USE_SCOPED_HEADER_INSTALL_DIR
