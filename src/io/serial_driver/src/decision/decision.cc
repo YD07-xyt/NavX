@@ -1,4 +1,5 @@
 #include "decision.h"
+#include "decision/type.h"
 #include <iostream>
 namespace decision {
 FSMRos2::FSMRos2(rclcpp::Node::SharedPtr node)
@@ -14,6 +15,7 @@ FSMRos2::FSMRos2(rclcpp::Node::SharedPtr node)
 }
 
 void FSMRos2::decision(int is_game, int current_hp, int projectile_allowance) {
+  
   if (!is_game) {
     RCLCPP_INFO(node_->get_logger(), "game is not start");
     return;
@@ -23,14 +25,15 @@ void FSMRos2::decision(int is_game, int current_hp, int projectile_allowance) {
     //导航执行中
     // RCLCPP_INFO(node_->get_logger(), "🚀 导航执行中, not pub goal");
     if(current_hp > 200 && projectile_allowance > 0){
+      RCLCPP_INFO(node_->get_logger(), "🚀 导航执行中, not pub goal");
       return;
     }
     RCLCPP_INFO(node_->get_logger(), "🚀 导航执行中----->home!");
-    target_goal=goal_point_sum_.home;
   }
   
   if (this->nav2_status_ == 4) {
     RCLCPP_INFO(node_->get_logger(), "✅ 导航成功！");
+    this->nav_end_time_=std::chrono::steady_clock::now();
     advancePatrolIndex();
     nav2_status_ = 0; // 重置状态，避免重复切换
   }
@@ -39,15 +42,8 @@ void FSMRos2::decision(int is_game, int current_hp, int projectile_allowance) {
 
   // std::this_thread::sleep_for(std::chrono::seconds(10));
 
-  // 检查是否重复发送相同目标
-  // if (this->nav2_status_!=4&&std::abs(last_sent_goal_.x - target_goal.x) <
-  // 0.01 &&
-  //     std::abs(last_sent_goal_.y - target_goal.y) < 0.01) {
-  //     // 相同目标，不重复发送
-  //     RCLCPP_INFO(node_->get_logger(), "相同目标，不重复发送");
-  //     return;
-  // }
   pub_goal(target_goal);
+  this->nav_start_time_=std::chrono::steady_clock::now();
   this->last_sent_goal_ = target_goal;
 }
 
@@ -58,7 +54,7 @@ Point FSMRos2::selectTarget(int current_hp, int projectile_allowance) {
     current_patrol_index_ = 0; // 重置巡逻
     return goal_point_sum_.home;
   }
-  if(current_hp >=350&& projectile_allowance > 0){
+  if(current_hp >=400&& projectile_allowance >1){
     // 正常巡逻
     switch (current_patrol_index_) {
     case 0:
@@ -67,17 +63,20 @@ Point FSMRos2::selectTarget(int current_hp, int projectile_allowance) {
       return goal_point_sum_.Patrol2;
     // case 2: return goal_point_sum_.Patrol3;
     default:
-      RCLCPP_INFO(node_->get_logger(), "default");
       current_patrol_index_ = 0;
       return goal_point_sum_.Patrol1;
     }
   }
+  return Point(0,0,0);
 }
 
 // 分离：推进巡逻索引
 void FSMRos2::advancePatrolIndex() {
+  auto nav_time= std::chrono::duration_cast<std::chrono::seconds>(
+                     nav_end_time_-nav_start_time_)
+                     .count();
   auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
-                     std::chrono::steady_clock::now() - waitStartTime)
+                     std::chrono::steady_clock::now() - waitStartTime-(nav_end_time_-nav_start_time_))
                      .count();
   std::cout << "elapsed time: " << elapsed << "s" << std::endl;
   switch (current_patrol_index_) {
@@ -88,7 +87,7 @@ void FSMRos2::advancePatrolIndex() {
       RCLCPP_INFO(node_->get_logger(), "Patrol1 -> Patrol2");
       waitStartTime = std::chrono::steady_clock::now(); 
     }else{
-       RCLCPP_INFO(node_->get_logger(), "0 wait");
+      RCLCPP_INFO(node_->get_logger(), "0 wait");
     }
     break;
   case 1:

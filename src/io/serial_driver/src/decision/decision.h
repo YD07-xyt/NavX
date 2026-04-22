@@ -24,6 +24,8 @@ namespace decision {
             int current_patrol_index_ = 0; 
             decision::Point last_sent_goal_;
             std::chrono::steady_clock::time_point waitStartTime;
+             std::chrono::steady_clock::time_point nav_start_time_;
+              std::chrono::steady_clock::time_point nav_end_time_;
             float wait_point1_time_ =5.0;
             float wait_point2_time_ =5.0;
     };
