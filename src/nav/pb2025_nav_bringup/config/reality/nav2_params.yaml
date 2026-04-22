@@ -335,7 +335,7 @@ bt_navigator:
 controller_server:
   ros__parameters:
     use_sim_time: False
-    controller_frequency: 50.0
+    controller_frequency: 80.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.001
     min_theta_velocity_threshold: 0.001
@@ -355,11 +355,11 @@ controller_server:
     FollowPath:
       plugin: "goal_approach_controller::GoalApproachController"
       inner_plugin: "nav2_mppi_controller::MPPIController"
-      approach_distance: 1.5  #距目标时开始限速
+      approach_distance: 1.0  #距目标时开始限速
       approach_velocity: 0.2
       time_steps: 80  #增加到80，预测时域4.8s，让MPPI能看到冲过目标的后果
-      model_dt: 0.06  #稍微放大步长，配合time_steps延长预测时域  =1/controller_frequency
-      batch_size: 1000 #控制器的采样数。 在给定迭代中，从当前最优控制序列随机采样的候选轨迹数量。1000 @ 50 Hz 或 2000 @ 30 Hz 似乎能产生良好效果。
+      model_dt: 0.0125 #0.06  #稍微放大步长，配合time_steps延长预测时域  =1/controller_frequency
+      batch_size: 1200 #控制器的采样数。 在给定迭代中，从当前最优控制序列随机采样的候选轨迹数量。1000 @ 50 Hz 或 2000 @ 30 Hz 似乎能产生良好效果。
 
       vx_std: 0.35 #增大采样多样性，让MPPI能采到更多减速/停止轨迹
       vy_std: 0.35

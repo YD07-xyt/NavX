@@ -26,6 +26,5 @@ namespace decision {
             std::chrono::steady_clock::time_point waitStartTime;
             float wait_point1_time_ =5.0;
             float wait_point2_time_ =5.0;
-
     };
 }

@@ -48,7 +48,7 @@ SerialNode::SerialNode(const std::string &serial_name, int &baud_rate,
 
   std::cout << "is_open_serial:" << this->is_open_serial << std::endl;
   if (!is_open_serial) {
-    // serial_driver->reopen(serial_name, baud_rate, max_try);
+    //serial_driver->reopen(serial_name,baud_rate, max_try);
   }
   this->cmd_sub_ = node_->create_subscription<geometry_msgs::msg::Twist>(
       "cmd_vel", 10,
@@ -80,10 +80,10 @@ void SerialNode::cmd_callback(geometry_msgs::msg::Twist::SharedPtr cmd_data) {
     std::get<SendData>(send_cmd_variant_).v_x = cmd_data->linear.x;
     std::get<SendData>(send_cmd_variant_).v_y = cmd_data->linear.y;
     std::get<SendData>(send_cmd_variant_).w_z = cmd_data->angular.z;
-    RCLCPP_INFO(node_->get_logger(), "serial 发送 cmd vx: %f ,vy : %f,wz : %f",
-                std::get<SendData>(send_cmd_variant_).v_x,
-                std::get<SendData>(send_cmd_variant_).v_y,
-                std::get<SendData>(send_cmd_variant_).w_z);
+    // RCLCPP_INFO(node_->get_logger(), "serial 发送 cmd vx: %f ,vy : %f,wz : %f",
+    //             std::get<SendData>(send_cmd_variant_).v_x,
+    //             std::get<SendData>(send_cmd_variant_).v_y,
+    //             std::get<SendData>(send_cmd_variant_).w_z);
     // RCLCPP_INFO(node_->get_logger(), "serial 发送 crc16: 0x%04X",
     //             send_cmd.crc16);
     std::get<SendData>(send_cmd_variant_).crc16 =
@@ -100,10 +100,10 @@ void SerialNode::cmd_callback(geometry_msgs::msg::Twist::SharedPtr cmd_data) {
     std::get<SendSocketData>(send_cmd_variant_).v_x = cmd_data->linear.x;
     std::get<SendSocketData>(send_cmd_variant_).v_y = cmd_data->linear.y;
     std::get<SendSocketData>(send_cmd_variant_).w_z = cmd_data->angular.z;
-    RCLCPP_INFO(node_->get_logger(), "serial 发送 cmd vx: %f ,vy : %f,wz : %f",
-                std::get<SendSocketData>(send_cmd_variant_).v_x,
-                std::get<SendSocketData>(send_cmd_variant_).v_y,
-                std::get<SendSocketData>(send_cmd_variant_).w_z);
+    // RCLCPP_INFO(node_->get_logger(), "serial 发送 cmd vx: %f ,vy : %f,wz : %f",
+    //             std::get<SendSocketData>(send_cmd_variant_).v_x,
+    //             std::get<SendSocketData>(send_cmd_variant_).v_y,
+    //             std::get<SendSocketData>(send_cmd_variant_).w_z);
     // RCLCPP_INFO(node_->get_logger(), "serial 发送 crc16: 0x%04X",
     //             send_cmd.crc16);
     serial_driver->send_socket(std::get<SendSocketData>(send_cmd_variant_));
@@ -139,8 +139,7 @@ void SerialNode::read_socket_data() {
         receive_speed_.vy = packet.vy;
         receive_speed_.wz = packet.wz;
         rm_data_pub_->publish(rm_data_);
-        // RCLCPP_INFO(node_->get_logger(), "Received - HP: %d, Progress:
-        // %d,projectile_allowance: % d " , packet.current_hp,
+        // RCLCPP_INFO(node_->get_logger(), "Received - HP: %d, Progress:%d,projectile_allowance: % d " , packet.current_hp,
         //                   packet.game_progress,
         //               packet.projectile_allowance);
         plotter_debug_receive(now);
@@ -183,10 +182,9 @@ void SerialNode::read_serial_data() {
         receive_speed_.vy = packet.vy;
         receive_speed_.wz = packet.wz;
         rm_data_pub_->publish(rm_data_);
-        // RCLCPP_INFO(node_->get_logger(), "Received - HP: %d, Progress:
-        // %d,projectile_allowance: % d " , packet.current_hp,
-        //                   packet.game_progress,
-        //               packet.projectile_allowance);
+        RCLCPP_INFO(node_->get_logger(), "Received - HP: %d, Progress:%d,projectile_allowance: % d " , packet.current_hp,
+                          packet.game_progress,
+                      packet.projectile_allowance);
         plotter_debug_receive(now);
         if (this->is_decision_) {
           // RCLCPP_INFO(node_->get_logger(), "Progress:
