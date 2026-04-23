@@ -17,7 +17,6 @@ FSMRos2::FSMRos2(rclcpp::Node::SharedPtr node)
 }
 
 void FSMRos2::decision(int is_game, int current_hp, int projectile_allowance) {
-
   if (!is_game) {
     RCLCPP_INFO(node_->get_logger(), "game is not start");
     return;
@@ -35,6 +34,7 @@ void FSMRos2::decision(int is_game, int current_hp, int projectile_allowance) {
 
   if (this->nav2_status_ == 4) {
     RCLCPP_INFO(node_->get_logger(), "✅ 导航成功！");
+    this->nav_end_time_=std::chrono::steady_clock::now();
     advancePatrolIndex();
     nav2_status_ = 0; // 重置状态，避免重复切换
   }

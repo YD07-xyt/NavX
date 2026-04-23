@@ -7,3 +7,4 @@ src/bringup/maps/auto_save
 src/tool/pcd2pgm/pcd/
 src/nav/pb2025_nav_bringup/pcd/
 scr/nav/point_lio/PCD/
+src/nav/point_lio/PCD/scans.pcd

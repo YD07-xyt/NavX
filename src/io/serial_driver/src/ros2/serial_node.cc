@@ -100,10 +100,10 @@ void SerialNode::cmd_callback(geometry_msgs::msg::Twist::SharedPtr cmd_data) {
     std::get<SendSocketData>(send_cmd_variant_).v_x = cmd_data->linear.x;
     std::get<SendSocketData>(send_cmd_variant_).v_y = cmd_data->linear.y;
     std::get<SendSocketData>(send_cmd_variant_).w_z = cmd_data->angular.z;
-    RCLCPP_INFO(node_->get_logger(), "serial 发送 cmd vx: %f ,vy : %f,wz : %f",
-                std::get<SendSocketData>(send_cmd_variant_).v_x,
-                std::get<SendSocketData>(send_cmd_variant_).v_y,
-                std::get<SendSocketData>(send_cmd_variant_).w_z);
+    // RCLCPP_INFO(node_->get_logger(), "serial 发送 cmd vx: %f ,vy : %f,wz : %f",
+    //             std::get<SendSocketData>(send_cmd_variant_).v_x,
+    //             std::get<SendSocketData>(send_cmd_variant_).v_y,
+    //             std::get<SendSocketData>(send_cmd_variant_).w_z);
     // RCLCPP_INFO(node_->get_logger(), "serial 发送 crc16: 0x%04X",
     //             send_cmd.crc16);
     serial_driver->send_socket(std::get<SendSocketData>(send_cmd_variant_));

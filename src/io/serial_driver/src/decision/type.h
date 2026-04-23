@@ -17,15 +17,23 @@ namespace decision {
         std::string map_tf_name_="map";
 
     };
-
+    struct GohomeState{
+        int hp=200;
+        int projectile_allowance=0;
+    };
     enum class Nav2State {
         unkown,//一般未开始
         aborted,
         succeeded,
         running,
     };
+    enum class NavTask{
+        free,
+        wait,
+        running,
+    };
     enum class RobotTask {
-        no_start,
+        free,
         Patrol,
         run2home,
         go2goal,
