@@ -524,7 +524,136 @@ controller_server:
       # rotate_to_heading_min_angle: 0.785
       # max_angular_accel: 3.2
       # max_robot_pose_search_dist: 10.0
+# controller_server:
+#   ros__parameters:
+#     use_sim_time: False
+#     controller_frequency: 50.0
+#     min_x_velocity_threshold: 0.05
+#     min_y_velocity_threshold: 0.05
+#     min_theta_velocity_threshold: 0.1
+#     failure_tolerance: 0.3
+#     odom_topic: "odometry"
+#     progress_checker_plugin: "progress_checker"
+#     goal_checker_plugins: ["general_goal_checker"] 
+#     controller_plugins: ["FollowPath"]
 
+#     progress_checker:
+#       plugin: "nav2_controller::SimpleProgressChecker"
+#       required_movement_radius: 0.2
+#       movement_time_allowance: 10.0
+
+#     general_goal_checker:
+#       stateful: False
+#       plugin: "nav2_controller::SimpleGoalChecker"
+#       xy_goal_tolerance: 0.3
+#       yaw_goal_tolerance: 3.14
+
+#     FollowPath:    
+#       plugin: "nav2_mppi_controller::MPPIController"
+      
+#       # 斜坡/航向调整（无wz时实际不生效，保留占位）
+#       adjustThre: 14.0
+#       minAngleDiff: 365.0
+#       adjustHeadingSpeed: 0.0
+      
+#       # ========== 预测时域：真正拉到 3s ==========
+#       time_steps: 60
+#       model_dt: 0.05          # 60 x 0.05 = 3.0s，无旋转底盘必须看得远
+#       batch_size: 2000        # 时域变长，需更多采样覆盖横向平移组合
+      
+#       # ========== 速度约束：无wz，纯平移 ==========
+#       vx_max: 1.2             # 1.7→1.2，无旋转过弯合速度必须降
+#       vx_min: -1.2            # 对称
+#       vy_max: 1.2             # 1.9→1.2，与vx对称，全向平移底盘xy应等权
+#       wz_max: 0.001             # 硬关旋转
+      
+#       # ========== 采样分布：强化横向，关闭旋转 ==========
+#       vx_std: 0.35            # 降低纵向抽风
+#       vy_std: 0.9             # 提高横向采样，过弯全靠vy
+#       wz_std: 0.001             # 关闭旋转采样
+      
+#       # ========== 加速度：完全对称 ==========
+#       ax_max: 2.0             # 与制动对称，防止优化器偏置加速
+#       ax_min: -2.0            
+#       ay_max: 2.0
+#       ay_min: -2.0
+#       az_max: 0.001             # 无旋转加速度
+#       az_min: 0.001
+      
+#       iteration_count: 1
+#       prune_distance: 3.5     # 匹配 1.2m/s x 3s ≈ 3.6m
+#       transform_tolerance: 0.1
+#       temperature: 0.15       # 更低，更信任低代价轨迹，跟踪更果断
+#       gamma: 0.065
+#       motion_model: "Omni"
+#       visualize: false
+#       reset_period: 1.0
+#       regenerate_noises: false
+#       retry_attempt_limit: 3
+      
+#       TrajectoryVisualizer:
+#         trajectory_step: 5
+#         time_step: 3
+      
+#       critics: ["ObstaclesCritic", "GoalCritic", "PathAlignCritic", "PathFollowCritic", "CostCritic"]
+      
+#       GoalCritic:
+#         enabled: true
+#         cost_power: 1
+#         cost_weight: 8.0
+#         threshold_to_consider: 3.0   # 与预测时域 3s 对齐
+      
+#       PreferForwardCritic:
+#         enabled: false
+#         cost_power: 1
+#         cost_weight: 5.0
+#         threshold_to_consider: 1.5
+      
+#       ObstaclesCritic:
+#         enabled: true
+#         cost_power: 1
+#         repulsion_weight: 0.3        # 稍增，无旋转时避障更依赖平移退让
+#         critical_weight: 30.0
+#         consider_footprint: false
+#         collision_cost: 10.0
+#         collision_margin_distance: 0.08  # 稍增，无旋转底盘转弯半径无限大，需更大安全边界
+#         near_goal_distance: 0.1
+#         inflation_radius: 0.4
+#         cost_scaling_factor: 10.0
+#         inflation_layer_name: ["local_inflation_layer","global_inflation_layer"]
+      
+#       PathAlignCritic:
+#         enabled: true
+#         cost_power: 1
+#         cost_weight: 22.0            # 极高！无旋转时横向对齐是生命线，全靠vy贴线
+#         max_path_occupancy_ratio: 0.05
+#         trajectory_point_step: 2     # 更密的路径点评估
+#         threshold_to_consider: 3.0   # 与预测时域对齐
+#         offset_from_furthest: 20     # 3s x 1.2 / 0.05 / 3.0 ≈ 24，取20（按你的路径分辨率微调）
+#         use_path_orientations: false #无旋转，不关心路径朝向
+      
+#       PathFollowCritic:
+#         enabled: true
+#         cost_power: 1
+#         cost_weight: 5.0             # 降低，防止"追进度"导致高速冲弯
+#         offset_from_furthest: 4
+#         threshold_to_consider: 3.0
+      
+#       PathAngleCritic:
+#         enabled: false               # 无wz控制，角度惩罚无物理意义
+      
+#       TwirlingCritic:
+#         enabled: false               # 无旋转自由度，关闭
+      
+#       CostCritic:
+#         enabled: true
+#         cost_power: 1
+#         cost_weight: 5.0             # 利用 costmap 梯度引导横向平移避障
+#         critical_cost: 253.0
+#         consider_footprint: false
+#         collision_cost: 1000000.0
+#         near_goal_distance: 0.5
+#         trajectory_point_step: 2
 local_costmap:
   local_costmap:
     ros__parameters:

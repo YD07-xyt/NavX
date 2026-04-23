@@ -67,6 +67,10 @@ slam:=True \
 use_robot_state_pub:=True
 ```
 
+```bash
+ros2 run nav2_map_server map_saver_cli -f ./src/nav/pb2025_nav_bringup/map/reality/ma --ros-args -r map:=/map
+```
+
 #### 建图补tf
 
 map.sh 中已补tf

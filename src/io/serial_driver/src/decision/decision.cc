@@ -1,9 +1,12 @@
 #include "decision.h"
+#include "type.h"
 #include <iostream>
 namespace decision {
 FSMRos2::FSMRos2(rclcpp::Node::SharedPtr node)
     : node_(node), last_sent_goal_(0, 0, 0),
-      waitStartTime(std::chrono::steady_clock::now()) {
+      waitStartTime(std::chrono::steady_clock::now()),
+      nav_start_time_(std::chrono::steady_clock::now()), // 添加
+      nav_end_time_(std::chrono::steady_clock::now()) {
   this->goal_pub_ = node_->create_publisher<geometry_msgs::msg::PoseStamped>(
       "/goal_pose", 10);
   this->nav2_status_sub_ =
@@ -14,16 +17,22 @@ FSMRos2::FSMRos2(rclcpp::Node::SharedPtr node)
 }
 
 void FSMRos2::decision(int is_game, int current_hp, int projectile_allowance) {
+
   if (!is_game) {
     RCLCPP_INFO(node_->get_logger(), "game is not start");
     return;
   }
+  decision::Point target_goal(0, 0, 0);
   if (this->nav2_status_ == 2) {
     //导航执行中
     // RCLCPP_INFO(node_->get_logger(), "🚀 导航执行中, not pub goal");
-    return;
+    if (current_hp > 200 && projectile_allowance > 0) {
+      // RCLCPP_INFO(node_->get_logger(), "🚀 导航执行中, not pub goal");
+      return;
+    }
+    // RCLCPP_INFO(node_->get_logger(), "🚀 导航执行中----->home!");
   }
-  decision::Point target_goal(0, 0, 0);
+
   if (this->nav2_status_ == 4) {
     RCLCPP_INFO(node_->get_logger(), "✅ 导航成功！");
     advancePatrolIndex();
@@ -32,17 +41,8 @@ void FSMRos2::decision(int is_game, int current_hp, int projectile_allowance) {
 
   target_goal = this->selectTarget(current_hp, projectile_allowance);
 
-  // std::this_thread::sleep_for(std::chrono::seconds(10));
-
-  // 检查是否重复发送相同目标
-  // if (this->nav2_status_!=4&&std::abs(last_sent_goal_.x - target_goal.x) <
-  // 0.01 &&
-  //     std::abs(last_sent_goal_.y - target_goal.y) < 0.01) {
-  //     // 相同目标，不重复发送
-  //     RCLCPP_INFO(node_->get_logger(), "相同目标，不重复发送");
-  //     return;
-  // }
   pub_goal(target_goal);
+  this->nav_start_time_ = std::chrono::steady_clock::now();
   this->last_sent_goal_ = target_goal;
 }
 
@@ -53,44 +53,65 @@ Point FSMRos2::selectTarget(int current_hp, int projectile_allowance) {
     current_patrol_index_ = 0; // 重置巡逻
     return goal_point_sum_.home;
   }
-
-  // 正常巡逻
-  switch (current_patrol_index_) {
-  case 0:
-    return goal_point_sum_.Patrol1;
-  case 1:
-    return goal_point_sum_.Patrol2;
-  // case 2: return goal_point_sum_.Patrol3;
-  default:
-    current_patrol_index_ = 0;
-    return goal_point_sum_.Patrol1;
+  if (current_hp >= 400 && projectile_allowance > 1) {
+    // 正常巡逻
+    switch (current_patrol_index_) {
+    case 0:
+      return goal_point_sum_.Patrol1;
+    case 1:
+      return goal_point_sum_.Patrol2;
+    // case 2: return goal_point_sum_.Patrol3;
+    default:
+      current_patrol_index_ = 0;
+      return goal_point_sum_.Patrol1;
+    }
   }
+  return Point(0, 0, 0);
 }
-
-// 分离：推进巡逻索引
 void FSMRos2::advancePatrolIndex() {
-  auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
-                     std::chrono::steady_clock::now() - waitStartTime)
-                     .count();
-  std::cout << "elapsed time: " << elapsed << "s" << std::endl;
+  // 导航耗时
+  auto nav_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    nav_end_time_ - nav_start_time_)
+                    .count();
+  double nav_time = nav_ms / 1000.0;
+
+  // 总耗时（从上次发目标开始算）
+  auto total_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                      std::chrono::steady_clock::now() - waitStartTime)
+                      .count();
+
+  // 纯等待时间
+  long long elapsed_ms = total_ms - nav_ms;
+  if (elapsed_ms < 0)
+    elapsed_ms = 0;
+  double elapsed = elapsed_ms / 1000.0;
+
+  RCLCPP_INFO(node_->get_logger(), "nav_time: %.6f ms", nav_time);
+  RCLCPP_INFO(node_->get_logger(), "elapsed time:%.0f ms", elapsed);
+
+  bool need_go = false;
+
   switch (current_patrol_index_) {
   case 0:
-    // std::this_thread::sleep_for(std::chrono::seconds(1));
-    if (elapsed > wait_point1_time_) {
+    if (elapsed >= wait_point1_time_) {
       current_patrol_index_ = 1;
+      need_go = true;
       RCLCPP_INFO(node_->get_logger(), "Patrol1 -> Patrol2");
-      waitStartTime = std::chrono::steady_clock::now(); 
+      break;
+
+    case 1:
+      if (elapsed >= wait_point2_time_) {
+        current_patrol_index_ = 0;
+        need_go = true;
+        RCLCPP_INFO(node_->get_logger(), "Patrol2 -> Patrol1 (loop)");
+        break;
+      }
+
+      if (need_go) {
+        waitStartTime = std::chrono::steady_clock::now();
+        nav2_status_ = 0; // 切换为空闲，允许发新目标
+      }
     }
-    break;
-  case 1:
-    // std::this_thread::sleep_for(std::chrono::seconds(1));
-    if (elapsed > wait_point2_time_) {
-      current_patrol_index_ = 0; // 循环
-      waitStartTime = std::chrono::steady_clock::now(); 
-      RCLCPP_INFO(node_->get_logger(), "Patrol2 -> Patrol1 (loop)");
-    }
-    
-    break;
   }
 }
 
@@ -122,7 +143,7 @@ void FSMRos2::nav2_status_callback(
   for (const auto &status : msg.status_list) {
     if (status.status == action_msgs::msg::GoalStatus::STATUS_SUCCEEDED) {
       this->nav2_status_ = 4;
-      waitStartTime = std::chrono::steady_clock::now();
+      this->nav_end_time_ = std::chrono::steady_clock::now();
       // RCLCPP_INFO(node_->get_logger(), "✅ 导航成功！");
     } else if (status.status == action_msgs::msg::GoalStatus::STATUS_ABORTED) {
       this->nav2_status_ = 6;

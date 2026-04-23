@@ -1,5 +1,17 @@
 # TODO
 
+## 4.23
+
+## 未解决
+1.launch 统一启动
+2.nav2 map 靠近的障碍物会直接消除，尝试spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer , pb的强度层会直接定时清除
+--->地图问题直接导致导航避障效果差
+3.mppi 提高速度 ## 前端路径优化？？
+4.decision优化fsm 的wait逻辑 (考虑--->bt)
+5.优化tf变换
+6.建图导航问题
+以上基本为26赛季剩下的问题 
+
 ## 4.12
 
 ## 问题解决

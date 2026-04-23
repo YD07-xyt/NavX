@@ -5,18 +5,18 @@ serial_node:
     baud_rate: 115200
     max_try: 100
     patrol1:
-      x: -3.29
-      y: 2.11
+      x: 2.0
+      y: 2.59
       yaw: 0.0
     patrol2:
-      x: 1.28
-      y: 1.16
+      x: 2.51
+      y: -0.08
       yaw: 0.0
     home:
-      x: -0.019
-      y: -0.138
+      x: 0.0
+      y: 0.0
       yaw: 0.0
-    is_decision: true
+    is_decision: false
     socket_send_name: "/tmp/serial_mux.sock"
     socket_receive_name: "/tmp/serial_nav.sock"
     sending_method: "socket"  # 可选值: "serial" 或 "socket"
