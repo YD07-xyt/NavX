@@ -37,6 +37,18 @@ int main(int argc, char *argv[]) {
   serial_node->declare_parameter("patrol2.y", 2.0);
   serial_node->declare_parameter("patrol2.yaw", 2.0);
 
+  serial_node->declare_parameter("patrol3.x", 1.0);
+  serial_node->declare_parameter("patrol3.y", 1.0);
+  serial_node->declare_parameter("patrol3.yaw", 1.0);
+
+  serial_node->declare_parameter("patrol4.x", 2.0);
+  serial_node->declare_parameter("patrol4.y", 2.0);
+  serial_node->declare_parameter("patrol4.yaw", 2.0);
+
+  serial_node->declare_parameter("HitOutpost.x", 2.0);
+  serial_node->declare_parameter("HitOutpost.y", 2.0);
+  serial_node->declare_parameter("HitOutpost.yaw", 2.0);
+
   serial_node->declare_parameter("home.x", 0.229);
   serial_node->declare_parameter("home.y", 0.807);
   serial_node->declare_parameter("home.yaw", 0.0);
@@ -77,6 +89,26 @@ int main(int argc, char *argv[]) {
   temp_goal_point.Patrol2.yaw =
       serial_node->get_parameter("patrol2.yaw").as_double();
 
+  temp_goal_point.Patrol3.x =
+      serial_node->get_parameter("patrol3.x").as_double();
+  temp_goal_point.Patrol3.y =
+      serial_node->get_parameter("patrol3.y").as_double();
+  temp_goal_point.Patrol3.yaw =
+      serial_node->get_parameter("patrol3.yaw").as_double();
+
+  temp_goal_point.Patrol4.x =
+      serial_node->get_parameter("patrol4.x").as_double();
+  temp_goal_point.Patrol4.y =
+      serial_node->get_parameter("patrol4.y").as_double();
+  temp_goal_point.Patrol4.yaw =
+      serial_node->get_parameter("patrol4.yaw").as_double();
+
+  temp_goal_point.HitOutpost.x =
+      serial_node->get_parameter("HitOutpost.x").as_double();
+  temp_goal_point.HitOutpost.y =
+      serial_node->get_parameter("HitOutpost.y").as_double();
+  temp_goal_point.HitOutpost.yaw =
+      serial_node->get_parameter("HitOutpost.yaw").as_double();
   temp_goal_point.home.x = serial_node->get_parameter("home.x").as_double();
   temp_goal_point.home.y = serial_node->get_parameter("home.y").as_double();
   temp_goal_point.home.yaw = serial_node->get_parameter("home.yaw").as_double();

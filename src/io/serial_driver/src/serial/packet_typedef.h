@@ -83,6 +83,8 @@ namespace io {
         uint8_t game_progress; //比赛是否开始 开始：1 / 未开始：0
         uint16_t current_hp; //哨兵当前血量
         uint16_t projectile_allowance; //哨兵可发弹量
+        uint8_t is_enemy_outpost_destroyed; //对方前哨站是否被摧毁
+        uint16_t game_time; //比赛时间，单位为秒
         float vx; // 当前速度
         float vy; 
         float wz;
@@ -103,6 +105,8 @@ namespace io {
         uint8_t game_progress; //比赛是否开始 开始：1 / 未开始：0
         uint16_t current_hp; //哨兵当前血量
         uint16_t projectile_allowance; //哨兵可发弹量
+        uint8_t is_enemy_outpost_destroyed; //对方前哨站是否被摧毁
+        uint16_t game_time; //比赛时间，单位为秒
         float vx; // 当前速度
         float vy; 
         float wz;

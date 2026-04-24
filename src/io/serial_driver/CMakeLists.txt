@@ -13,7 +13,7 @@ add_subdirectory(src/tools)
 ament_auto_add_library(serial src/serial/serial.cc
 src/serial/crc.cpp
 src/decision/decision.cc
-src/decision/fsm.cc
+src/decision/patrol.cpp
 src/ros2/serial_node.cc)
 
 target_include_directories(serial PUBLIC src)

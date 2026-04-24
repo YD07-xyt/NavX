@@ -1,12 +1,14 @@
 #include "decision.h"
 #include "type.h"
 #include <iostream>
+#include <rclcpp/logging.hpp>
 namespace decision {
 FSMRos2::FSMRos2(rclcpp::Node::SharedPtr node)
-    : node_(node), last_sent_goal_(0, 0, 0),
+    : node_(node), last_sent_goal_(0, 0, 0), patrol_(node_),
       waitStartTime(std::chrono::steady_clock::now()),
       nav_start_time_(std::chrono::steady_clock::now()), // 添加
       nav_end_time_(std::chrono::steady_clock::now()) {
+        
   this->goal_pub_ = node_->create_publisher<geometry_msgs::msg::PoseStamped>(
       "/goal_pose", 10);
   this->nav2_status_sub_ =
@@ -15,7 +17,163 @@ FSMRos2::FSMRos2(rclcpp::Node::SharedPtr node)
           std::bind(&FSMRos2::nav2_status_callback, this,
                     std::placeholders::_1));
 }
+void FSMRos2::decision(int is_game, int current_hp, int projectile_allowance,
+                       int is_enemy_outpost_destroyed, int game_time) {
+  if (is_game) {
+    RCLCPP_INFO(node_->get_logger(), "game is not start");
+    return;
+  }
+  //RCLCPP_INFO(node_->get_logger(),"is_enemy_outpost_destroyed:%d",is_enemy_outpost_destroyed);
+  state_enemy_outpost(is_enemy_outpost_destroyed);
+  is_good_robot_condition(current_hp, projectile_allowance);
+  SwitchpatrolState();
 
+  ExecuteGameTask();
+};
+
+void FSMRos2::state_enemy_outpost(int is_enemy_outpost_destroyed) {
+  //1 -->not_destroyed  0--->  destroyed
+  if (is_enemy_outpost_destroyed == 1) {
+    RCLCPP_INFO(node_->get_logger(),"to HitEnemyOutpost");
+    this->enemy_outpost_state_ = EnemyOutpostState::not_destroyed;
+    if(current_game_task_==GameTask::Free){
+      current_game_task_ = GameTask::HitEnemyOutpost;
+    }
+  } else {
+    this->enemy_outpost_state_ = EnemyOutpostState::destroyed;
+    current_game_task_ = GameTask::Free;
+  }
+}
+
+void FSMRos2::is_good_robot_condition(int current_hp,
+                                      int projectile_allowance) {
+  if (current_hp >= 400 && projectile_allowance > 1) {
+    robot_state_ = RobotState::OkBecomeHome;
+  }
+  if (current_hp < 200 || projectile_allowance < 0) {
+    robot_state_ = RobotState::need2home;
+    current_game_task_ = GameTask::Gohome;
+    RCLCPP_INFO(node_->get_logger(),"need to home");
+  }
+  robot_state_ = RobotState::Normal;
+}
+
+void FSMRos2::SwitchpatrolState() {
+  if (current_game_task_ == GameTask::Free) {
+    if (current_game_task_ != GameTask::Gohome ||
+        current_game_task_ != GameTask::HitEnemyOutpost) {
+      current_game_task_ = GameTask::PatrolA;
+    }
+  }
+}
+void FSMRos2::hit_enemy_outpost() {
+  pub_goal(goal_point_sum_.HitOutpost);
+  if (nav2_state_ == Nav2State::succeeded) {
+    // 处理击毁敌方哨站后的逻辑
+    if (enemy_outpost_state_ == EnemyOutpostState::destroyed) {
+      RCLCPP_INFO(node_->get_logger(), "敌方哨站已被击毁，执行后续任务");
+      // 可以在这里切换到其他任务或状态
+      current_game_task_ = GameTask::Free; // 切换回空闲
+    }
+  }
+}
+void FSMRos2::go_home() {
+  pub_goal(goal_point_sum_.home);
+  if (nav2_state_ == Nav2State::succeeded) {
+    RCLCPP_INFO(node_->get_logger(), "已回到基地，执行后续任务");
+    if (this->robot_state_ == RobotState::OkBecomeHome) {
+      current_game_task_ = GameTask::Free; // 切换回空闲状态
+    }
+  }
+}
+
+void FSMRos2::ExecuteGameTask() {
+  if (current_game_task_ == GameTask::Gohome) {
+    go_home();
+    RCLCPP_INFO(node_->get_logger(), "执行回基地任务");
+  }
+  // if (current_game_task_ != GameTask::Free) {
+  //   RCLCPP_INFO(node_->get_logger(), "ExecuteGameTask时 当前有任务在执行");
+  //   return;
+  // }
+  switch (current_game_task_) {
+  case GameTask::HitEnemyOutpost:
+    hit_enemy_outpost();
+    RCLCPP_INFO(node_->get_logger(), "执行击毁敌方哨站任务");
+    break;
+  case GameTask::PatrolA:
+    patrolA();
+    //RCLCPP_INFO(node_->get_logger(), "执行巡逻任务A");
+    break;
+  case GameTask::PatrolB:
+    patrolB();
+    RCLCPP_INFO(node_->get_logger(), "执行巡逻任务B");
+    break;
+  case GameTask::Free:
+    RCLCPP_INFO(node_->get_logger(), "free");
+    break;
+  default:
+    RCLCPP_INFO(node_->get_logger(), "未知任务");
+    break;
+  }
+}
+
+void FSMRos2::patrolA() {
+  //实现巡逻任务A的逻辑
+  //RCLCPP_INFO(node_->get_logger(), "正在执行巡逻任务A");
+  // 可以在这里调用patrol_对象的方法来执行具体的巡逻行为
+  auto goal = this->patrol_.selectTarget();
+  if(nav2_state_!=Nav2State::running){
+    pub_goal(goal);
+  }
+  switch (nav2_state_) {
+  case Nav2State::aborted:
+    // 导航失败，保持当前巡逻点不变，等待重新导航
+    RCLCPP_INFO(node_->get_logger(), "导航失败，等待重新导航");
+    break;
+  case Nav2State::succeeded:
+    // 导航成功，切换到下一个巡逻点
+    RCLCPP_INFO(node_->get_logger(), " 导航成功advancePatrolIndex");
+    this->patrol_.advancePatrolIndex();
+    break;
+  case Nav2State::running:
+    // 导航中，不做任何改变
+    break;
+  default:
+    break;
+  }
+}
+void FSMRos2::patrolB() {
+  // 实现巡逻任务B的逻辑
+  RCLCPP_INFO(node_->get_logger(), "正在执行巡逻任务B");
+  // 可以在这里调用patrol_对象的方法来执行具体的巡逻行为
+  auto goal = this->patrol_.selectTarget();
+  if(nav2_state_!=Nav2State::running){
+    pub_goal(goal);
+  }
+  switch (nav2_state_) {
+  case Nav2State::aborted:
+    // 导航失败，保持当前巡逻点不变，等待重新导航
+    RCLCPP_INFO(node_->get_logger(), "导航失败，等待重新导航");
+    break;
+  case Nav2State::succeeded:
+    // 导航成功，切换到下一个巡逻点
+    RCLCPP_INFO(node_->get_logger(), " 导航成功advancePatrolIndex");
+    this->patrol_.advancePatrolIndex();
+    break;
+  case Nav2State::running:
+    // 导航中，不做任何改变
+    break;
+  default:
+    break;
+  }
+}
+
+
+
+///==================================================================================///
+///==================================================================================///
+///==================================================================================///
 void FSMRos2::decision(int is_game, int current_hp, int projectile_allowance) {
   if (!is_game) {
     RCLCPP_INFO(node_->get_logger(), "game is not start");
@@ -34,7 +192,7 @@ void FSMRos2::decision(int is_game, int current_hp, int projectile_allowance) {
 
   if (this->nav2_status_ == 4) {
     RCLCPP_INFO(node_->get_logger(), "✅ 导航成功！");
-    this->nav_end_time_=std::chrono::steady_clock::now();
+    this->nav_end_time_ = std::chrono::steady_clock::now();
     advancePatrolIndex();
     nav2_status_ = 0; // 重置状态，避免重复切换
   }
@@ -94,23 +252,24 @@ void FSMRos2::advancePatrolIndex() {
   switch (current_patrol_index_) {
   case 0:
     if (elapsed >= wait_point1_time_) {
+
       current_patrol_index_ = 1;
       need_go = true;
       RCLCPP_INFO(node_->get_logger(), "Patrol1 -> Patrol2");
+    }
+    break;
+
+  case 1:
+    if (elapsed >= wait_point2_time_) {
+      current_patrol_index_ = 0;
+      need_go = true;
+      RCLCPP_INFO(node_->get_logger(), "Patrol2 -> Patrol1 (loop)");
       break;
+    }
 
-    case 1:
-      if (elapsed >= wait_point2_time_) {
-        current_patrol_index_ = 0;
-        need_go = true;
-        RCLCPP_INFO(node_->get_logger(), "Patrol2 -> Patrol1 (loop)");
-        break;
-      }
-
-      if (need_go) {
-        waitStartTime = std::chrono::steady_clock::now();
-        nav2_status_ = 0; // 切换为空闲，允许发新目标
-      }
+    if (need_go) {
+      waitStartTime = std::chrono::steady_clock::now();
+      nav2_status_ = 0; // 切换为空闲，允许发新目标
     }
   }
 }
@@ -143,17 +302,23 @@ void FSMRos2::nav2_status_callback(
   for (const auto &status : msg.status_list) {
     if (status.status == action_msgs::msg::GoalStatus::STATUS_SUCCEEDED) {
       this->nav2_status_ = 4;
+      nav2_state_ = Nav2State::succeeded;
       this->nav_end_time_ = std::chrono::steady_clock::now();
-      // RCLCPP_INFO(node_->get_logger(), "✅ 导航成功！");
+      //RCLCPP_INFO(node_->get_logger(), "✅ 导航成功！");
     } else if (status.status == action_msgs::msg::GoalStatus::STATUS_ABORTED) {
+
       this->nav2_status_ = 6;
+      nav2_state_ = Nav2State::aborted;
       // RCLCPP_ERROR(node_->get_logger(), "❌ 导航失败/终止");
     } else if (status.status == action_msgs::msg::GoalStatus::STATUS_CANCELED) {
       this->nav2_status_ = 5;
+      nav2_state_ = Nav2State::aborted;
       // RCLCPP_WARN(node_->get_logger(), "⚠️ 导航被取消");
     } else if (status.status ==
                action_msgs::msg::GoalStatus::STATUS_EXECUTING) {
+
       this->nav2_status_ = 2;
+      nav2_state_ = Nav2State::running;
       // RCLCPP_INFO(node_->get_logger(), "🚀 导航执行中");
     }
   }

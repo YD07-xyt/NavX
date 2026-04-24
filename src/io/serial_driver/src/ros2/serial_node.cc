@@ -9,7 +9,8 @@ SerialNode::SerialNode(const std::string &serial_name, int &baud_rate,
     : node_(node), running_(true), fsm_decision_(node),
       socket_send_name_(socket_send_name),
       socket_receive_name_(socket_receive_name),
-      sending_method_(sending_method) {
+      sending_method_(sending_method),
+      waitStartTime(std::chrono::steady_clock::now()) {
 
   if (this->sending_method_ == SendingMethod::socket) {
     send_cmd_variant_ = SendSocketData();
@@ -48,13 +49,13 @@ SerialNode::SerialNode(const std::string &serial_name, int &baud_rate,
 
   std::cout << "is_open_serial:" << this->is_open_serial << std::endl;
   if (!is_open_serial) {
-    //serial_driver->reopen(serial_name,baud_rate, max_try);
+    // serial_driver->reopen(serial_name,baud_rate, max_try);
   }
   this->cmd_sub_ = node_->create_subscription<geometry_msgs::msg::Twist>(
       "cmd_vel", 10,
       std::bind(&SerialNode::cmd_callback, this, std::placeholders::_1));
-  this->rm_data_pub_ =
-      node_->create_publisher<rm_interfaces::msg::RmData>("rm_data", 10);
+  // this->rm_data_pub_ =
+  //     node_->create_publisher<rm_interfaces::msg::RmData>("rm_data", 10);
   recv_thread_ = std::thread(&SerialNode::read_callback, this);
 }
 void SerialNode::read_callback() {
@@ -80,7 +81,8 @@ void SerialNode::cmd_callback(geometry_msgs::msg::Twist::SharedPtr cmd_data) {
     std::get<SendData>(send_cmd_variant_).v_x = cmd_data->linear.x;
     std::get<SendData>(send_cmd_variant_).v_y = cmd_data->linear.y;
     std::get<SendData>(send_cmd_variant_).w_z = cmd_data->angular.z;
-    // RCLCPP_INFO(node_->get_logger(), "serial 发送 cmd vx: %f ,vy : %f,wz : %f",
+    // RCLCPP_INFO(node_->get_logger(), "serial 发送 cmd vx: %f ,vy : %f,wz :
+    // %f",
     //             std::get<SendData>(send_cmd_variant_).v_x,
     //             std::get<SendData>(send_cmd_variant_).v_y,
     //             std::get<SendData>(send_cmd_variant_).w_z);
@@ -100,7 +102,8 @@ void SerialNode::cmd_callback(geometry_msgs::msg::Twist::SharedPtr cmd_data) {
     std::get<SendSocketData>(send_cmd_variant_).v_x = cmd_data->linear.x;
     std::get<SendSocketData>(send_cmd_variant_).v_y = cmd_data->linear.y;
     std::get<SendSocketData>(send_cmd_variant_).w_z = cmd_data->angular.z;
-    // RCLCPP_INFO(node_->get_logger(), "serial 发送 cmd vx: %f ,vy : %f,wz : %f",
+    // RCLCPP_INFO(node_->get_logger(), "serial 发送 cmd vx: %f ,vy : %f,wz :
+    // %f",
     //             std::get<SendSocketData>(send_cmd_variant_).v_x,
     //             std::get<SendSocketData>(send_cmd_variant_).v_y,
     //             std::get<SendSocketData>(send_cmd_variant_).w_z);
@@ -132,22 +135,36 @@ void SerialNode::read_socket_data() {
         double now = std::chrono::duration<double>(
                          std::chrono::steady_clock::now().time_since_epoch())
                          .count();
-        rm_data_.current_hp = packet.current_hp;
-        rm_data_.game_progress = packet.game_progress;
-        rm_data_.projectile_allowance_17mm = packet.projectile_allowance;
+        // rm_data_.current_hp = packet.current_hp;
+        // rm_data_.game_progress = packet.game_progress;
+        // rm_data_.projectile_allowance_17mm = packet.projectile_allowance;
+        // rm_data_.is_ally_outpost_destroyed =
+        // packet.is_ally_outpost_destroyed;
         receive_speed_.vx = packet.vx;
         receive_speed_.vy = packet.vy;
         receive_speed_.wz = packet.wz;
-        rm_data_pub_->publish(rm_data_);
-        // RCLCPP_INFO(node_->get_logger(), "Received - HP: %d, Progress:%d,projectile_allowance: % d " , packet.current_hp,
-        //                   packet.game_progress,
-        //               packet.projectile_allowance);
+        // rm_data_pub_->publish(rm_data_);
+        // RCLCPP_INFO(node_->get_logger(), "Received-HP:%d,Progress:%d,projectile_allowance:%d,game_time:%d,is_enemy_outpost_destroyed:%d", packet.current_hp,
+        //                    packet.game_progress,
+        //                packet.projectile_allowance,packet.game_time,packet.is_enemy_outpost_destroyed);
         plotter_debug_receive(now);
+        
+        int temp=packet.is_enemy_outpost_destroyed;
+        auto time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                      std::chrono::steady_clock::now() - waitStartTime)
+                      .count() / 1000.0;
+        //RCLCPP_INFO(node_->get_logger(),"now time:%lf",time);
+        if(time>=20){
+          temp=0;
+         // RCLCPP_INFO(node_->get_logger(),"敌方哨站is已被击毁");
+        }
+
         if (this->is_decision_) {
           // RCLCPP_INFO(node_->get_logger(), "Progress:
           // %d:",rm_data_.game_progress);
-          fsm_decision_.decision(rm_data_.game_progress, rm_data_.current_hp,
-                                 rm_data_.projectile_allowance_17mm);
+          fsm_decision_.decision(packet.game_progress, packet.current_hp,
+                                 packet.projectile_allowance,
+                                 temp,packet.game_time);
         }
       }
     }
@@ -156,6 +173,8 @@ void SerialNode::read_socket_data() {
     std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
   }
 }
+
+
 void SerialNode::read_serial_data() {
   const int timeout_ms = 10; // 超时时间
   const int sleep_ms = 5;    // 无数据时的休眠时间
@@ -175,22 +194,22 @@ void SerialNode::read_serial_data() {
         double now = std::chrono::duration<double>(
                          std::chrono::steady_clock::now().time_since_epoch())
                          .count();
-        rm_data_.current_hp = packet.current_hp;
-        rm_data_.game_progress = packet.game_progress;
-        rm_data_.projectile_allowance_17mm = packet.projectile_allowance;
+        // rm_data_.current_hp = packet.current_hp;
+        // rm_data_.game_progress = packet.game_progress;
         receive_speed_.vx = packet.vx;
         receive_speed_.vy = packet.vy;
         receive_speed_.wz = packet.wz;
-        rm_data_pub_->publish(rm_data_);
-        RCLCPP_INFO(node_->get_logger(), "Received - HP: %d, Progress:%d,projectile_allowance: % d " , packet.current_hp,
-                          packet.game_progress,
-                      packet.projectile_allowance);
+        // rm_data_pub_->publish(rm_data_);
+        RCLCPP_INFO(node_->get_logger(), "Received-HP:%d,Progress:%d,projectile_allowance:%d,game_time:%d,is_enemy_outpost_destroyed :%d", packet.current_hp,
+                           packet.game_progress,
+                       packet.projectile_allowance,packet.game_time,packet.is_enemy_outpost_destroyed);
         plotter_debug_receive(now);
         if (this->is_decision_) {
           // RCLCPP_INFO(node_->get_logger(), "Progress:
           // %d:",rm_data_.game_progress);
-          fsm_decision_.decision(rm_data_.game_progress, rm_data_.current_hp,
-                                 rm_data_.projectile_allowance_17mm);
+          fsm_decision_.decision(packet.game_progress, packet.current_hp,
+                                 packet.projectile_allowance,
+                                 packet.is_enemy_outpost_destroyed,packet.game_time);
         }
       }
     }
