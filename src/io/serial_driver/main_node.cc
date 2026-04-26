@@ -17,6 +17,8 @@ int main(int argc, char *argv[]) {
   std::string socket_receive_name;
   io::SendingMethod sending_method;
   std::string sending_method_name;
+  decision::PatrolWaitTime temp_patrol_wait_time;
+  decision::StateIsGoHome temp_state_is_go_home;
   // 参数初始化
   serial_node->declare_parameter<std::string>("serial_name", "/dev/ttyUSB0");
   serial_node->declare_parameter<int>("baud_rate", 115200);
@@ -32,26 +34,32 @@ int main(int argc, char *argv[]) {
   serial_node->declare_parameter("patrol1.x", 1.0);
   serial_node->declare_parameter("patrol1.y", 1.0);
   serial_node->declare_parameter("patrol1.yaw", 1.0);
+  serial_node->declare_parameter("patrol1.wait_time", 10);
 
   serial_node->declare_parameter("patrol2.x", 2.0);
   serial_node->declare_parameter("patrol2.y", 2.0);
   serial_node->declare_parameter("patrol2.yaw", 2.0);
+  serial_node->declare_parameter("patrol2.wait_time", 10);
 
   serial_node->declare_parameter("patrol3.x", 1.0);
   serial_node->declare_parameter("patrol3.y", 1.0);
   serial_node->declare_parameter("patrol3.yaw", 1.0);
+  serial_node->declare_parameter("patrol3.wait_time", 10);
 
   serial_node->declare_parameter("patrol4.x", 2.0);
   serial_node->declare_parameter("patrol4.y", 2.0);
   serial_node->declare_parameter("patrol4.yaw", 2.0);
+  serial_node->declare_parameter("patrol4.wait_time", 10);
 
   serial_node->declare_parameter("HitOutpost.x", 2.0);
   serial_node->declare_parameter("HitOutpost.y", 2.0);
   serial_node->declare_parameter("HitOutpost.yaw", 2.0);
 
-  serial_node->declare_parameter("home.x", 0.229);
-  serial_node->declare_parameter("home.y", 0.807);
-  serial_node->declare_parameter("home.yaw", 0.0);
+  serial_node->declare_parameter("go_home_hp", 2.0);
+  serial_node->declare_parameter("go_home_projectile_allowance", 2.0);
+  serial_node->declare_parameter("become_home_hp", 2.0);
+  serial_node->declare_parameter("become_home_projectile_allowance", 2.0);
+
   serial_node->declare_parameter("is_decision", true);
 
   serial_node->get_parameter("serial_name", serial_name);
@@ -112,8 +120,24 @@ int main(int argc, char *argv[]) {
   temp_goal_point.home.x = serial_node->get_parameter("home.x").as_double();
   temp_goal_point.home.y = serial_node->get_parameter("home.y").as_double();
   temp_goal_point.home.yaw = serial_node->get_parameter("home.yaw").as_double();
-
-  node->init_goal(temp_goal_point);
+  temp_patrol_wait_time.wait_point1_time =
+      serial_node->get_parameter("patrol1.wait_time").as_double();
+  temp_patrol_wait_time.wait_point2_time =
+      serial_node->get_parameter("patrol2.wait_time").as_double();
+  temp_patrol_wait_time.wait_point3_time =
+      serial_node->get_parameter("patrol3.wait_time").as_double();
+  temp_patrol_wait_time.wait_point4_time =
+      serial_node->get_parameter("patrol4.wait_time").as_double();
+  temp_state_is_go_home.become_home_hp =
+      serial_node->get_parameter("become_home_hp").as_int();
+  temp_state_is_go_home.become_home_projectile_allowance =
+      serial_node->get_parameter("become_home_projectile_allowance").as_int();
+  temp_state_is_go_home.go_home_projectile_allowance =
+      serial_node->get_parameter("go_home_projectile_allowance").as_int();
+  temp_state_is_go_home.go_home_hp =
+      serial_node->get_parameter("go_home_hp").as_int();
+  node->init_goal(temp_goal_point, temp_patrol_wait_time,
+                  temp_state_is_go_home);
 
   rclcpp::spin(serial_node);
 

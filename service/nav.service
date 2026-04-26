@@ -1,0 +1,12 @@
+[Unit]
+PartOf=nav_tf.service
+BindsTo=nav_serial.service
+#Wants=nav_bt.service
+
+[Service]
+ExecStart=bash %h/nav/NavX/map_nav.bash
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=gnome-session.target

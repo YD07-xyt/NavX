@@ -72,9 +72,13 @@ public:
   std::string socket_receive_name_;
 
 public:
-  void init_goal(decision::GoalPoint goal_point_sum) {
+  void init_goal( decision::GoalPoint goal_point_sum,
+                  decision::PatrolWaitTime patrol_wait_time,
+                  decision::StateIsGoHome state_is_go_home) {
     fsm_decision_.goal_point_sum_ = goal_point_sum;
-    fsm_decision_.patrol_.goal_point_sum_=goal_point_sum  ;
+    fsm_decision_.patrol_.goal_point_sum_=goal_point_sum;
+    fsm_decision_.patrol_.patrol_wait_time_=patrol_wait_time;
+    fsm_decision_.state_is_go_home_=state_is_go_home;
   };
 
 private:

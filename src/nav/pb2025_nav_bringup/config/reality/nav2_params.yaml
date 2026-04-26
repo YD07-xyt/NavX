@@ -110,7 +110,10 @@ terrain_analysis:
     decayTime: 0.5                      # 点云时间差阈值 大于则不会被处理
     noDecayDis: 0.0                     # 点云距离阈值 小于该阈值不考虑时间差
     clearingDis: 4.0                    # 该距离外的点会被清除
-    useSorting: True                    # 这个参数开起来就能上坡了；如果 use_sorting,那么就以周围点中的分位点作为地面点，否则以最低点作为地面点；周围其余点相对于地面点的高度作为通过代价，所以对于坡面，有的点的代价是正，有的是负，就相互抵消了；不要与 consider_drop 同时开启，计算上会有冲突
+    # useSorting参数开起来就能上坡了；如果 use_sorting,那么就以周围点中的分位点作为地面点，
+    #否则以最低点作为地面点；周围其余点相对于地面点的高度作为通过代价，
+    #所以对于坡面，有的点的代价是正，有的是负，就相互抵消了；不要与 consider_drop 同时开启，计算上会有冲突
+    useSorting: True                   
     quantileZ: 0.2                      # useful if use_sorting is enabled.
     considerDrop: False                 # 考虑凹下去的地面,开启则将相对于地面点的高度取绝对值
     limitGroundLift: False
@@ -358,38 +361,39 @@ controller_server:
     FollowPath:    
       plugin: "nav2_mppi_controller::MPPIController"
       
+      # 斜坡/航向调整（无wz时实际不生效，保留占位）
       adjustThre: 14.0
       minAngleDiff: 365.0
       adjustHeadingSpeed: 0.0
       
-      # ========== 预测时域 ==========
+      # ========== 预测时域：真正拉到 3s ==========
       time_steps: 60
-      model_dt: 0.05
-      batch_size: 2000
+      model_dt: 0.05          # 60 x 0.05 = 3.0s，无旋转底盘必须看得远
+      batch_size: 2000        # 时域变长，需更多采样覆盖横向平移组合
       
-      # ========== 速度约束：1.5 m/s，无旋转 ==========
-      vx_max: 1.5
-      vx_min: -1.5
-      vy_max: 1.5
-      wz_max: 0.01
+      # ========== 速度约束：无wz，纯平移 ==========
+      vx_max: 1.2             # 1.7→1.2，无旋转过弯合速度必须降
+      vx_min: -1.2            # 对称
+      vy_max: 1.2             # 1.9→1.2，与vx对称，全向平移底盘xy应等权
+      wz_max: 0.001             # 硬关旋转
       
-      # ========== 采样分布 ==========
-      vx_std: 0.5
-      vy_std: 0.6
-      wz_std: 0.01
+      # ========== 采样分布：强化横向，关闭旋转 ==========
+      vx_std: 0.35            # 降低纵向抽风
+      vy_std: 0.9             # 提高横向采样，过弯全靠vy
+      wz_std: 0.001             # 关闭旋转采样
       
       # ========== 加速度：完全对称 ==========
-      ax_max: 2.0
-      ax_min: -2.0
+      ax_max: 2.0             # 与制动对称，防止优化器偏置加速
+      ax_min: -2.0            
       ay_max: 2.0
       ay_min: -2.0
-      az_max: 0.01
-      az_min: -0.01
+      az_max: 0.001             # 无旋转加速度
+      az_min: 0.001
       
       iteration_count: 1
-      prune_distance: 4.5
+      prune_distance: 3.5     # 匹配 1.2m/s x 3s ≈ 3.6m
       transform_tolerance: 0.1
-      temperature: 0.35
+      temperature: 0.15       # 更低，更信任低代价轨迹，跟踪更果断
       gamma: 0.065
       motion_model: "Omni"
       visualize: false
@@ -407,7 +411,7 @@ controller_server:
         enabled: true
         cost_power: 1
         cost_weight: 8.0
-        threshold_to_consider: 3.0
+        threshold_to_consider: 3.0   # 与预测时域 3s 对齐
       
       PreferForwardCritic:
         enabled: false
@@ -418,11 +422,11 @@ controller_server:
       ObstaclesCritic:
         enabled: true
         cost_power: 1
-        repulsion_weight: 2.5
-        critical_weight: 40.0
+        repulsion_weight: 0.3        # 稍增，无旋转时避障更依赖平移退让
+        critical_weight: 30.0
         consider_footprint: false
         collision_cost: 10.0
-        collision_margin_distance: 0.15
+        collision_margin_distance: 0.08  # 稍增，无旋转底盘转弯半径无限大，需更大安全边界
         near_goal_distance: 0.1
         inflation_radius: 0.4
         cost_scaling_factor: 10.0
@@ -431,42 +435,163 @@ controller_server:
       PathAlignCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 10.0
+        cost_weight: 22.0            # 极高！无旋转时横向对齐是生命线，全靠vy贴线
         max_path_occupancy_ratio: 0.05
-        trajectory_point_step: 2
-        threshold_to_consider: 3.0
-        offset_from_furthest: 15
-        use_path_orientations: false
+        trajectory_point_step: 2     # 更密的路径点评估
+        threshold_to_consider: 3.0   # 与预测时域对齐
+        offset_from_furthest: 20     # 3s x 1.2 / 0.05 / 3.0 ≈ 24，取20（按你的路径分辨率微调）
+        use_path_orientations: false #无旋转，不关心路径朝向
       
       PathFollowCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 15.0
-        offset_from_furthest: 5
+        cost_weight: 5.0             # 降低，防止"追进度"导致高速冲弯
+        offset_from_furthest: 4
         threshold_to_consider: 3.0
       
       PathAngleCritic:
-        enabled: false
-        cost_weight: 8.0
-        offset_from_furthest: 6
-        threshold_to_consider: 1.5
-        max_angle_to_furthest: 0.7
-        mode: 0
+        enabled: false               # 无wz控制，角度惩罚无物理意义
       
       TwirlingCritic:
-        enabled: false
-        twirling_cost_power: 1
-        twirling_cost_weight: 10.0
+        enabled: false               # 无旋转自由度，关闭
       
       CostCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 8.0
+        cost_weight: 5.0             # 利用 costmap 梯度引导横向平移避障
         critical_cost: 253.0
         consider_footprint: false
-        collision_cost: 100000.0
+        collision_cost: 1000000.0
         near_goal_distance: 0.5
         trajectory_point_step: 2
+# controller_server:
+#   ros__parameters:
+#     use_sim_time: False
+#     controller_frequency: 50.0
+#     min_x_velocity_threshold: 0.05
+#     min_y_velocity_threshold: 0.05
+#     min_theta_velocity_threshold: 0.1
+#     failure_tolerance: 0.5      # 0.3→0.5，转折处允许短暂失控不报错
+#     odom_topic: "odometry"
+#     progress_checker_plugin: "progress_checker"
+#     goal_checker_plugins: ["general_goal_checker"] 
+#     controller_plugins: ["FollowPath"]
+
+#     progress_checker:
+#       plugin: "nav2_controller::SimpleProgressChecker"
+#       required_movement_radius: 0.2
+#       movement_time_allowance: 10.0
+
+#     general_goal_checker:
+#       stateful: False
+#       plugin: "nav2_controller::SimpleGoalChecker"
+#       xy_goal_tolerance: 0.3
+#       yaw_goal_tolerance: 3.14
+
+#     FollowPath:    
+#       plugin: "nav2_mppi_controller::MPPIController"
+      
+#       adjustThre: 14.0
+#       minAngleDiff: 365.0
+#       adjustHeadingSpeed: 0.0
+      
+#       time_steps: 50
+#       model_dt: 0.04
+#       batch_size: 2500          # 2000→2500，更多采样覆盖转折速度组合
+      
+#       vx_max: 1.5
+#       vx_min: -1.5
+#       vy_max: 1.5
+#       wz_max: 0.01
+      
+#       vx_std: 0.7               # 0.6→0.7，丰富纵向候选
+#       vy_std: 0.8               # 0.6→0.8，关键提高，转折处需要大量横向平移组合
+#       wz_std: 0.01
+      
+#       ax_max: 1.6               # 1.5→1.6，适度加速
+#       ax_min: -2.2              # -2.5→-2.2，温和制动，不刹死
+#       ay_max: 2.0
+#       ay_min: -2.0
+#       az_max: 0.01
+#       az_min: -0.01
+      
+#       iteration_count: 1
+#       prune_distance: 3.5
+#       transform_tolerance: 0.1
+#       temperature: 0.5          # 保持，平滑综合不跳变
+#       gamma: 0.08               # 0.065→0.08，提高轨迹平滑性，减少速度跳变
+#       motion_model: "Omni"
+#       visualize: false
+#       reset_period: 1.0         # 2.0→1.0，关键缩短，卡死后1秒就恢复
+#       regenerate_noises: false
+#       retry_attempt_limit: 5    # 3→5，给转折处更多尝试机会
+      
+#       TrajectoryVisualizer:
+#         trajectory_step: 5
+#         time_step: 3
+      
+#       critics: ["ObstaclesCritic", "GoalCritic", "PathAlignCritic", "PathFollowCritic", "PathAngleCritic", "CostCritic"]
+      
+#       GoalCritic:
+#         enabled: true
+#         cost_power: 1
+#         cost_weight: 5.0
+#         threshold_to_consider: 2.0
+      
+#       PreferForwardCritic:
+#         enabled: false
+      
+#       ObstaclesCritic:
+#         enabled: true
+#         cost_power: 1
+#         repulsion_weight: 1.0       # 1.5→1.0，降低，转折处给路径跟踪留空间
+#         critical_weight: 35.0       # 40→35
+#         consider_footprint: false
+#         collision_cost: 10.0
+#         collision_margin_distance: 0.1
+#         near_goal_distance: 0.1
+#         inflation_radius: 0.4
+#         cost_scaling_factor: 10.0
+#         inflation_layer_name: ["local_inflation_layer","global_inflation_layer"]
+      
+#       PathAlignCritic:
+#         enabled: true
+#         cost_power: 1
+#         cost_weight: 8.0            # 保持，转折处宽容位置偏差
+#         max_path_occupancy_ratio: 0.05
+#         trajectory_point_step: 2
+#         threshold_to_consider: 2.0
+#         offset_from_furthest: 4     # 保持，只看脚下不跨越转折点
+#         use_path_orientations: false
+      
+#       PathFollowCritic:
+#         enabled: true
+#         cost_power: 1
+#         cost_weight: 14.0           # 保持，中高前进激励
+#         offset_from_furthest: 5     # 保持
+#         threshold_to_consider: 2.0
+      
+#       PathAngleCritic:
+#         enabled: true               # 关键启用，提供合速度方向连续性
+#         cost_power: 1
+#         cost_weight: 3.0            # 轻权重，软约束
+#         offset_from_furthest: 4
+#         threshold_to_consider: 2.0
+#         max_angle_to_furthest: 1.0  # 宽松，约57度，转折处允许大角度调整
+#         mode: 0
+      
+#       TwirlingCritic:
+#         enabled: false
+      
+#       CostCritic:
+#         enabled: true
+#         cost_power: 1
+#         cost_weight: 2.0
+#         critical_cost: 253.0
+#         consider_footprint: false
+#         collision_cost: 100000.0
+#         near_goal_distance: 0.5
+#         trajectory_point_step: 3
  
 # controller_server:
 #   ros__parameters:
@@ -796,6 +921,50 @@ global_costmap:
           max_obstacle_height: 2.0
           obstacle_max_range: 10.0
           obstacle_min_range: 0.2
+      # stvl_layer:
+      #   plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"  # 时空体素层插件，用于处理动态障碍物
+      #   # https://github.com/SteveMacenski/spatio_temporal_voxel_layer  # 插件的GitHub链接
+      #   enabled:                  true  # 是否启用时空体素层
+      #   voxel_decay:              0.5  # 体素衰减时间，单位为秒
+      #   decay_model:              0  # 衰减模型，0=线性，1=指数，-1=持久
+      #   voxel_size:               0.01  # 每个体素的尺寸，单位为米
+      #   track_unknown_space:      true  # 是否跟踪未知空间
+      #   mark_threshold:           0  # 标记阈值，用于确定哪些体素被标记为障碍物
+      #   update_footprint_enabled: true  # 是否启用更新机器人足迹
+      #   combination_method:       1  # 组合方法，1=最大值，0=覆盖
+      #   origin_z:                 0.0  # 体素地图的Z轴原点，单位为米
+      #   publish_voxel_map:        true  # 是否发布体素地图
+      #   transform_tolerance:      0.5  # 坐标变换的容差，单位为秒
+      #   mapping_mode:             false  # 是否启用建图模式
+      #   map_save_duration:        60.0  # 地图保存间隔，单位为秒
+      #   observation_sources:      livox_mark livox_clear  # 观察源，这里使用了两个点云数据源
+      #   livox_mark:
+      #     data_type: PointCloud2  # 数据类型，这里为点云数据
+      #     topic: <robot_namespace>/terrain_map  # 注释掉的点云数据话题名称
+      #     marking: true  # 是否标记障碍物
+      #     clearing: false  # 是否清除障碍物
+      #     obstacle_range: 6.0  # 障碍物的最大范围，单位为米
+      #     min_obstacle_height: 0.1  # 障碍物的最小高度，单位为米
+      #     max_obstacle_height: 2.0  # 障碍物的最大高度，单位为米
+      #     expected_update_rate: 20.0  # 提高预期的更新速率，单位为赫兹
+      #     observation_persistence: 0.4  # 减少观察持久时间，单位为秒
+      #     inf_is_valid: false  # 是否将无穷大视为有效值
+      #     filter: "voxel"  # 数据过滤器，这里使用了体素过滤器
+      #     voxel_min_points: 0  # 体素过滤器的最小点数
+      #     clear_after_reading: true  # 是否在读取后清除缓冲区
+      #   livox_clear:
+      #     enabled: true  # 是否启用点云清除功能
+      #     data_type: PointCloud2  # 数据类型，这里为点云数据
+      #     topic: <robot_namespace>/terrain_map  # 注释掉的点云数据话题名称
+      #     marking: false  # 是否标记障碍物
+      #     clearing: true  # 是否清除障碍物
+      #     max_z: 8.0  # 点云数据的最大高度，单位为米
+      #     min_z: 0.05  # 点云数据的最小高度，单位为米
+      #     vertical_fov_angle: 1.029  # 垂直视场角，单位为弧度
+      #     vertical_fov_padding: 0.05  # 垂直视场角的填充，单位为米
+      #     horizontal_fov_angle: 6.29  # 水平视场角，单位为弧度
+      #     decay_acceleration: 5.0  # 衰减加速度，单位为1/s^2
+      #     model_type: 1  # 模型类型，0=深度相机，1=3D激光雷达
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True

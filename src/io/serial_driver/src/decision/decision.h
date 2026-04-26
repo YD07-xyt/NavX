@@ -40,6 +40,7 @@ namespace decision {
             Nav2State nav2_state_=Nav2State::unkown;
             RobotState robot_state_=RobotState::Normal;
             PatrolState patrol_state_=PatrolState::Free;
+            StateIsGoHome state_is_go_home_;
         public:
             GoalPoint goal_point_sum_;
             int nav2_status_=0;

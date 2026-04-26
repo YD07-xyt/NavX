@@ -8,26 +8,36 @@ serial_node:
       x: 4.15
       y: 4.78
       yaw: 0.0
+      wait_time: 5.0
     patrol2:
       x: 3.73
       y: -4.88
       yaw: 0.0
+      wait_time: 5.0
     patrol3:
       x: 0.0698
       y: 0.531
       yaw: 0.0
+      wait_time: 5.0
     patrol4:
       x: 4.44
       y: 2.55
       yaw: 0.0
+      wait_time: 5.0
     HitOutpost:
       x: 3.91
       y: -2.17
       yaw: 0.0
+      wait_time: 5.0
     home:
       x: 0.0
       y: 0.0
       yaw: 0.0
+      wait_time: 5.0
+    go_home_hp: 150
+    go_home_projectile_allowance: 20
+    become_home_hp: 350
+    become_home_projectile_allowance: 250
     is_decision: true
     socket_send_name: "/tmp/serial_mux.sock"
     socket_receive_name: "/tmp/serial_nav.sock"

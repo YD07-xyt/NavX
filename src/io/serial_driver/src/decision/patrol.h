@@ -19,14 +19,14 @@ namespace decision {
     class Patrol {
         public:
             Patrol(const rclcpp::Node::SharedPtr node):node_(node),goal(0,0,0){};
-            void advancePatrolIndex();
+            void advancePatrolIndex(double wait_time);
             Point selectTarget();
             GoalPoint goal_point_sum_;
+            PatrolWaitTime patrol_wait_time_;
         private:
             PatrolState current_state_ = PatrolState::Free;
             Point goal;
             std::chrono::steady_clock::time_point wait_start_time_;
-            PatrolWaitTime patrol_wait_time_;
 
             rclcpp::Node::SharedPtr node_;
             

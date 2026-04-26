@@ -47,10 +47,12 @@ void FSMRos2::state_enemy_outpost(int is_enemy_outpost_destroyed) {
 
 void FSMRos2::is_good_robot_condition(int current_hp,
                                       int projectile_allowance) {
-  if (current_hp >= 400 && projectile_allowance > 1) {
+  if (current_hp >= state_is_go_home_.become_home_hp && 
+      projectile_allowance > state_is_go_home_.become_home_projectile_allowance) {
     robot_state_ = RobotState::OkBecomeHome;
   }
-  if (current_hp < 200 || projectile_allowance < 0) {
+  if (current_hp < state_is_go_home_.go_home_hp || 
+      projectile_allowance < state_is_go_home_.go_home_projectile_allowance) {
     robot_state_ = RobotState::need2home;
     current_game_task_ = GameTask::Gohome;
     RCLCPP_INFO(node_->get_logger(),"need to home");
@@ -67,16 +69,21 @@ void FSMRos2::SwitchpatrolState() {
   }
 }
 void FSMRos2::hit_enemy_outpost() {
-  pub_goal(goal_point_sum_.HitOutpost);
-  if (nav2_state_ == Nav2State::succeeded) {
-    // 处理击毁敌方哨站后的逻辑
-    if (enemy_outpost_state_ == EnemyOutpostState::destroyed) {
-      RCLCPP_INFO(node_->get_logger(), "敌方哨站已被击毁，执行后续任务");
-      // 可以在这里切换到其他任务或状态
-      current_game_task_ = GameTask::Free; // 切换回空闲
+  Point temp_goal_point(0,0,0);
+  pub_goal(temp_goal_point);
+  if(nav2_state_ == Nav2State::succeeded){
+    pub_goal(goal_point_sum_.HitOutpost);
+    if (nav2_state_ == Nav2State::succeeded) {
+      // 处理击毁敌方哨站后的逻辑
+      if (enemy_outpost_state_ == EnemyOutpostState::destroyed) {
+        RCLCPP_INFO(node_->get_logger(), "敌方哨站已被击毁，执行后续任务");
+        // 可以在这里切换到其他任务或状态
+        current_game_task_ = GameTask::Free; // 切换回空闲
+      }
     }
   }
 }
+
 void FSMRos2::go_home() {
   pub_goal(goal_point_sum_.home);
   if (nav2_state_ == Nav2State::succeeded) {
@@ -122,9 +129,16 @@ void FSMRos2::patrolA() {
   //实现巡逻任务A的逻辑
   //RCLCPP_INFO(node_->get_logger(), "正在执行巡逻任务A");
   // 可以在这里调用patrol_对象的方法来执行具体的巡逻行为
+  std::chrono::steady_clock::time_point nav_end_time;
+  std::chrono::steady_clock::time_point nav_start_time;
+  std::chrono::steady_clock::time_point waitStartTime;
+  double wait_time;
+  double nav_time;
+  waitStartTime=std::chrono::steady_clock::now();
   auto goal = this->patrol_.selectTarget();
   if(nav2_state_!=Nav2State::running){
     pub_goal(goal);
+    nav_start_time= std::chrono::steady_clock::now();
   }
   switch (nav2_state_) {
   case Nav2State::aborted:
@@ -134,7 +148,15 @@ void FSMRos2::patrolA() {
   case Nav2State::succeeded:
     // 导航成功，切换到下一个巡逻点
     RCLCPP_INFO(node_->get_logger(), " 导航成功advancePatrolIndex");
-    this->patrol_.advancePatrolIndex();
+    nav_end_time=std::chrono::steady_clock::now();
+    nav_time=std::chrono::duration_cast<std::chrono::milliseconds>(
+                      nav_end_time -nav_start_time)
+                      .count();
+    wait_time=std::chrono::duration_cast<std::chrono::milliseconds>(
+                      std::chrono::steady_clock::now() -waitStartTime)
+                      .count();
+    wait_time-=nav_time;
+    this->patrol_.advancePatrolIndex(wait_time);
     break;
   case Nav2State::running:
     // 导航中，不做任何改变
@@ -146,10 +168,17 @@ void FSMRos2::patrolA() {
 void FSMRos2::patrolB() {
   // 实现巡逻任务B的逻辑
   RCLCPP_INFO(node_->get_logger(), "正在执行巡逻任务B");
+  std::chrono::steady_clock::time_point nav_end_time;
+  std::chrono::steady_clock::time_point nav_start_time;
+  std::chrono::steady_clock::time_point waitStartTime;
+  double wait_time;
+  double nav_time;
+  waitStartTime=std::chrono::steady_clock::now();
   // 可以在这里调用patrol_对象的方法来执行具体的巡逻行为
   auto goal = this->patrol_.selectTarget();
   if(nav2_state_!=Nav2State::running){
     pub_goal(goal);
+    nav_start_time= std::chrono::steady_clock::now();
   }
   switch (nav2_state_) {
   case Nav2State::aborted:
@@ -159,7 +188,15 @@ void FSMRos2::patrolB() {
   case Nav2State::succeeded:
     // 导航成功，切换到下一个巡逻点
     RCLCPP_INFO(node_->get_logger(), " 导航成功advancePatrolIndex");
-    this->patrol_.advancePatrolIndex();
+    nav_end_time=std::chrono::steady_clock::now();
+    nav_time=std::chrono::duration_cast<std::chrono::milliseconds>(
+                      nav_end_time -nav_start_time)
+                      .count();
+    wait_time=std::chrono::duration_cast<std::chrono::milliseconds>(
+                      std::chrono::steady_clock::now() -waitStartTime)
+                      .count();
+    wait_time-=nav_time;
+    this->patrol_.advancePatrolIndex(wait_time);
     break;
   case Nav2State::running:
     // 导航中，不做任何改变

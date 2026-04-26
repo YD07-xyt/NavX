@@ -1,5 +1,11 @@
 # TODO
 
+## 4.24
+## 未解决
+1.launch 统一启动
+2.nav2 map 暂时无法解决
+3.decision优化fsm 的wait逻辑（decision 逻辑整体已优化）
+4.建图导航问题
 ## 4.23
 
 ## 未解决

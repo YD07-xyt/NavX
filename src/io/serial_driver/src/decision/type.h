@@ -8,6 +8,12 @@ struct Point {
   double yaw;
   Point(double x, double y, double yaw) : x(x), y(y), yaw(yaw){};
 };
+struct StateIsGoHome{
+  int go_home_hp=150;
+  int go_home_projectile_allowance=20;
+  int become_home_hp=300;
+  int become_home_projectile_allowance=200;
+};
 struct GoalPoint {
   Point Patrol1 = Point(1, 1, 1);
   Point Patrol2 = Point(2, 2, 2);
