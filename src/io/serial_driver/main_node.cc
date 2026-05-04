@@ -34,31 +34,36 @@ int main(int argc, char *argv[]) {
   serial_node->declare_parameter("patrol1.x", 1.0);
   serial_node->declare_parameter("patrol1.y", 1.0);
   serial_node->declare_parameter("patrol1.yaw", 1.0);
-  serial_node->declare_parameter("patrol1.wait_time", 10);
+  serial_node->declare_parameter("patrol1.wait_time", 10.0);
 
   serial_node->declare_parameter("patrol2.x", 2.0);
   serial_node->declare_parameter("patrol2.y", 2.0);
   serial_node->declare_parameter("patrol2.yaw", 2.0);
-  serial_node->declare_parameter("patrol2.wait_time", 10);
+  serial_node->declare_parameter("patrol2.wait_time", 10.0);
 
   serial_node->declare_parameter("patrol3.x", 1.0);
   serial_node->declare_parameter("patrol3.y", 1.0);
   serial_node->declare_parameter("patrol3.yaw", 1.0);
-  serial_node->declare_parameter("patrol3.wait_time", 10);
+  serial_node->declare_parameter("patrol3.wait_time", 10.0);
 
   serial_node->declare_parameter("patrol4.x", 2.0);
   serial_node->declare_parameter("patrol4.y", 2.0);
   serial_node->declare_parameter("patrol4.yaw", 2.0);
-  serial_node->declare_parameter("patrol4.wait_time", 10);
+  serial_node->declare_parameter("patrol4.wait_time", 10.0);
+
 
   serial_node->declare_parameter("HitOutpost.x", 2.0);
   serial_node->declare_parameter("HitOutpost.y", 2.0);
   serial_node->declare_parameter("HitOutpost.yaw", 2.0);
 
-  serial_node->declare_parameter("go_home_hp", 2.0);
-  serial_node->declare_parameter("go_home_projectile_allowance", 2.0);
-  serial_node->declare_parameter("become_home_hp", 2.0);
-  serial_node->declare_parameter("become_home_projectile_allowance", 2.0);
+  serial_node->declare_parameter("home.x", 0.0);
+  serial_node->declare_parameter("home.y", 0.0);
+  serial_node->declare_parameter("home.yaw", 0.0);
+
+  serial_node->declare_parameter("go_home_hp",150);
+  serial_node->declare_parameter("go_home_projectile_allowance",  20);
+  serial_node->declare_parameter("become_home_hp", 350);
+  serial_node->declare_parameter("become_home_projectile_allowance", 250);
 
   serial_node->declare_parameter("is_decision", true);
 

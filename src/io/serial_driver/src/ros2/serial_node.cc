@@ -102,9 +102,7 @@ void SerialNode::cmd_callback(geometry_msgs::msg::Twist::SharedPtr cmd_data) {
     std::get<SendSocketData>(send_cmd_variant_).v_x = cmd_data->linear.x;
     std::get<SendSocketData>(send_cmd_variant_).v_y = cmd_data->linear.y;
     std::get<SendSocketData>(send_cmd_variant_).w_z = cmd_data->angular.z;
-    // RCLCPP_INFO(node_->get_logger(), "serial 发送 cmd vx: %f ,vy : %f,wz :
-    // %f",
-    //             std::get<SendSocketData>(send_cmd_variant_).v_x,
+    // RCLCPP_INFO(node_->get_logger(), "serial 发送 cmd vx: %f ,vy : %f,wz :%f",std::get<SendSocketData>(send_cmd_variant_).v_x,
     //             std::get<SendSocketData>(send_cmd_variant_).v_y,
     //             std::get<SendSocketData>(send_cmd_variant_).w_z);
     // RCLCPP_INFO(node_->get_logger(), "serial 发送 crc16: 0x%04X",
@@ -144,9 +142,9 @@ void SerialNode::read_socket_data() {
         receive_speed_.vy = packet.vy;
         receive_speed_.wz = packet.wz;
         // rm_data_pub_->publish(rm_data_);
-        // RCLCPP_INFO(node_->get_logger(), "Received-HP:%d,Progress:%d,projectile_allowance:%d,game_time:%d,is_enemy_outpost_destroyed:%d", packet.current_hp,
-        //                    packet.game_progress,
-        //                packet.projectile_allowance,packet.game_time,packet.is_enemy_outpost_destroyed);
+        RCLCPP_INFO(node_->get_logger(), "Received-HP:%d,Progress:%d,projectile_allowance:%d,game_time:%d,is_enemy_outpost_destroyed:%d", packet.current_hp,
+                           packet.game_progress,
+                       packet.projectile_allowance,packet.game_time,packet.is_enemy_outpost_destroyed);
         plotter_debug_receive(now);
         
         int temp=packet.is_enemy_outpost_destroyed;
@@ -154,11 +152,13 @@ void SerialNode::read_socket_data() {
                       std::chrono::steady_clock::now() - waitStartTime)
                       .count() / 1000.0;
         //RCLCPP_INFO(node_->get_logger(),"now time:%lf",time);
-        if(time>=20){
+        // if(time>=400){
+        //   temp=0;
+        //  // RCLCPP_INFO(node_->get_logger(),"敌方哨站is已被击毁");
+        // }
+        if(packet.game_time<=240&&packet.game_time>=1){
           temp=0;
-         // RCLCPP_INFO(node_->get_logger(),"敌方哨站is已被击毁");
         }
-
         if (this->is_decision_) {
           // RCLCPP_INFO(node_->get_logger(), "Progress:
           // %d:",rm_data_.game_progress);

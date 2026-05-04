@@ -155,7 +155,7 @@ def generate_launch_description():
             "namespace": namespace,
             "use_sim_time": use_sim_time,
         }.items(),
-    )
+    )   
 
     start_livox_ros_driver2_node = Node(
         package="livox_ros_driver2",
@@ -166,6 +166,34 @@ def generate_launch_description():
         parameters=[configured_params],
     )
 
+    ###############################################################
+
+    serial_share_dir = get_package_share_directory('serial')
+    # 构建包含的 launch 文件的完整路径
+    serial_launch_path = os.path.join(serial_share_dir , 'launch', 'serial.launch.py')
+    
+    # 使用 IncludeLaunchDescription 来包含它
+    serial_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(serial_launch_path)
+        # 如果被包含的 launch 文件有参数，可以在这里通过 launch_arguments 传递
+        # launch_arguments={'use_sim_time': 'true'}.items(),
+    )
+
+
+    # 2. 发布静态 TF 变换 (map -> odom)
+    # 使用 tf2_ros 包中的 static_transform_publisher 节点
+    # 这里假设 map 和 odom 之间没有平移和旋转 (x=0, y=0, z=0, roll=0, pitch=0, yaw=0)
+    static_tf_map_to_odom = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='static_tf_map_to_odom_broadcaster',
+        # arguments 的顺序是: x, y, z, yaw, pitch, roll, parent_frame_id, child_frame_id
+        # 注意：常见的参数顺序是 x, y, z, yaw, pitch, roll [citation:3]
+        arguments=['0', '0', '0', '0', '0', '0', 'map', 'odom'],
+        output='screen',  # 将信息输出到终端
+    )
+
+#################################################################
     rviz_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(launch_dir, "rviz_launch.py")),
         condition=IfCondition(use_rviz),
@@ -190,6 +218,11 @@ def generate_launch_description():
             "use_respawn": use_respawn,
         }.items(),
     )
+    auto_save_map_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+        os.path.join(get_package_share_directory('pb2025_nav_bringup'), 'launch', 'auto_save_map.launch.py'))
+    )
+
 
     ld = LaunchDescription()
 
@@ -213,5 +246,9 @@ def generate_launch_description():
     ld.add_action(start_livox_ros_driver2_node)
     ld.add_action(bringup_cmd)
     ld.add_action(rviz_cmd)
-
+    #########################################
+    #ld.add_action(serial_launch)
+    ld.add_action(static_tf_map_to_odom)
+    #ld.add_action(auto_save_map_launch)
+    ###########################################
     return ld

@@ -48,7 +48,7 @@ enum class GameTask {
   Free,
 };
 enum class Nav2State {
-  unkown, //一般未开始
+  idle, //一般未开始
   aborted,
   succeeded,
   running,

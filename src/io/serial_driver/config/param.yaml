@@ -5,33 +5,33 @@ serial_node:
     baud_rate: 115200
     max_try: 100
     patrol1:
-      x: 4.15
-      y: 4.78
+      x: 5.35
+      y: 1.42
       yaw: 0.0
-      wait_time: 5.0
+      wait_time: 12.0
     patrol2:
-      x: 3.73
-      y: -4.88
+      x: 2.88
+      y: -4.97
       yaw: 0.0
-      wait_time: 5.0
+      wait_time: 12.0
     patrol3:
-      x: 0.0698
-      y: 0.531
+      x: 3.17
+      y: -4.56
       yaw: 0.0
       wait_time: 5.0
     patrol4:
-      x: 4.44
-      y: 2.55
+      x: 7.79
+      y: 3.46
       yaw: 0.0
-      wait_time: 5.0
+      wait_time: 15.0
     HitOutpost:
-      x: 3.91
-      y: -2.17
+      x: 7.79
+      y: 3.46
       yaw: 0.0
       wait_time: 5.0
     home:
-      x: 0.0
-      y: 0.0
+      x: 0.785
+      y: -6.11
       yaw: 0.0
       wait_time: 5.0
     go_home_hp: 150
