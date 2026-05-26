@@ -1,7 +1,7 @@
 rog_map:
   # 地图基本参数
-  resolution: 0.3                      # 概率地图分辨率(m)
-  inflation_resolution: 0.3            # 膨胀分辨率(m)
+  resolution: 0.1                      # 概率地图分辨率(m)
+  inflation_resolution: 0.1            # 膨胀分辨率(m)
   inflation_step: 2                    # 膨胀步长
   unk_inflation_en: false
   unk_inflation_step: 1
@@ -12,7 +12,7 @@ rog_map:
 
   # Virtual ceil and ground
   virtual_ceil_height: 5               # 天花板高度(m)
-  virtual_ground_height: -0.5          # 地面高度(m)
+  virtual_ground_height: -1.53 #-0.5          # 地面高度(m)
 
   load_pcd_en: false
 
@@ -21,7 +21,7 @@ rog_map:
     threshold: 0.3
 
   esdf:
-    enable: true
+    enable: false
     resolution: 0.3                    # 修改为0.3，必须 >= rog_map.resolution
     # The range of esdf around the odom [m]
     local_update_box: [15, 15, 3]      # 增大ESDF更新范围以匹配地图
@@ -30,8 +30,8 @@ rog_map:
   # else user should call function [updateMap] to update the map.
   ros_callback:
     enable: true
-    cloud_topic: "/lio/cloud_world"
-    odom_topic: "/lio/odom"
+    cloud_topic: "/terrain_map_ext"
+    odom_topic: "/lio/base_odom"
     odom_timeout: 20.0
 
   visualization:
