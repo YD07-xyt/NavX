@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="patrol">
+    <SequenceWithMemory>
+      <Timeout msec="15000">
+        <Nav2Pose goal="1.0,0.0,0.0" pub_model="publisher"/>
+      </Timeout>
+      <Timeout msec="15000">
+        <Nav2Pose goal="1.0,5.0,0.0" pub_model="publisher"/>
+      </Timeout>
+    </SequenceWithMemory>
+  </BehaviorTree>
+
+  <!-- Description of Node Models (used by Groot) -->
+  <TreeNodesModel>
+    <Action ID="Nav2Pose">
+    <input_port name="goal"
+                type="Point">目标点 (x, y, yaw)</input_port>
+    </Action>
+  </TreeNodesModel>
+
+</root>

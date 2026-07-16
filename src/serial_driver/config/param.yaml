@@ -1,0 +1,51 @@
+# config/serial_params.yaml
+serial_node:
+  ros__parameters:
+    serial_name: "/dev/ttyACM1"
+    baud_rate: 115200
+    max_try: 100
+    patrol1:
+      # x: 2.54
+      # y: -5.89
+      x: 2.84
+      y: -3.36
+      yaw: 0.0
+      wait_time: 10.0
+    patrol2:
+      x: 5.12
+      y: -3.18
+      yaw: 0.0
+      wait_time: 15.0
+    patrol3:
+      x: 4.14
+      y: -4.79
+      yaw: 0.0
+      wait_time: 5.0
+    patrol4:
+      x: 3.86
+      y: -6.64
+      yaw: 0.0
+      wait_time: 8.0
+    HitOutpost:
+      x: 8.78
+      y: -2.8
+      # x: 3.28
+      # y: -6.58
+      yaw: 0.0
+      wait_time: 5.0
+    home:
+      x: -3.96
+      y: -4.93
+      yaw: 0.0
+      wait_time: 3.0
+    go_home_hp: 85
+    go_home_projectile_allowance: 15
+    become_home_hp: 350
+    become_home_projectile_allowance: 50
+    is_decision: true
+    socket_send_name: "/tmp/serial_mux.sock"
+    socket_receive_name: "/tmp/serial_nav.sock"
+    sending_method: "socket"  # 可选值: "serial" 或 "socket"
+    tree_xml_file: "/home/ma/nav/NavX/src/io/serial_driver/src/rm_decision/behavior_tree/test/main_tree.xml"
+    tree_node_model_export_path: "/home/ma/nav/NavX/src/io/serial_driver/src/rm_decision/behavior_tree/test/generated_models.xml"
+    map_tf_name: "map"

@@ -14,10 +14,10 @@
   </xacro:macro>
 
   <!-- base_link to livox_frame -->
-  <xacro:arg name="xyz" default="0.12 0.0 0.175" />
-  <xacro:arg name="rpy" default="0 0 0" />
+  <xacro:arg name="xyz" default="-0.038 0.0 0.433" />
+  <xacro:arg name="rpy" default="3.14 0 0" />
 
-  <link name="world"/>
+  <link name="mesh"/>
 
   <link name="base_link">
     <visual>
@@ -38,8 +38,8 @@
     <xacro:default_inertial mass="8.2"/>
   </link>
 
-  <joint name="world_joint" type="fixed">
-     <parent link="world"/>
+  <joint name="mesh_joint" type="fixed">
+     <parent link="mesh"/>
      <child link="base_link"/>
   </joint>
 
@@ -150,7 +150,7 @@
   <!-- IMU joint -->
   <joint name="imu_joint" type="fixed">
     <axis xyz="0 1 0" />
-    <origin xyz="0.12 0 0.125" rpy="0 0 0"/>
+    <origin xyz="-0.038 0 0.433" rpy="3.14 0 0"/>
     <parent link="base_link"/>
     <child link="imu_link"/>
   </joint>

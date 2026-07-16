@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <queue>
 #include <rog_map/inf_map.h>
 #include <rog_map/free_cnt_map.h>
@@ -106,6 +107,10 @@ namespace rog_map {
         ESDFMap::Ptr esdf_map_;
         /// Spherical neighborhood lookup table
         std::vector<float> occupancy_buffer_;
+        /// Last wall-clock time (s) a cell was updated (hit or miss). 0 = never observed.
+        std::vector<float> last_obs_time_;
+        /// Wall-clock time of the current update, set at the top of updateProbMap.
+        double cur_wall_time_{0.0};
 
         bool map_empty_{true};
         struct RaycastData {
@@ -150,6 +155,14 @@ namespace rog_map {
         void resetCell(const int &hash_id) override;
 
         void probabilisticMapFromCache();
+
+        /// Occupancy time decay: fade cells that have not been re-observed for a while
+        void decayOccupancy();
+
+        /// Wall-clock time source (overridden by ROS layer; default: monotonic clock).
+        virtual const double getSystemWalltimeNow() {
+            return std::chrono::high_resolution_clock::now().time_since_epoch().count() / 1e9;
+        }
 
         void hitPointUpdate(const Vec3f &pos, const int &hash_id, const int &hit_num);
 

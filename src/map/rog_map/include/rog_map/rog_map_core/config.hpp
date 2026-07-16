@@ -100,6 +100,16 @@ namespace rog_map {
                 pcd_name = replaceCmakeRootDir(pcd_name);
             }
 
+            loader.LoadParam(name_space + "/global_map/enable", global_map_en, false);
+            loader.LoadParam(name_space + "/global_map/pcd_path", global_map_pcd_path, string(""));
+            vector<double> temp_terrain_origin;
+            loader.LoadParam(name_space + "/global_map/terrain_origin", temp_terrain_origin, vector<double>{0, 0, 0});
+            if (temp_terrain_origin.size() != 3) {
+                throw std::invalid_argument("Global map terrain_origin size is not 3!");
+            } else {
+                global_map_terrain_origin = Vec3f(temp_terrain_origin[0], temp_terrain_origin[1], temp_terrain_origin[2]);
+            }
+
             loader.LoadParam(name_space + "/map_sliding/enable", map_sliding_en, true);
             loader.LoadParam(name_space + "/map_sliding/threshold", map_sliding_thresh, -1.0);
 
@@ -125,6 +135,14 @@ namespace rog_map {
             loader.LoadParam(name_space + "/visualization/frame_id", frame_id, string("world"));
             loader.LoadParam(name_space + "/visualization/time_rate", viz_time_rate, 0.0);
             loader.LoadParam(name_space + "/visualization/frame_rate", viz_frame_rate, 0);
+            loader.LoadParam(name_space + "/terrain/time_rate", terrain_time_rate, 50.0);
+            loader.LoadParam(name_space + "/terrain/kernel_size", terrain_kernel_size, 5);
+            loader.LoadParam(name_space + "/terrain/max_step_height", terrain_max_step_height, 0.15f);
+            loader.LoadParam(name_space + "/terrain/robot_height", terrain_robot_height, 0.3f);
+            loader.LoadParam(name_space + "/terrain/steep_threshold", terrain_steep_threshold, 0.17f);
+            loader.LoadParam(name_space + "/terrain/map_size_x", terrain_map_size_x, 5.0);
+            loader.LoadParam(name_space + "/terrain/map_size_y", terrain_map_size_y, 5.0);
+            loader.LoadParam(name_space + "/global_map/time_rate", global_map_time_rate, 1.0);
             vector<double> temp_vis_range;
             loader.LoadParam(name_space + "/visualization/range", temp_vis_range, vector<double>{0, 0, 0});
             if (temp_vis_range.size() != 3) {
@@ -190,6 +208,10 @@ namespace rog_map {
             loader.LoadParam(name_space + "/raycasting/p_occ", p_occ, 0.80f);
             loader.LoadParam(name_space + "/raycasting/p_free", p_free, 0.30f);
             loader.LoadParam(name_space + "/raycasting/p_free", p_free, 0.30f);
+
+            /// Occupancy time decay for dynamic obstacle clearing
+            loader.LoadParam(name_space + "/raycasting/occ_decay_time", occ_decay_time, 0.0);
+            loader.LoadParam(name_space + "/raycasting/occ_decay_rate", occ_decay_rate, 1.0);
 
             vector<double> temp_ray_range;
             loader.LoadParam(name_space + "/raycasting/ray_range", temp_ray_range, vector<double>{0.3, 10});
@@ -293,6 +315,9 @@ namespace rog_map {
         double esdf_resolution{};
 
         bool load_pcd_en{false};
+        bool global_map_en{false};
+        string global_map_pcd_path{};
+        Vec3f global_map_terrain_origin{};
         bool use_dynamic_reconfigure{false};
         string pcd_name{"map.pcd"};
 
@@ -333,6 +358,10 @@ namespace rog_map {
         float p_hit{}, p_miss{}, p_min{}, p_max{}, p_occ{}, p_free{};
         float l_hit{}, l_miss{}, l_min{}, l_max{}, l_occ{}, l_free{};
 
+        /* occupancy time decay (dynamic obstacle clearing) */
+        double occ_decay_time{0.0};   // cell 超过该秒数未被观测则开始衰减, 0=关闭
+        double occ_decay_rate{1.0};   // 衰减强度 (每次施加的 l_miss 倍数)
+
         /* for unknown inflation */
         bool unk_inflation_en{false};
         int unk_inflation_step{0};
@@ -342,6 +371,14 @@ namespace rog_map {
         Vec3f visualization_range{};
         double viz_time_rate{};
         int viz_frame_rate{};
+        double terrain_time_rate{50.0};  // terrain_map 发布频率(Hz)，默认 50Hz
+        int terrain_kernel_size{5};
+        float terrain_max_step_height{0.15f};
+        float terrain_robot_height{0.3f};
+        float terrain_steep_threshold{0.17f};
+        double terrain_map_size_x{5.0};
+        double terrain_map_size_y{5.0};
+        double global_map_time_rate{1.0}; // global map 发布频率(Hz)，默认 1Hz
 
         double unk_thresh{};
         double map_sliding_thresh{};

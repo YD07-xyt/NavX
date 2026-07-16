@@ -43,7 +43,7 @@
       <sensor type="ray" name="${name}">
         <pose>0 0 0 0 0 0</pose>
         <visualize>true</visualize>
-        <update_rate>10</update_rate>
+        <update_rate>30.0</update_rate>
         <plugin name="${name}_plugin" filename="libros2_livox.so">
           <ray>
             <scan>
@@ -72,8 +72,8 @@
             </noise>
           </ray>
           <visualize>false</visualize>
-          <samples>${samples}</samples>
-          <downsample>1</downsample>
+          <samples>20000</samples>
+          <downsample>1.5</downsample>
           <csv_file_name>$(find ros2_livox_simulation)/scan_mode/mid360.csv</csv_file_name>
           <topic>${topic}</topic>
         </plugin>

@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 project(rog_map)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 #set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "-O3 -Wall -g -fPIC")
@@ -33,7 +33,7 @@ find_package(visualization_msgs REQUIRED)
 find_package(PCL REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(pcl_conversions REQUIRED)
-
+find_package(std_srvs REQUIRED)
 set(includes
         include
         ${Eigen_INCLUDE_DIRS}
@@ -55,6 +55,7 @@ set(ros_libs
         visualization_msgs
         pcl_conversions
         tf2_ros
+        std_srvs
 )
 
 include_directories(

@@ -25,24 +25,32 @@
 #define ROG_MAP_ROS_HPP
 
 #include "rog_map/esdf_map.h"
+#include "super_utils/eigen_alias.hpp"
+#include "terrain_analysis/terrain_analysis.hpp"
 #include <memory>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp/timer.hpp>
+#include <sensor_msgs/msg/detail/point_cloud2__struct.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <tf2_ros/transform_broadcaster.h>
 #include <visualization_msgs/msg/marker_array.hpp>
 
 #include <rog_map/rog_map.h>
 #include <super_utils/color_msg_utils.hpp>
+#include <std_srvs/srv/trigger.hpp>
 
 namespace rog_map {
 using namespace super_utils;
 
 class ROGMapROS : public ROGMap {
-  public:
-    std::shared_ptr<ESDFMap> get_esdf_map(){
-      return esdf_map_;
-    };
+
+private:
+  Terrain::TerrainAnalyzer terrain_analyzer_;
+
+
+public:
+  std::shared_ptr<ESDFMap> get_esdf_map() { return esdf_map_; };
   rclcpp::Node::SharedPtr nh_;
   std::shared_ptr<tf2_ros::TransformBroadcaster> br_map_ego_;
 
@@ -57,25 +65,158 @@ class ROGMapROS : public ROGMap {
   struct VisualizeMap {
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr occ_pub,
         unknown_pub, esdf_neg_pub, esdf_occ_pub, occ_inf_pub, unknown_inf_pub,
-        frontier_pub, esdf_pub;
+        frontier_pub, esdf_pub, terrain_map_pub, global_3docc_pub, global_terrain_pub;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
         mkr_arr_pub;
     rclcpp::TimerBase::SharedPtr viz_timer;
     rclcpp::CallbackGroup::SharedPtr viz_reen_cbk_group;
+    PointCloud::Ptr global_pcd_map_;
+    PointCloud::Ptr global_terrain_map_;
+    sensor_msgs::msg::PointCloud2::SharedPtr global_3docc_msg_;
+    sensor_msgs::msg::PointCloud2::SharedPtr global_terrain_msg_;
   } vm_;
 
   struct ROSCallback {
     rclcpp::CallbackGroup::SharedPtr odom_me_cbk_group, cloud_me_cbk_group,
-        update_cbk_group;
+        update_cbk_group, terrain_callback_group_, global_map_callback_group_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_sub;
     int unfinished_frame_cnt{0};
     Pose pc_pose;
     PointCloud pc;
     rclcpp::TimerBase::SharedPtr update_timer;
+    rclcpp::TimerBase::SharedPtr terrain_timer_;
+    rclcpp::TimerBase::SharedPtr global_map_timer_;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pub_global_map_srv_;
+
     mutex updete_lock;
   } rc_;
+  void terrainCallback() {
+    // Vec3f robot_pos = robot_state_.p;
+    Vec3f box_max = robot_state_.p + cfg_.visualization_range / 2;
+    Vec3f box_min = robot_state_.p - cfg_.visualization_range / 2;
+    rog_map::vec_E<Vec3f> inf_occ_map,real_occ_map;
+    boxSearchInflate(box_min, box_max, OCCUPIED, inf_occ_map);
+    boxSearch(box_min, box_max, OCCUPIED, real_occ_map);
+    auto terrain_map= terrain_analyzer_.analyze(robot_state_, real_occ_map);
+    vec_E<Vec3f> output;
+    for(auto pt:terrain_map){
+      if(pt.z()-robot_state_.p.z()<0.07){
+       //continue;
+      }
+      output.emplace_back(pt);
+    }
+    sensor_msgs::msg::PointCloud2 cloud_msg;
+    vecEVec3fToPC2(output, cloud_msg);
+    cloud_msg.header.stamp = nh_->get_clock()->now();
+    vm_.terrain_map_pub->publish(cloud_msg);
+   
+  }
 
+  void globalMapCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+                         std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+    (void)request;
+    if (!cfg_.global_map_en) {
+      response->success = false;
+      response->message = "Global map feature is not enabled in config.";
+      return;
+    }
+    publishGlobalMap();
+    response->success = true;
+    response->message = "Global map published successfully.";
+  }
+
+  void publishGlobalMap() {
+    if (!vm_.global_pcd_map_) {
+      return;
+    }
+
+    rclcpp::Time now = nh_->get_clock()->now();
+
+    if (vm_.global_3docc_pub) {
+      vm_.global_3docc_msg_->header.stamp = now;
+      vm_.global_3docc_pub->publish(*vm_.global_3docc_msg_);
+    }
+
+    if (vm_.global_terrain_pub) {
+      vm_.global_terrain_msg_->header.stamp = now;
+      vm_.global_terrain_pub->publish(*vm_.global_terrain_msg_);
+    }
+  }
+
+  void loadGlobalPCD() {
+    if (!cfg_.global_map_en || cfg_.global_map_pcd_path.empty()) {
+      return;
+    }
+
+    PointCloud::Ptr pcd_map(new PointCloud);
+    if (pcl::io::loadPCDFile(cfg_.global_map_pcd_path, *pcd_map) == -1) {
+      RCLCPP_ERROR(nh_->get_logger(), "Load pcd file at [%s] failed!", cfg_.global_map_pcd_path.c_str());
+      return;
+    }
+
+    RCLCPP_INFO(nh_->get_logger(), "Loaded global PCD with %lu pts.", pcd_map->size());
+
+    Vec3f bbox_min(1e9, 1e9, 1e9), bbox_max(-1e9, -1e9, -1e9);
+    for (const auto &pt : *pcd_map) {
+      bbox_min.x() = std::min(bbox_min.x(), static_cast<double>(pt.x));
+      bbox_min.y() = std::min(bbox_min.y(), static_cast<double>(pt.y));
+      bbox_min.z() = std::min(bbox_min.z(), static_cast<double>(pt.z));
+      bbox_max.x() = std::max(bbox_max.x(), static_cast<double>(pt.x));
+      bbox_max.y() = std::max(bbox_max.y(), static_cast<double>(pt.y));
+      bbox_max.z() = std::max(bbox_max.z(), static_cast<double>(pt.z));
+    }
+    Vec3f center = (bbox_min + bbox_max) / 2.0f;
+    Vec3f terrain_origin = cfg_.global_map_terrain_origin;
+    if (terrain_origin.x() != 0.0f || terrain_origin.y() != 0.0f || terrain_origin.z() != 0.0f) {
+      center = terrain_origin;
+    }
+
+    RobotState fake_robot;
+    fake_robot.p = center;
+    fake_robot.q = Quatf::Identity();
+    fake_robot.rcv = true;
+    fake_robot.yaw = 0.0;
+
+    Terrain::TerrainAnalyzer::Config terrain_cfg;
+    terrain_cfg.resolution = cfg_.resolution;
+    terrain_cfg.map_size_x = (bbox_max.x() - bbox_min.x()) + cfg_.resolution * 2;
+    terrain_cfg.map_size_y = (bbox_max.y() - bbox_min.y()) + cfg_.resolution * 2;
+    terrain_cfg.kernel_size = cfg_.terrain_kernel_size;
+    terrain_cfg.max_step_height = cfg_.terrain_max_step_height;
+    terrain_cfg.robot_height = cfg_.terrain_robot_height;
+    terrain_cfg.steep_threshold = cfg_.terrain_steep_threshold;
+    Terrain::TerrainAnalyzer global_terrain_analyzer(terrain_cfg);
+
+    rog_map::vec_E<Vec3f> pcd_points;
+    pcd_points.reserve(pcd_map->size());
+    for (const auto &pt : *pcd_map) {
+      pcd_points.emplace_back(pt.x, pt.y, pt.z);
+    }
+
+    auto terrain_map = global_terrain_analyzer.analyze(fake_robot, pcd_points);
+
+    PointCloud::Ptr terrain_pcd(new PointCloud);
+    terrain_pcd->resize(terrain_map.size());
+    for (size_t i = 0; i < terrain_map.size(); ++i) {
+      (*terrain_pcd)[i].x = terrain_map[i].x();
+      (*terrain_pcd)[i].y = terrain_map[i].y();
+      (*terrain_pcd)[i].z = terrain_map[i].z();
+    }
+
+    vm_.global_pcd_map_ = pcd_map;
+    vm_.global_terrain_map_ = terrain_pcd;
+
+    vm_.global_3docc_msg_ = std::make_shared<sensor_msgs::msg::PointCloud2>();
+    pcl::toROSMsg(*pcd_map, *vm_.global_3docc_msg_);
+    vm_.global_3docc_msg_->header.frame_id = "world";
+
+    vm_.global_terrain_msg_ = std::make_shared<sensor_msgs::msg::PointCloud2>();
+    pcl::toROSMsg(*terrain_pcd, *vm_.global_terrain_msg_);
+    vm_.global_terrain_msg_->header.frame_id = "world";
+
+    RCLCPP_INFO(nh_->get_logger(), "Global terrain_map prepared with %lu pts.", terrain_map.size());
+  }
   void odomCallback(const nav_msgs::msg::Odometry::SharedPtr odom_msg) {
     updateRobotState(std::make_pair(Vec3f(odom_msg->pose.pose.position.x,
                                           odom_msg->pose.pose.position.y,
@@ -111,6 +252,7 @@ class ROGMapROS : public ROGMap {
                 << RESET << std::endl;
       return;
     }
+    
     PointCloud temp_pc;
     pcl::fromROSMsg(*cloud_msg, temp_pc);
     rc_.updete_lock.lock();
@@ -325,6 +467,10 @@ public:
     init();
     /// Initialize visualization module
     if (cfg_.visualization_en) {
+      vm_.terrain_map_pub =
+          nh_->create_publisher<sensor_msgs::msg::PointCloud2>(
+              "rog_map/terrain_map", qos);
+
       vm_.occ_pub = nh_->create_publisher<sensor_msgs::msg::PointCloud2>(
           "rog_map/occ", qos);
       vm_.unknown_pub = nh_->create_publisher<sensor_msgs::msg::PointCloud2>(
@@ -384,6 +530,48 @@ public:
       rc_.update_timer = nh_->create_wall_timer(
           std::chrono::milliseconds(1), // 0.001秒，即1毫秒
           std::bind(&ROGMapROS::updateCallback, this), rc_.update_cbk_group);
+      // 在构造函数中
+      rc_.terrain_callback_group_ = nh_->create_callback_group(
+    rclcpp::CallbackGroupType::MutuallyExclusive);
+
+    Terrain::TerrainAnalyzer::Config terrain_cfg;
+    terrain_cfg.resolution  = cfg_.resolution;
+    terrain_cfg.map_size_x  = cfg_.terrain_map_size_x;
+    terrain_cfg.map_size_y  = cfg_.terrain_map_size_y;
+    terrain_cfg.kernel_size = cfg_.terrain_kernel_size;
+    terrain_cfg.max_step_height = cfg_.terrain_max_step_height;
+    terrain_cfg.robot_height = cfg_.terrain_robot_height;
+    terrain_cfg.steep_threshold = cfg_.terrain_steep_threshold;
+    terrain_analyzer_.setConfig(terrain_cfg);
+
+      rc_.terrain_timer_ =
+          nh_->create_wall_timer(
+              std::chrono::milliseconds(
+                  static_cast<int>(1000.0 / std::max(cfg_.terrain_time_rate, 1.0))),
+              std::bind(&ROGMapROS::terrainCallback, this),
+              rc_.terrain_callback_group_);
+    }
+
+    if (cfg_.global_map_en) {
+      vm_.global_3docc_pub =
+          nh_->create_publisher<sensor_msgs::msg::PointCloud2>(
+              "rog_map/global_3docc", qos);
+      vm_.global_terrain_pub =
+          nh_->create_publisher<sensor_msgs::msg::PointCloud2>(
+              "rog_map/global_terrain_map", qos);
+      loadGlobalPCD();
+
+      rc_.global_map_callback_group_ = nh_->create_callback_group(
+          rclcpp::CallbackGroupType::MutuallyExclusive);
+      rc_.global_map_timer_ =
+          nh_->create_wall_timer(
+              std::chrono::milliseconds(
+                  static_cast<int>(1000.0 / std::max(cfg_.global_map_time_rate, 1.0))),
+              std::bind(&ROGMapROS::publishGlobalMap, this),
+              rc_.global_map_callback_group_);
+      RCLCPP_INFO(nh_->get_logger(),
+                  "Global map publisher initialized, publishing at %.1f Hz",
+                  cfg_.global_map_time_rate);
     }
   }
 
