@@ -17,6 +17,8 @@ namespace io {
         float v_x;
         float v_y;
         float w_z;
+        uint8_t is_chassis_follow;
+        float robot_yaw; 
         
         uint16_t crc16;
         
@@ -50,13 +52,13 @@ namespace io {
             return verify();
         }
         
-        // 设置速度
-        void setVelocity(float vx, float vy, float wz) {
-            v_x = vx;
-            v_y = vy;
-            w_z = wz;
-            crc16 = calculateCRC16();  // 更新 CRC
-        }
+        // // 设置速度
+        // void setVelocity(float vx, float vy, float wz) {
+        //     v_x = vx;
+        //     v_y = vy;
+        //     w_z = wz;
+        //     crc16 = calculateCRC16();  // 更新 CRC
+        // }
     };
      struct  __attribute__((packed))  SendSocketData{
         //uint16_t sof;
@@ -66,7 +68,8 @@ namespace io {
         float v_x;
         float v_y;
         float w_z;
-        
+        uint8_t is_chassis_follow;
+        float robot_yaw; 
         // 序列化
         std::vector<uint8_t> serialize() const {
             std::vector<uint8_t> buffer(sizeof(SendData));

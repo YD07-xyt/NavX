@@ -8,7 +8,7 @@
 
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
-
+  // spdlog::set_level(spdlog::level::debug);
   auto serial_node = std::make_shared<rclcpp::Node>("serial_node");
   std::string serial_name;
   int baud_rate, max_try;
@@ -51,7 +51,6 @@ int main(int argc, char *argv[]) {
   serial_node->declare_parameter("patrol4.yaw", 2.0);
   serial_node->declare_parameter("patrol4.wait_time", 10.0);
 
-
   serial_node->declare_parameter("HitOutpost.x", 2.0);
   serial_node->declare_parameter("HitOutpost.y", 2.0);
   serial_node->declare_parameter("HitOutpost.yaw", 2.0);
@@ -60,8 +59,8 @@ int main(int argc, char *argv[]) {
   serial_node->declare_parameter("home.y", 0.0);
   serial_node->declare_parameter("home.yaw", 0.0);
 
-  serial_node->declare_parameter("go_home_hp",150);
-  serial_node->declare_parameter("go_home_projectile_allowance",  20);
+  serial_node->declare_parameter("go_home_hp", 150);
+  serial_node->declare_parameter("go_home_projectile_allowance", 20);
   serial_node->declare_parameter("become_home_hp", 350);
   serial_node->declare_parameter("become_home_projectile_allowance", 250);
 
@@ -81,9 +80,23 @@ int main(int argc, char *argv[]) {
     RCLCPP_INFO(serial_node->get_logger(), "Using serial for communication");
     sending_method = io::SendingMethod::serial;
   }
+
+  serial_node->declare_parameter<std::string>(
+      "tree_xml_file", "/home/ma/nav/NavX/src/io/serial_driver/src/rm_decision/"
+                       "behavior_tree/test/main_tree.xml");
+  serial_node->declare_parameter<std::string>(
+      "tree_node_model_export_path",
+      "/home/ma/nav/NavX/src/io/serial_driver/src/rm_decision/"
+      "behavior_tree/test/generated_models.xml");
+  serial_node->declare_parameter<std::string>("map_tf_name", "map");
+  bt::DecisionConfig decision_config;
+  serial_node->get_parameter("tree_xml_file", decision_config.tree_xml_file);
+  serial_node->get_parameter("tree_node_model_export_path", decision_config.tree_node_model_export_path);
+  serial_node->get_parameter("map_tf_name", decision_config.map_tf_name);
+
   auto node = std::make_shared<io::SerialNode>(
       serial_name, baud_rate, max_try, serial_node, socket_send_name,
-      socket_receive_name, sending_method);
+      socket_receive_name, sending_method, decision_config);
 
   // 读取参数
   serial_node->get_parameter("is_decision", node->is_decision_);
@@ -141,6 +154,7 @@ int main(int argc, char *argv[]) {
       serial_node->get_parameter("go_home_projectile_allowance").as_int();
   temp_state_is_go_home.go_home_hp =
       serial_node->get_parameter("go_home_hp").as_int();
+
   node->init_goal(temp_goal_point, temp_patrol_wait_time,
                   temp_state_is_go_home);
 

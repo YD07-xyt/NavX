@@ -248,7 +248,7 @@ def generate_launch_description():
     ld.add_action(rviz_cmd)
     #########################################
     #ld.add_action(serial_launch)
-    ld.add_action(static_tf_map_to_odom)
+    #ld.add_action(static_tf_map_to_odom)
     #ld.add_action(auto_save_map_launch)
     ###########################################
     return ld

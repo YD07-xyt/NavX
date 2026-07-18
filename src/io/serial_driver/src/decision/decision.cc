@@ -27,10 +27,12 @@ void FSMRos2::decision(int is_game, int current_hp, int projectile_allowance,
     return;
   }
   //RCLCPP_INFO(node_->get_logger(),"is_enemy_outpost_destroyed:%d",is_enemy_outpost_destroyed);
-  state_enemy_outpost(is_enemy_outpost_destroyed,game_time);
   is_good_robot_condition(current_hp, projectile_allowance);
-  SwitchpatrolState();
 
+
+  state_enemy_outpost(is_enemy_outpost_destroyed,game_time);
+  
+  SwitchpatrolState();
   ExecuteGameTask();
 };
 
@@ -39,7 +41,7 @@ void FSMRos2::state_enemy_outpost(int is_enemy_outpost_destroyed,int game_time) 
   if (is_enemy_outpost_destroyed == 1) {
     RCLCPP_INFO(node_->get_logger(),"to HitEnemyOutpost");
     this->enemy_outpost_state_ = EnemyOutpostState::not_destroyed;
-    if(game_time>=240&&game_time<=420){
+    if(game_time>=330&&game_time<=420){
       if(current_game_task_==GameTask::Free){
         current_game_task_ = GameTask::HitEnemyOutpost;
       }
@@ -48,7 +50,9 @@ void FSMRos2::state_enemy_outpost(int is_enemy_outpost_destroyed,int game_time) 
     }
   } else {
     this->enemy_outpost_state_ = EnemyOutpostState::destroyed;
-    current_game_task_ = GameTask::Free;
+    if(current_game_task_!=GameTask::Gohome){
+      current_game_task_ = GameTask::Free;
+    }
   }
 }
 
@@ -57,7 +61,8 @@ void FSMRos2::is_good_robot_condition(int current_hp,
   if (current_hp >= state_is_go_home_.become_home_hp && 
     projectile_allowance > state_is_go_home_.become_home_projectile_allowance) {
     robot_state_ = RobotState::OkBecomeHome;
-    RCLCPP_INFO(node_->get_logger(),"OkBecomeHome now projectile_allowance,%d",projectile_allowance);
+    current_game_task_ = GameTask::Free;
+    //RCLCPP_INFO(node_->get_logger(),"OkBecomeHome now projectile_allowance,%d",projectile_allowance);
     return;
   }
   if (current_hp < state_is_go_home_.go_home_hp || 
@@ -71,20 +76,30 @@ void FSMRos2::is_good_robot_condition(int current_hp,
 }
 
 void FSMRos2::SwitchpatrolState() {
+  // if (current_game_task_ == GameTask::Free) {
+  //   if (current_game_task_ != GameTask::Gohome &&
+  //       current_game_task_ != GameTask::HitEnemyOutpost) {
+  //     current_game_task_ = GameTask::PatrolA;
+  //   }
+  // }
   if (current_game_task_ == GameTask::Free) {
-    if (current_game_task_ != GameTask::Gohome &&
-        current_game_task_ != GameTask::HitEnemyOutpost) {
-      current_game_task_ = GameTask::PatrolA;
-    }
+    current_game_task_ = GameTask::PatrolA; 
+    //RCLCPP_INFO(node_->get_logger(),"to PatrolA");
   }
 }
 
 void FSMRos2::hit_enemy_outpost() {
   if(!is_temp_hit_point){
-    Point temp_goal_point(5.01,-0.255,0);
+    //Point temp_goal_point(6.265,0.581,0); //mo_map
+    Point temp_goal_point(8.78,-2.8,0); //hit HitOutpost
+    //Point temp_goal_point(3.28,-6.85,0); //red
     RCLCPP_INFO(node_->get_logger(),"is_temp_hit_point = false");
     if(nav2_state_!=Nav2State::running){
       pub_goal(temp_goal_point);
+    }else{
+      if(robot_state_ == RobotState::OkBecomeHome){
+        pub_goal(temp_goal_point);
+      }
     }
   }
   printf_nav2_state();
@@ -104,6 +119,7 @@ void FSMRos2::hit_enemy_outpost() {
     }
   }
 }
+
 void FSMRos2::printf_nav2_state(){
   switch(nav2_state_){
     case Nav2State::idle:
@@ -120,6 +136,7 @@ void FSMRos2::printf_nav2_state(){
       break;
   }
 }
+
 void FSMRos2::go_home() {
   // if (nav2_state_ == Nav2State::succeeded) {
   //   RCLCPP_INFO(node_->get_logger(), "已回到基地，执行后续任务");
@@ -128,10 +145,10 @@ void FSMRos2::go_home() {
   //     return;
   //   }
   // }
-  if (this->robot_state_ == RobotState::OkBecomeHome) {
-      current_game_task_ = GameTask::Free; // 切换回空闲状态
-      return;
-  }
+  // if (this->robot_state_ == RobotState::OkBecomeHome) {
+  //     current_game_task_ = GameTask::Free; // 切换回空闲状态
+  //     return;
+  // }
   pub_goal(goal_point_sum_.home);
 }
 
@@ -167,7 +184,9 @@ void FSMRos2::ExecuteGameTask() {
     break;
   }
 }
+
 void FSMRos2::patrolA() {
+  //RCLCPP_INFO(node_->get_logger(),"to PatrolA");
   static bool waiting_for_nav = false;  // 添加静态变量跟踪状态
   
   // 只在未发送导航目标时获取并发送
@@ -243,6 +262,7 @@ void FSMRos2::patrolA() {
     break;
   }
 }
+
 // void FSMRos2::patrolA() {
 //   //实现巡逻任务A的逻辑
 //   //RCLCPP_INFO(node_->get_logger(), "正在执行巡逻任务A");
@@ -283,6 +303,7 @@ void FSMRos2::patrolA() {
 //     break;
 //   }
 // }
+
 void FSMRos2::patrolB() {
   // 实现巡逻任务B的逻辑
   RCLCPP_INFO(node_->get_logger(), "正在执行巡逻任务B");
@@ -451,6 +472,7 @@ void FSMRos2::pub_goal(Point goal_point) {
   RCLCPP_INFO(node_->get_logger(), "Published goal: (%.2f, %.2f, %.2f rad)",
               goal_point.x, goal_point.y, goal_point.yaw);
 }
+
 void FSMRos2::nav2_status_callback(const action_msgs::msg::GoalStatusArray& msg) {
   if (msg.status_list.empty()) return;
   
