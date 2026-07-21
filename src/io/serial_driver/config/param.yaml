@@ -49,3 +49,4 @@ serial_node:
     tree_xml_file: "/home/ma/nav/NavX/src/io/serial_driver/src/rm_decision/behavior_tree/test/main_tree.xml"
     tree_node_model_export_path: "/home/ma/nav/NavX/src/io/serial_driver/src/rm_decision/behavior_tree/test/generated_models.xml"
     map_tf_name: "map"
+    log_level: "info"

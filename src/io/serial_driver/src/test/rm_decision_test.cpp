@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
     auto nav_model_before =
         rm_decision.getBlackboardValue<std::string>("nav_model");
     if (nav_model_before.has_value()) {
-        spdlog::info("before tick: nav_model = {}", nav_model_before.value());
+        spdlog::debug("before tick: nav_model = {}", nav_model_before.value());
       
     }
 
