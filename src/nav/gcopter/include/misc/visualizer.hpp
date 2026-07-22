@@ -4,6 +4,7 @@
 #include "../gcopter/geo_utils.hpp"
 #include "../gcopter/quickhull.hpp"
 #include "../gcopter/trajectory.hpp"
+#include "utils/SplineTrajectory.hpp"
 #include <chrono>
 #include <cmath>
 #include <iostream>
@@ -78,6 +79,59 @@ public:
         "/visualizer/global_path", 1000);
     OptPathPub = node->create_publisher<nav_msgs::msg::Path>(
         "/visualizer/opt_path", 1000);
+  }
+  void PubWayPoints(SplineTrajectory::PPolyND<2> traj) {
+    // 1. 航点
+    visualization_msgs::msg::Marker waypoints_marker;
+    waypoints_marker.header.frame_id = "world";
+    waypoints_marker.header.stamp = this->node->now();
+    waypoints_marker.ns = "waypoints";
+    waypoints_marker.id = 0;
+    waypoints_marker.type = visualization_msgs::msg::Marker::SPHERE_LIST;
+    waypoints_marker.action = visualization_msgs::msg::Marker::ADD;
+    waypoints_marker.scale.x = 0.35;
+    waypoints_marker.scale.y = 0.35;
+    waypoints_marker.scale.z = 0.35;
+    waypoints_marker.color.r = 1.0;
+    waypoints_marker.color.g = 0.0;
+    waypoints_marker.color.b = 0.0;
+    waypoints_marker.color.a = 1.0;
+
+    const auto &breakpoints = traj.getBreakpoints();
+    for (double t : breakpoints) {
+      Eigen::Vector2d pos = traj.evaluate(t, 0);
+      geometry_msgs::msg::Point p;
+      p.x = pos.x();
+      p.y = pos.y();
+      p.z = 0.0;
+      waypoints_marker.points.push_back(p);
+    }
+    wayPointsPub->publish(waypoints_marker);
+  };
+  void PubTrajectory(SplineTrajectory::PPolyND<2> traj, std::vector<Eigen::Vector2d> dense_path) {
+
+    visualization_msgs::msg::Marker traj_marker;
+    traj_marker.header.frame_id = "world";
+    traj_marker.header.stamp = node->now();
+    traj_marker.ns = "trajectory";
+    traj_marker.id = 0;
+    traj_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
+    traj_marker.action = visualization_msgs::msg::Marker::ADD;
+    traj_marker.scale.x = 0.3;
+    traj_marker.color.r = 0.0;
+    traj_marker.color.g = 0.5;
+    traj_marker.color.b = 1.0;
+    traj_marker.color.a = 1.0;
+
+    
+    for (const auto &pt : dense_path) {
+      geometry_msgs::msg::Point p;
+      p.x = pt.x();
+      p.y = pt.y();
+      p.z = 0.0;
+      traj_marker.points.push_back(p);
+    }
+    trajectoryPub->publish(traj_marker);
   }
   void PubOptPath(std::vector<Eigen::Vector2d> &path) {
     nav_msgs::msg::Path nav_path;
@@ -230,7 +284,7 @@ public:
       return;
     }
     if (map.empty()) {
-      //spdlog::warn("map empty");
+      // spdlog::warn("map empty");
       return;
     }
     // 创建 PointCloud2 消息

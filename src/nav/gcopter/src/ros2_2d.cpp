@@ -18,11 +18,10 @@
 namespace planner {
 GlobalPlanner2d::GlobalPlanner2d(rclcpp::Node::SharedPtr nh_)
     : config(nh_), nh(nh_), mapInitialized(false), visualizer(nh_),
-      fsm_(config.fsm_config), plotter_(),omni_lmpc_(config.lmpc_param) {
+      fsm_(config.fsm_config), plotter_(), omni_lmpc_(config.lmpc_param) {
 
   grid_map_ = std::make_shared<grid_map::GridMap>();
   // lmpc_tracker_ = std::make_unique<controller::LmpcTracker>(0.1, 30);
-  //  TODO:滑动更新，全局，局部
 
   grid_map_->init(config.map_size, config.map_size, config.resolution);
 
@@ -45,8 +44,7 @@ GlobalPlanner2d::GlobalPlanner2d(rclcpp::Node::SharedPtr nh_)
       });
   cmd_vel_pub_ =
       nh->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel_chassis", 10);
-  global_path_pub_ =
-      nh->create_publisher<nav_msgs::msg::Path>("global_path", 10);
+
   // 每 0.1 秒执行一次
   planner_timer_ =
       nh->create_wall_timer(std::chrono::milliseconds(33), // 时间间隔参数
@@ -58,8 +56,10 @@ GlobalPlanner2d::GlobalPlanner2d(rclcpp::Node::SharedPtr nh_)
       );
 }
 void GlobalPlanner2d::controller_callback() {
-  if (!current_XYTheta.has_value())
+  if (!current_XYTheta.has_value()) {
+    // spdlog::warn("[controller_callback] no current_XYtheta");
     return;
+  }
   if (!trajectory_.isInitialized()) {
     // spdlog::warn("轨迹未初始化，等待规划...");
     return;
@@ -88,6 +88,7 @@ void GlobalPlanner2d::controller_callback() {
   twist.linear.y = u_cmd.y();
   twist.angular.z = u_cmd.z();
   cmd_vel_pub_->publish(twist);
+  
 }
 
 void GlobalPlanner2d::planner_callback() { GlobalPlanner2d::plan_omni(); }
@@ -103,25 +104,17 @@ void GlobalPlanner2d::plan_omni() {
 
   auto result = fsm_.plan(goal_pose.value(), current_pose.value(), grid_map_);
   if (result) {
-    auto [astar_path, opt] = result.value(); // result.value() 返回 pair
+    auto [astar_path, opt] = result.value();
     visualizer.PubGlobalPath(astar_path);
     std::vector<Eigen::Vector2d> opt_path = opt.sampleTrajectory(0.1);
     visualizer.PubOptPath(opt_path);
-    // spdlog::info("path points:{}", opt_path.size());
 
-    //======================MPC========================//
-    start_time_ = std::chrono::steady_clock::now();
     trajectory_ = opt.getOptimizedTrajectory();
-    // 新轨迹：重置 MPC 沿轨迹的跟踪游标
-    omni_lmpc_.reset_track();
-
-  } else {
-    // 处理错误：result.error() 返回 path_error
-    auto err = result.error();
-    // 根据 err 做错误处理
+    visualizer.PubWayPoints(trajectory_);
+    std::vector<Eigen::Vector2d> dense_path = opt.sampleTrajectory(0.02);
+    visualizer.PubTrajectory(trajectory_, dense_path);
   }
 }
-
 void GlobalPlanner2d::odomCallBack(
     const nav_msgs::msg::Odometry::SharedPtr &msg) {
   if (!current_pose.has_value()) {

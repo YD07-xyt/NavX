@@ -58,7 +58,6 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr targetSub;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr OdomSub;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
-  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr global_path_pub_;
 
   rclcpp::TimerBase::SharedPtr planner_timer_;
   rclcpp::TimerBase::SharedPtr controller_timer_;
