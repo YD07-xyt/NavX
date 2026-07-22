@@ -10,7 +10,7 @@
                         min_projectile_allowance="50" 
                         current_hp="{current_hp}" 
                         min_hp="80"/>
-            <Nav2Pose goal="5.5,4.43,1.0" pub_model="publisher"/>
+            <Nav2Pose goal="0.0,0.0,1.0" pub_model="publisher"/>
           </Sequence>
           <Sequence>
             <IsRobotHealth current_projectile_allowance="{current_projectile_allowance}" 
@@ -37,9 +37,9 @@
                   enemy_outpost_hp="{current_enemy_outpost_hp}" 
                   min_enemy_outpost_hp="40"/>
           </Inverter>
-          <IsGameTimeExceeded game_time="{game_time}" threshold="420"/>
+          <IsGameTimeExceeded game_time="{game_time}" threshold="300"/>
           <IsGameTimeLess game_time="{game_time}" threshold="420"/>
-          <Nav2Pose goal="7.3,2.49,1.0" pub_model="publisher"/>
+          <Nav2Pose goal="2.08,2.94,1.0" pub_model="publisher"/>
           <Sleep msec="2000"/>
       </Sequence>
   </BehaviorTree>
@@ -50,25 +50,25 @@
       <Sequence>
         <!-- 点1 -->
         <Timeout msec="15000">
-          <Nav2Pose goal="5.14,1.08,1.0" pub_model="publisher"/>
+          <Nav2Pose goal="1.47,-1.02,1.0" pub_model="publisher"/>
         </Timeout>
         <Sleep msec="2000"/>
 
         <!-- 点2 -->
         <Timeout msec="15000">
-          <Nav2Pose goal="3.77,-0.466,1.0" pub_model="publisher"/>
+          <Nav2Pose goal="-0.28,1.05,1.0" pub_model="publisher"/>
         </Timeout>
         <Sleep msec="2000"/>
 
         <!-- 点3 -->
         <Timeout msec="15000">
-          <Nav2Pose goal="3.0,-2.57,1.0" pub_model="publisher"/>
+          <Nav2Pose goal="0.25,-1.38,1.0" pub_model="publisher"/>
         </Timeout>
         <Sleep msec="2000"/>
 
         <!-- 点4 -->
         <Timeout msec="15000">
-          <Nav2Pose goal="3.77,-0.466,1.0" pub_model="publisher"/>
+          <Nav2Pose goal="0.55,1.74,1.0" pub_model="publisher"/>
         </Timeout>
         <Sleep msec="2000"/>
       </Sequence>
