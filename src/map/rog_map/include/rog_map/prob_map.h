@@ -109,6 +109,13 @@ namespace rog_map {
         std::vector<float> occupancy_buffer_;
         /// Last wall-clock time (s) a cell was updated (hit or miss). 0 = never observed.
         std::vector<float> last_obs_time_;
+        /// Last wall-clock time (s) a cell was hit. 0 = never hit (used by decayOccupancy).
+        std::vector<float> last_hit_time_;
+        /// Cumulative hit count of each cell (used with miss_cnt for hit/miss ratio).
+        std::vector<int> total_hit_cnt_;
+        /// Cumulative miss (free-ray) count of each cell. Together with hit_cnt,
+        /// hit_ratio = hit / (hit + miss) modulates decay rate: high ratio → slow decay.
+        std::vector<int> total_miss_cnt_;
         /// Wall-clock time of the current update, set at the top of updateProbMap.
         double cur_wall_time_{0.0};
 
@@ -166,7 +173,7 @@ namespace rog_map {
 
         void hitPointUpdate(const Vec3f &pos, const int &hash_id, const int &hit_num);
 
-        void missPointUpdate(const Vec3f &pos, const int &hash_id, const int &hit_num);
+        void missPointUpdate(const Vec3f &pos, const int &hash_id, const int &miss_num);
 
         void raycastProcess(const PointCloud &input_cloud, const Vec3f &cur_odom);
 

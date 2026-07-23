@@ -82,6 +82,9 @@ void ProbMap::initProbMap() {
 
     occupancy_buffer_.resize(map_size, 0);
     last_obs_time_.assign(map_size, 0.0f);
+    last_hit_time_.assign(map_size, 0.0f);
+    total_hit_cnt_.assign(map_size, 0);
+    total_miss_cnt_.assign(map_size, 0);
     raycast_data_.raycaster.setResolution(cfg_.resolution);
     raycast_data_.operation_cnt.resize(map_size, 0);
     raycast_data_.hit_cnt.resize(map_size, 0);
@@ -550,6 +553,9 @@ void ProbMap::resetCell(const int& hash_id) {
     }
     ret = 0;
     last_obs_time_[hash_id] = 0.0f;
+    last_hit_time_[hash_id] = 0.0f;
+    total_hit_cnt_[hash_id] = 0;
+    total_miss_cnt_[hash_id] = 0;
 }
 
 void ProbMap::probabilisticMapFromCache() {
@@ -584,24 +590,41 @@ void ProbMap::decayOccupancy() {
         return;
     }
     const double age_thresh = cfg_.occ_decay_time;
-    const int n = static_cast<int>(occupancy_buffer_.size());
-    for (int hash_id = 0; hash_id < n; ++hash_id) {
-        // cells that were never observed stay unknown and are not decayed
-        if (last_obs_time_[hash_id] <= 0.0f) {
-            continue;
+
+    Vec3i box_min_i, box_max_i;
+    if (cfg_.raycasting_en) {
+        posToGlobalIndex(raycast_data_.local_update_box_min, box_min_i);
+        posToGlobalIndex(raycast_data_.local_update_box_max, box_max_i);
+    }
+
+    auto process_cell = [&](int hash_id) {
+        // cells that were never hit stay unknown and are not decayed
+        if (last_hit_time_[hash_id] <= 0.0f) {
+            return;
         }
         float& ret = occupancy_buffer_[hash_id];
         // already free cells need no decay
         if (isKnownFree(ret)) {
-            continue;
+            return;
         }
-        // cells still being re-observed stay fresh
-        if (cur_wall_time_ - last_obs_time_[hash_id] <= age_thresh) {
-            continue;
+        // cells not re-hit within age_thresh are eligible for decay
+        if (cur_wall_time_ - last_hit_time_[hash_id] <= age_thresh) {
+            return;
         }
-        // fade this cell toward free with a miss step
+        // ---- Compute hit/miss ratio to modulate decay rate ----
+        //   high hit_ratio ≈ wall (slow decay), low hit_ratio ≈ dynamic (fast decay)
+        float decay_modulator = 1.0f;
+        const int total_obs = total_hit_cnt_[hash_id] + total_miss_cnt_[hash_id];
+        if (total_obs >= cfg_.occ_decay_min_obs) {
+            const float hit_ratio = static_cast<float>(total_hit_cnt_[hash_id])
+                                    / static_cast<float>(total_obs);
+            // hit_ratio=1.0 → modulator=0   (wall → no decay)
+            // hit_ratio=0.0 → modulator=1.0 (noise → full decay)
+            decay_modulator = 1.0f - hit_ratio;
+        }
+        // fade this cell toward free with a miss step scaled by modulator
         GridType from_type = isOccupied(ret) ? GridType::OCCUPIED : GridType::UNKNOWN;
-        ret += cfg_.l_miss * cfg_.occ_decay_rate;
+        ret += cfg_.l_miss * cfg_.occ_decay_rate * decay_modulator;
         if (ret < cfg_.l_min) {
             ret = cfg_.l_min;
         }
@@ -621,12 +644,33 @@ void ProbMap::decayOccupancy() {
                 fcnt_map_->updateFrontierCounter(id_g, true);
             }
         }
+    };
+
+    if (cfg_.raycasting_en) {
+        for (int ix = box_min_i.x(); ix <= box_max_i.x(); ++ix) {
+            for (int iy = box_min_i.y(); iy <= box_max_i.y(); ++iy) {
+                for (int iz = box_min_i.z(); iz <= box_max_i.z(); ++iz) {
+                    Vec3i id_g(ix, iy, iz);
+                    if (!insideLocalMap(id_g)) continue;
+                    Vec3i id_l;
+                    globalIndexToLocalIndex(id_g, id_l);
+                    int hash_id = getLocalIndexHash(id_l);
+                    process_cell(hash_id);
+                }
+            }
+        }
+    } else {
+        for (int hash_id = 0; hash_id < static_cast<int>(occupancy_buffer_.size()); ++hash_id) {
+            process_cell(hash_id);
+        }
     }
 }
 
 void ProbMap::hitPointUpdate(const Vec3f& pos, const int& hash_id, const int& hit_num) {
     float& ret = occupancy_buffer_[hash_id];
     last_obs_time_[hash_id] = cur_wall_time_;
+    last_hit_time_[hash_id] = cur_wall_time_;
+    total_hit_cnt_[hash_id] += hit_num;
     GridType from_type = UNDEFINED;
 
     if (isOccupied(ret)) {
@@ -673,9 +717,10 @@ void ProbMap::hitPointUpdate(const Vec3f& pos, const int& hash_id, const int& hi
     }
 }
 
-void ProbMap::missPointUpdate(const Vec3f& pos, const int& hash_id, const int& hit_num) {
+void ProbMap::missPointUpdate(const Vec3f& pos, const int& hash_id, const int& miss_num) {
     float& ret = occupancy_buffer_[hash_id];
     last_obs_time_[hash_id] = cur_wall_time_;
+    total_miss_cnt_[hash_id] += miss_num;
     GridType from_type;
     if (isOccupied(ret)) {
         from_type = GridType::OCCUPIED;
@@ -686,7 +731,7 @@ void ProbMap::missPointUpdate(const Vec3f& pos, const int& hash_id, const int& h
     else {
         from_type = GridType::UNKNOWN;
     }
-    ret += cfg_.l_miss * hit_num;
+    ret += cfg_.l_miss * miss_num;
     if (ret < cfg_.l_min) {
         ret = cfg_.l_min;
     }
@@ -893,6 +938,9 @@ void ProbMap::resetLocalMap() {
     // Clear local map
     std::fill(occupancy_buffer_.begin(), occupancy_buffer_.end(), unk_value);
     std::fill(last_obs_time_.begin(), last_obs_time_.end(), 0.0f);
+    std::fill(last_hit_time_.begin(), last_hit_time_.end(), 0.0f);
+    std::fill(total_hit_cnt_.begin(), total_hit_cnt_.end(), 0);
+    std::fill(total_miss_cnt_.begin(), total_miss_cnt_.end(), 0);
     while (!raycast_data_.update_cache_id_g.empty()) {
         raycast_data_.update_cache_id_g.pop();
     }

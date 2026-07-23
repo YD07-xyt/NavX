@@ -28,9 +28,12 @@
 #include "super_utils/eigen_alias.hpp"
 #include "terrain_analysis/terrain_analysis.hpp"
 #include <memory>
+#include <mutex>
+#include <unordered_set>
 #include <nav_msgs/msg/odometry.hpp>
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/io/pcd_io.h>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/timer.hpp>
 #include <sensor_msgs/msg/detail/point_cloud2__struct.hpp>
@@ -63,6 +66,30 @@ public:
     _in = nh_->get_clock()->now();
   };
 
+  /// Accumulate occupied cells across sliding window for global map saving
+  std::unordered_set<uint64_t> global_occ_keys_;
+  std::mutex global_occ_mutex_;
+
+  /// Encode global grid index into uint64_t key for set storage
+  static inline uint64_t encodeGlobalKey(const Vec3i &id_g) {
+    constexpr int64_t offset = 1LL << 20;  // ±1M cells ≈ ±100km @ 0.1m
+    int64_t x = static_cast<int64_t>(id_g.x()) + offset;
+    int64_t y = static_cast<int64_t>(id_g.y()) + offset;
+    int64_t z = static_cast<int64_t>(id_g.z()) + offset;
+    return (static_cast<uint64_t>(x) << 42) |
+           (static_cast<uint64_t>(y) << 21) |
+           static_cast<uint64_t>(z);
+  }
+
+  /// Decode key back to global grid index
+  static inline Vec3i decodeGlobalKey(uint64_t key) {
+    constexpr int64_t offset = 1LL << 20;
+    int64_t z = static_cast<int64_t>(key & ((1ULL << 21) - 1)) - offset;
+    int64_t y = static_cast<int64_t>((key >> 21) & ((1ULL << 21) - 1)) - offset;
+    int64_t x = static_cast<int64_t>((key >> 42) & ((1ULL << 21) - 1)) - offset;
+    return Vec3i(static_cast<int>(x), static_cast<int>(y), static_cast<int>(z));
+  }
+
   struct VisualizeMap {
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr occ_pub,
         unknown_pub, esdf_neg_pub, esdf_occ_pub, occ_inf_pub, unknown_inf_pub,
@@ -90,6 +117,7 @@ public:
     rclcpp::TimerBase::SharedPtr terrain_timer_;
     rclcpp::TimerBase::SharedPtr global_map_timer_;
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pub_global_map_srv_;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr save_map_srv_;
 
     mutex updete_lock;
   } rc_;
@@ -144,6 +172,203 @@ public:
       vm_.global_terrain_msg_->header.stamp = now;
       vm_.global_terrain_pub->publish(*vm_.global_terrain_msg_);
     }
+  }
+
+  // ============== Save Map to Disk ==============
+
+  void saveMapCallback(
+      const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+      std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+    (void)request;
+    if (!cfg_.save_map_en) {
+      response->success = false;
+      response->message = "save_map is not enabled in config.";
+      return;
+    }
+    response->success = saveMap();
+    response->message = response->success
+                            ? "Map saved successfully."
+                            : "Failed to save map (see log).";
+  }
+
+  bool saveMap() {
+    // 1) create save directory
+    const string dir = cfg_.save_map_dir;
+    const string cmd = string("mkdir -p ") + dir;
+    if (system(cmd.c_str()) != 0) {
+      RCLCPP_ERROR(nh_->get_logger(), "Failed to create dir: %s", dir.c_str());
+      return false;
+    }
+
+    // 2) also merge current sliding window into the global accumulator
+    //    (in case vizCallback hasn't run recently)
+    {
+      Vec3f cur_min = local_map_bound_min_d_;
+      Vec3f cur_max = local_map_bound_max_d_;
+      cur_min.z() = std::max(cur_min.z(), cfg_.virtual_ground_height);
+      cur_max.z() = std::min(cur_max.z(), cfg_.virtual_ceil_height);
+      vec_E<Vec3f> cur_occ;
+      boxSearch(cur_min, cur_max, OCCUPIED, cur_occ);
+      std::lock_guard<std::mutex> lock(global_occ_mutex_);
+      Vec3i id_g;
+      for (const auto &pt : cur_occ) {
+        posToGlobalIndex(pt, id_g);
+        global_occ_keys_.insert(encodeGlobalKey(id_g));
+      }
+    }
+
+    // 3) convert accumulated global set → point cloud + bounding box
+    vec_E<Vec3f> occ_points;
+    {
+      std::lock_guard<std::mutex> lock(global_occ_mutex_);
+      occ_points.reserve(global_occ_keys_.size());
+      for (const auto &key : global_occ_keys_) {
+        Vec3i id_g = decodeGlobalKey(key);
+        Vec3f pos;
+        globalIndexToPos(id_g, pos);
+        occ_points.emplace_back(pos);
+      }
+    }
+    RCLCPP_INFO(nh_->get_logger(),
+                "Global accumulated occupied cells: %zu", occ_points.size());
+
+    if (occ_points.empty()) {
+      RCLCPP_WARN(nh_->get_logger(), "No occupied cells accumulated.");
+      return false;
+    }
+
+    // 4) compute global bounding box from accumulated points
+    Vec3f box_min(1e9, 1e9, 1e9), box_max(-1e9, -1e9, -1e9);
+    for (const auto &pt : occ_points) {
+      box_min = box_min.cwiseMin(pt);
+      box_max = box_max.cwiseMax(pt);
+    }
+    // Add a small margin
+    box_min -= Vec3f(cfg_.resolution, cfg_.resolution, 0);
+    box_max += Vec3f(cfg_.resolution, cfg_.resolution, 0);
+    box_min.z() = std::max(box_min.z(), cfg_.virtual_ground_height);
+    box_max.z() = std::min(box_max.z(), cfg_.virtual_ceil_height);
+
+    // 5) voxel-downsample for manageable PCD size (0.2m leaf)
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_3d(new pcl::PointCloud<pcl::PointXYZ>);
+    cloud_3d->resize(occ_points.size());
+    for (size_t i = 0; i < occ_points.size(); ++i) {
+      (*cloud_3d)[i].x = occ_points[i].x();
+      (*cloud_3d)[i].y = occ_points[i].y();
+      (*cloud_3d)[i].z = occ_points[i].z();
+    }
+    pcl::VoxelGrid<pcl::PointXYZ> voxel;
+    voxel.setInputCloud(cloud_3d);
+    voxel.setLeafSize(0.2f, 0.2f, 0.2f);
+    pcl::PointCloud<pcl::PointXYZ> cloud_ds;
+    voxel.filter(cloud_ds);
+
+    // convert back to vec_E for terrain analysis
+    vec_E<Vec3f> occ_ds;
+    occ_ds.reserve(cloud_ds.size());
+    for (const auto &pt : cloud_ds) {
+      occ_ds.emplace_back(pt.x, pt.y, pt.z);
+    }
+
+    // 6) save 3D occ PCD (full accumulated)
+    if (cfg_.save_3docc_pcd_en) {
+      const string occ_pcd = dir + "/3d_occ.pcd";
+      if (pcl::io::savePCDFileBinary(occ_pcd, cloud_ds) == 0) {
+        RCLCPP_INFO(nh_->get_logger(), "Saved global 3D occ map: %s (%zu pts)",
+                    occ_pcd.c_str(), cloud_ds.size());
+      } else {
+        RCLCPP_ERROR(nh_->get_logger(), "Failed to save: %s", occ_pcd.c_str());
+      }
+    }
+
+    // 7) terrain analysis on global accumulated data
+    RobotState fake_pose;
+    fake_pose.p = (box_min + box_max) * 0.5f;
+    fake_pose.q = Quatf::Identity();
+    fake_pose.rcv = true;
+    fake_pose.yaw = 0.0;
+
+    Terrain::TerrainAnalyzer::Config terrain_cfg;
+    terrain_cfg.resolution = cfg_.resolution;
+    terrain_cfg.map_size_x = (box_max.x() - box_min.x()) + cfg_.resolution * 2;
+    terrain_cfg.map_size_y = (box_max.y() - box_min.y()) + cfg_.resolution * 2;
+    terrain_cfg.kernel_size = cfg_.terrain_kernel_size;
+    terrain_cfg.max_step_height = cfg_.terrain_max_step_height;
+    terrain_cfg.robot_height = cfg_.terrain_robot_height;
+    terrain_cfg.steep_threshold = cfg_.terrain_steep_threshold;
+    Terrain::TerrainAnalyzer global_terrain_analyzer(terrain_cfg);
+
+    auto terrain_pts = global_terrain_analyzer.analyze(fake_pose, occ_ds);
+    RCLCPP_INFO(nh_->get_logger(), "Global terrain obstacle points: %zu",
+                terrain_pts.size());
+
+    // 8) save terrain PCD
+    if (cfg_.save_terrain_pcd_en) {
+      pcl::PointCloud<pcl::PointXYZ> cloud_t;
+      cloud_t.resize(terrain_pts.size());
+      for (size_t i = 0; i < terrain_pts.size(); ++i) {
+        cloud_t[i].x = terrain_pts[i].x();
+        cloud_t[i].y = terrain_pts[i].y();
+        cloud_t[i].z = terrain_pts[i].z();
+      }
+      const string t_pcd = dir + "/terrain_obstacle.pcd";
+      if (pcl::io::savePCDFileBinary(t_pcd, cloud_t) == 0) {
+        RCLCPP_INFO(nh_->get_logger(), "Saved global terrain map: %s (%zu pts)",
+                    t_pcd.c_str(), cloud_t.size());
+      } else {
+        RCLCPP_ERROR(nh_->get_logger(), "Failed to save: %s", t_pcd.c_str());
+      }
+    }
+
+    // 9) save terrain PGM (global bounds)
+    if (cfg_.save_terrain_pgm_en) {
+      saveTerrainPGM(dir + "/terrain_costmap.pgm", terrain_pts, box_min, box_max);
+    }
+
+    RCLCPP_INFO(nh_->get_logger(),
+                "Global map saved. Bounding box: [%.1f,%.1f] × [%.1f,%.1f]",
+                box_min.x(), box_max.x(), box_min.y(), box_max.y());
+    return true;
+  }
+
+  void saveTerrainPGM(const string &pgm_path,
+                      const vec_E<Vec3f> &terrain_pts,
+                      const Vec3f &box_min, const Vec3f &box_max) {
+    const double res = cfg_.resolution;
+    const int w =
+        static_cast<int>(std::ceil((box_max.x() - box_min.x()) / res));
+    const int h =
+        static_cast<int>(std::ceil((box_max.y() - box_min.y()) / res));
+    if (w <= 0 || h <= 0) {
+      RCLCPP_ERROR(nh_->get_logger(), "PGM dimensions invalid: %dx%d", w, h);
+      return;
+    }
+
+    // build 2D obstacle grid (0 = free, 255 = obstacle)
+    std::vector<uint8_t> grid(w * h, 0);
+
+    // rasterize terrain obstacle points onto the grid
+    for (const auto &pt : terrain_pts) {
+      int col = static_cast<int>((pt.x() - box_min.x()) / res);
+      int row = static_cast<int>((pt.y() - box_min.y()) / res);
+      col = std::max(0, std::min(w - 1, col));
+      row = std::max(0, std::min(h - 1, row));
+      grid[row * w + col] = 255;  // obstacle
+    }
+
+    // write PGM (P5 binary)
+    std::ofstream f(pgm_path, std::ios::binary);
+    if (!f.is_open()) {
+      RCLCPP_ERROR(nh_->get_logger(), "Cannot open %s", pgm_path.c_str());
+      return;
+    }
+    // header
+    f << "P5\n# ROG-Map terrain costmap\n" << w << " " << h << "\n255\n";
+    f.write(reinterpret_cast<const char *>(grid.data()),
+            static_cast<std::streamsize>(grid.size()));
+    f.close();
+    RCLCPP_INFO(nh_->get_logger(), "Saved terrain PGM: %s (%dx%d)",
+                pgm_path.c_str(), w, h);
   }
 
   void loadGlobalPCD() {
@@ -377,6 +602,16 @@ public:
       boxSearch(box_min, box_max, OCCUPIED, occ_map);
       vecEVec3fToPC2(occ_map, cloud_msg);
       vm_.occ_pub->publish(cloud_msg);
+
+      // Accumulate occupied cells for global map saving (across sliding windows)
+      if (cfg_.save_map_en) {
+        std::lock_guard<std::mutex> lock(global_occ_mutex_);
+        Vec3i id_g;
+        for (const auto &pt : occ_map) {
+          posToGlobalIndex(pt, id_g);
+          global_occ_keys_.insert(encodeGlobalKey(id_g));
+        }
+      }
     }
 
     if (vm_.occ_inf_pub->get_subscription_count() >= 1) {
@@ -555,6 +790,7 @@ public:
       rc_.update_timer = nh_->create_wall_timer(
           std::chrono::milliseconds(1), // 0.001秒，即1毫秒
           std::bind(&ROGMapROS::updateCallback, this), rc_.update_cbk_group);
+
       // 在构造函数中
       rc_.terrain_callback_group_ = nh_->create_callback_group(
           rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -595,6 +831,16 @@ public:
       RCLCPP_INFO(nh_->get_logger(),
                   "Global map publisher initialized, publishing at %.1f Hz",
                   cfg_.global_map_time_rate);
+    }
+
+    // Save-map service
+    if (cfg_.save_map_en) {
+      rc_.save_map_srv_ = nh_->create_service<std_srvs::srv::Trigger>(
+          "rog_map/save_map",
+          std::bind(&ROGMapROS::saveMapCallback, this,
+                    std::placeholders::_1, std::placeholders::_2));
+      RCLCPP_INFO(nh_->get_logger(),
+                  "Save-map service ready at /rog_map/save_map");
     }
   }
 

@@ -9,3 +9,4 @@ log
 /src/location/Super-LIO/src/super_lio/map/*pcd
 /src/map/rog_map/pcd/*pcd
 /src/tool/pcd2pgm
+/src/map/rog_map/map/*pcd

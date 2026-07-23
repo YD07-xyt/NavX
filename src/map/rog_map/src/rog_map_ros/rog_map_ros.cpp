@@ -13,8 +13,11 @@ int main(int argc, char** argv) {
     // 创建ROGMapROS实例
     auto rog_map = std::make_shared<rog_map::ROGMapROS>(node, config_path);
     
-    // 运行
-    rclcpp::spin(node);
+    // 使用多线程执行器，避免建图计算阻塞可视化发布
+    rclcpp::executors::MultiThreadedExecutor executor(
+        rclcpp::ExecutorOptions(), 2);
+    executor.add_node(node);
+    executor.spin();
     rclcpp::shutdown();
     
     return 0;

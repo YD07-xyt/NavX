@@ -212,3 +212,54 @@ frontier / 可视化边界等其他模块。
 - `occ_decay_time <= 0` 时 `decayOccupancy` 直接返回，零额外开销，完全兼容原行为。
 - 膨胀层、ESDF、frontier、地形分析、可视化等模块均未改动接口，仅随占据翻转被动更新计数器。
 
+---
+
+# 动态障碍物拖影修复 — `occ_decay` 三个核心修正 — 改动说明
+
+## 问题
+现有占据时间衰减实现存在三个缺陷，导致动态障碍物（行人等）存在严重拖影且无法消除：
+1. **miss 射线也刷新衰减计时器**：`last_obs_time_` 在 hit 和 miss 时都被写为当前时间，导致障碍物离开后，射线以 miss 穿过原位置时计时器被持续重置，`decayOccupancy` 的 `cur_wall_time_ - last_obs_time_ <= occ_decay_time` 永远满足，occupied 永不衰减。
+2. **衰减步长过小**：`occ_decay_rate=1.0`（YAML 中 `1.3`），每次衰减仅推进约 `l_miss × 1.3 ≈ -0.26 log-odds`，从 occupied 回到 known_free 需要约 10 步，拖影消散极慢。
+3. **全局遍历 + 批量失观测**：`decayOccupancy` 遍历整张地图，机器人突然转向时大量格子同时超过 `occ_decay_time`，同一帧大量同时衰减，表现为“某个时间点大量衰减”的跳变式消散。
+
+## 改动
+
+### 1. 分拆衰减计时器：`last_hit_time_` 仅 hit 写入
+- `include/rog_map/prob_map.h`：新增 `std::vector<float> last_hit_time_;`，用于 decay 判断。
+- `src/rog_map/prob_map.cpp`：
+  - `hitPointUpdate`：`last_hit_time_[hash_id] = cur_wall_time_;`
+  - `missPointUpdate`：**不再写** `last_hit_time_`
+  - `resetCell` / `resetLocalMap` / `initProbMap`：同步清零 `last_hit_time_`
+- `decayOccupancy` 判断条件改为：`cur_wall_time_ - last_hit_time_[hash_id] > occ_decay_time`
+
+效果：动态障碍物离开后，原 occupied 格不再被 hit → 计时器正常倒计时 → 衰减正常启动，拖影可消除。
+
+### 2. 提升衰减强度
+- `include/rog_map/rog_map_core/config.hpp`：`occ_decay_rate` 默认值从 `1.0` 改为 `4.0`
+- `config/rog_map.yaml`：`occ_decay_rate` 从 `1.3` 改为 `4.0`
+
+计算：`l_miss ≈ -0.20`，`4.0 × l_miss ≈ -0.80 log-odds/步`，occupied 格从 `l_occ ≈ 1.10` 衰减到 `< l_free ≈ -0.85` 仅需约 3 步，消散显著加快。
+
+### 3. decay 范围限制在局部更新框
+- `src/rog_map/prob_map.cpp` — `decayOccupancy`：将全局遍历改为仅扫描
+  `raycast_data_.local_update_box_min/max` 定义的局部更新框内格子。对关闭 raycasting
+  的场景保持全量遍历作为兜底。
+
+效果：衰减扩散与机器人感知范围同步，不会出现场景级集体消散的跳变。
+
+## 使用与调参
+- 现有参数名不变，无需改 YAML 键名。
+- 推荐配置（`config/rog_map.yaml`）：
+  ```yaml
+  raycasting:
+    occ_decay_time: 1.0   # 上次 hit 后多久开始衰减(s)
+    occ_decay_rate: 4.0   # 每次衰减的 log-odds 步长（l_miss 的倍数）
+  ```
+- 若静态障碍被误清：调大 `occ_decay_time`（如 2.0~5.0）或调小 `occ_decay_rate`（如 2.0~3.0）。
+- 若动态障碍消散太慢：调小 `occ_decay_time`（如 0.5）或调大 `occ_decay_rate`（如 5.0~8.0）。
+
+## 影响范围
+- 仅修改 `ProbMap` 的衰减逻辑与相关配置默认值，命中/未命中概率更新本身不变。
+- `occ_decay_time <= 0` 时 `decayOccupancy` 直接返回，零额外开销，保持向后兼容。
+- 膨胀层、ESDF、frontier、地形分析、可视化等模块的接口未改动，仅随占据翻转被动更新计数器。
+

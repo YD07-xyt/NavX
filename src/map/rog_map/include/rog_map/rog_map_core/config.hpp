@@ -135,6 +135,12 @@ namespace rog_map {
             loader.LoadParam(name_space + "/visualization/frame_id", frame_id, string("world"));
             loader.LoadParam(name_space + "/visualization/time_rate", viz_time_rate, 0.0);
             loader.LoadParam(name_space + "/visualization/frame_rate", viz_frame_rate, 0);
+            /// Save map to disk
+            loader.LoadParam(name_space + "/save_map/enable", save_map_en, false);
+            loader.LoadParam(name_space + "/save_map/save_dir", save_map_dir, string("/tmp/rog_map_save"));
+            loader.LoadParam(name_space + "/save_map/save_3docc_pcd", save_3docc_pcd_en, true);
+            loader.LoadParam(name_space + "/save_map/save_terrain_pcd", save_terrain_pcd_en, true);
+            loader.LoadParam(name_space + "/save_map/save_terrain_pgm", save_terrain_pgm_en, true);
             loader.LoadParam(name_space + "/terrain/time_rate", terrain_time_rate, 50.0);
             loader.LoadParam(name_space + "/terrain/kernel_size", terrain_kernel_size, 5);
             loader.LoadParam(name_space + "/terrain/max_step_height", terrain_max_step_height, 0.15f);
@@ -211,7 +217,8 @@ namespace rog_map {
 
             /// Occupancy time decay for dynamic obstacle clearing
             loader.LoadParam(name_space + "/raycasting/occ_decay_time", occ_decay_time, 0.0);
-            loader.LoadParam(name_space + "/raycasting/occ_decay_rate", occ_decay_rate, 1.0);
+            loader.LoadParam(name_space + "/raycasting/occ_decay_rate", occ_decay_rate, 4.0);
+            loader.LoadParam(name_space + "/raycasting/occ_decay_min_obs", occ_decay_min_obs, 5);
 
             vector<double> temp_ray_range;
             loader.LoadParam(name_space + "/raycasting/ray_range", temp_ray_range, vector<double>{0.3, 10});
@@ -359,8 +366,9 @@ namespace rog_map {
         float l_hit{}, l_miss{}, l_min{}, l_max{}, l_occ{}, l_free{};
 
         /* occupancy time decay (dynamic obstacle clearing) */
-        double occ_decay_time{0.0};   // cell 超过该秒数未被观测则开始衰减, 0=关闭
-        double occ_decay_rate{1.0};   // 衰减强度 (每次施加的 l_miss 倍数)
+        double occ_decay_time{0.0};   // cell 超过该秒数未被 hit 则开始衰减, 0=关闭
+        double occ_decay_rate{4.0};   // 衰减强度 (每次施加的 l_miss 倍数)
+        int occ_decay_min_obs{5}; // hit+miss 最小观测次数, 超过后才计算 hit/miss 比例调制衰减率
 
         /* for unknown inflation */
         bool unk_inflation_en{false};
@@ -371,6 +379,12 @@ namespace rog_map {
         Vec3f visualization_range{};
         double viz_time_rate{};
         int viz_frame_rate{};
+        /* save map to disk */
+        bool save_map_en{false};
+        string save_map_dir{"/tmp/rog_map_save"};
+        bool save_3docc_pcd_en{true};
+        bool save_terrain_pcd_en{true};
+        bool save_terrain_pgm_en{true};
         double terrain_time_rate{50.0};  // terrain_map 发布频率(Hz)，默认 50Hz
         int terrain_kernel_size{5};
         float terrain_max_step_height{0.15f};
