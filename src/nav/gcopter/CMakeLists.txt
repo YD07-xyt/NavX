@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 project(gcopter)
 
-# 使用 C++14 标准（ROS2 默认支持 C++14/17）
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
@@ -42,7 +41,8 @@ include_directories(
 )
 
 add_library(planner
-src/ros2_2d.cpp)
+src/ros2_2d.cpp
+src/replan/fsm.cpp)
 
 target_link_libraries(planner
   ${OMPL_LIBRARIES}

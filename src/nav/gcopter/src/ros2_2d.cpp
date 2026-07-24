@@ -21,7 +21,6 @@ GlobalPlanner2d::GlobalPlanner2d(rclcpp::Node::SharedPtr nh_)
       fsm_(config.fsm_config), plotter_(), omni_lmpc_(config.lmpc_param) {
 
   grid_map_ = std::make_shared<grid_map::GridMap>();
-  // lmpc_tracker_ = std::make_unique<controller::LmpcTracker>(0.1, 30);
 
   grid_map_->init(config.map_size, config.map_size, config.resolution);
 
@@ -64,7 +63,7 @@ void GlobalPlanner2d::controller_callback() {
     // spdlog::warn("轨迹未初始化，等待规划...");
     return;
   }
-  // 1. 距离目标检查（优先）
+  // 距离目标检查（优先）
   if ((current_XYTheta->head<2>() - goal_pose->head<2>()).norm() < 0.05) {
     geometry_msgs::msg::Twist stop;
     cmd_vel_pub_->publish(stop);
@@ -72,7 +71,7 @@ void GlobalPlanner2d::controller_callback() {
     return;
   }
 
-  // 2. 更新状态并求解（参考游标由 MPC 内部按机器人实际进度跟踪，
+  // 更新状态并求解（参考游标由 MPC 内部按机器人实际进度跟踪，
   //    不再依赖墙钟时间，避免落后参考时反复切角、偏差累积）
   omni_lmpc_.update_current_pose(*current_XYTheta);
   auto predicted = omni_lmpc_.slover(trajectory_);
@@ -81,7 +80,7 @@ void GlobalPlanner2d::controller_callback() {
     return;
   }
 
-  // 5. 发布控制指令
+  // 发布控制指令
   Eigen::Vector3d u_cmd = omni_lmpc_.u_k;
   geometry_msgs::msg::Twist twist;
   twist.linear.x = u_cmd.x();

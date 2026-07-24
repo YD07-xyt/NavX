@@ -29,7 +29,6 @@
 #include "terrain_analysis/terrain_analysis.hpp"
 #include <memory>
 #include <mutex>
-#include <unordered_set>
 #include <nav_msgs/msg/odometry.hpp>
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/filters/voxel_grid.h>
@@ -39,6 +38,7 @@
 #include <sensor_msgs/msg/detail/point_cloud2__struct.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <tf2_ros/transform_broadcaster.h>
+#include <unordered_set>
 #include <visualization_msgs/msg/marker_array.hpp>
 
 #include <rog_map/rog_map.h>
@@ -72,12 +72,11 @@ public:
 
   /// Encode global grid index into uint64_t key for set storage
   static inline uint64_t encodeGlobalKey(const Vec3i &id_g) {
-    constexpr int64_t offset = 1LL << 20;  // ±1M cells ≈ ±100km @ 0.1m
+    constexpr int64_t offset = 1LL << 20; // ±1M cells ≈ ±100km @ 0.1m
     int64_t x = static_cast<int64_t>(id_g.x()) + offset;
     int64_t y = static_cast<int64_t>(id_g.y()) + offset;
     int64_t z = static_cast<int64_t>(id_g.z()) + offset;
-    return (static_cast<uint64_t>(x) << 42) |
-           (static_cast<uint64_t>(y) << 21) |
+    return (static_cast<uint64_t>(x) << 42) | (static_cast<uint64_t>(y) << 21) |
            static_cast<uint64_t>(z);
   }
 
@@ -116,7 +115,6 @@ public:
     rclcpp::TimerBase::SharedPtr update_timer;
     rclcpp::TimerBase::SharedPtr terrain_timer_;
     rclcpp::TimerBase::SharedPtr global_map_timer_;
-    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pub_global_map_srv_;
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr save_map_srv_;
 
     mutex updete_lock;
@@ -186,9 +184,8 @@ public:
       return;
     }
     response->success = saveMap();
-    response->message = response->success
-                            ? "Map saved successfully."
-                            : "Failed to save map (see log).";
+    response->message = response->success ? "Map saved successfully."
+                                          : "Failed to save map (see log).";
   }
 
   bool saveMap() {
@@ -229,8 +226,8 @@ public:
         occ_points.emplace_back(pos);
       }
     }
-    RCLCPP_INFO(nh_->get_logger(),
-                "Global accumulated occupied cells: %zu", occ_points.size());
+    RCLCPP_INFO(nh_->get_logger(), "Global accumulated occupied cells: %zu",
+                occ_points.size());
 
     if (occ_points.empty()) {
       RCLCPP_WARN(nh_->get_logger(), "No occupied cells accumulated.");
@@ -250,7 +247,8 @@ public:
     box_max.z() = std::min(box_max.z(), cfg_.virtual_ceil_height);
 
     // 5) voxel-downsample for manageable PCD size (0.2m leaf)
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_3d(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_3d(
+        new pcl::PointCloud<pcl::PointXYZ>);
     cloud_3d->resize(occ_points.size());
     for (size_t i = 0; i < occ_points.size(); ++i) {
       (*cloud_3d)[i].x = occ_points[i].x();
@@ -322,7 +320,8 @@ public:
 
     // 9) save terrain PGM (global bounds)
     if (cfg_.save_terrain_pgm_en) {
-      saveTerrainPGM(dir + "/terrain_costmap.pgm", terrain_pts, box_min, box_max);
+      saveTerrainPGM(dir + "/terrain_costmap.pgm", terrain_pts, box_min,
+                     box_max);
     }
 
     RCLCPP_INFO(nh_->get_logger(),
@@ -331,8 +330,7 @@ public:
     return true;
   }
 
-  void saveTerrainPGM(const string &pgm_path,
-                      const vec_E<Vec3f> &terrain_pts,
+  void saveTerrainPGM(const string &pgm_path, const vec_E<Vec3f> &terrain_pts,
                       const Vec3f &box_min, const Vec3f &box_max) {
     const double res = cfg_.resolution;
     const int w =
@@ -353,7 +351,7 @@ public:
       int row = static_cast<int>((pt.y() - box_min.y()) / res);
       col = std::max(0, std::min(w - 1, col));
       row = std::max(0, std::min(h - 1, row));
-      grid[row * w + col] = 255;  // obstacle
+      grid[row * w + col] = 255; // obstacle
     }
 
     // write PGM (P5 binary)
@@ -382,7 +380,7 @@ public:
                    cfg_.global_map_pcd_path.c_str());
       return;
     }
-        // 1. 统计离群点滤波（剔除环境中的离散噪声）
+    // 1. 统计离群点滤波（剔除环境中的离散噪声）
     PointCloud::Ptr pcd_filtered_noise(new PointCloud);
     pcl::StatisticalOutlierRemoval<PointCloud::PointType> sor1;
     sor1.setInputCloud(pcd_map);
@@ -397,7 +395,6 @@ public:
     sor.setInputCloud(pcd_filtered_noise);
     sor.setLeafSize(0.2f, 0.2f, 0.2f);
     sor.filter(*pcd_downsampled);
-
 
     RCLCPP_INFO(nh_->get_logger(), "Loaded global PCD with %lu pts.",
                 pcd_map->size());
@@ -603,7 +600,8 @@ public:
       vecEVec3fToPC2(occ_map, cloud_msg);
       vm_.occ_pub->publish(cloud_msg);
 
-      // Accumulate occupied cells for global map saving (across sliding windows)
+      // Accumulate occupied cells for global map saving (across sliding
+      // windows)
       if (cfg_.save_map_en) {
         std::lock_guard<std::mutex> lock(global_occ_mutex_);
         Vec3i id_g;
@@ -837,8 +835,8 @@ public:
     if (cfg_.save_map_en) {
       rc_.save_map_srv_ = nh_->create_service<std_srvs::srv::Trigger>(
           "rog_map/save_map",
-          std::bind(&ROGMapROS::saveMapCallback, this,
-                    std::placeholders::_1, std::placeholders::_2));
+          std::bind(&ROGMapROS::saveMapCallback, this, std::placeholders::_1,
+                    std::placeholders::_2));
       RCLCPP_INFO(nh_->get_logger(),
                   "Save-map service ready at /rog_map/save_map");
     }

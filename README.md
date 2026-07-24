@@ -21,14 +21,11 @@ ros2 launch super_lio Livox_mid360.py
 source install/setup.sh
 ros2 launch rog_map rog_map.launch.py
 ```
+保存地图
 ```bash
-source install/setup.sh
-ros2 launch terrain_analysis terrain_analysis.launch.py
+ros2 service call /rog_map/save_map std_srvs/srv/Trigger "{}"
 ```
-```bash
-source install/setup.sh
-ros2 launch terrain_analysis_ext terrain_analysis_ext.launch.py
-```
+
 ```bash
 source install/setup.sh
 ros2 launch gcopter run.launch.py

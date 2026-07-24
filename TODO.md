@@ -1,67 +1,50 @@
-# TODO
+## 7.23
+1. 优化nav, 导航起始点增加当前速度
 
-## 4.10
+2. 轨迹优化不收敛的问题
 
-## 未解决
-4.10.1 x_planner rog_map 的接口，cmake 链接优化
+3. rog_map 平衡时间衰减 静态障碍物，动态障碍物
 
-## 4.7
-## 问题解决
-1.x_planner 增加minco(DDR-opt版)
-2.x_planner 增加mpc 实现
+4. 增加全局地图与局部地图的同步与优化
 
-## 未解决
-4.8.1 x_planner map 未实现 (rog_map-->map)
-4.8.2 x_planner planner_manager 未实现
+5. nav 航点导航设计 跟头导航，小陀螺导航
 
-## 4.6
-## 问题解决
-1. serial 改为独立线程接受
+6. bt 增加不同区域不同策略导航
 
-## 4.3
+## 7.15
 
-## 问题解决
-1.x_planner jps
-2.x_planner minco
-3.x_planner test rmuc2026
+1. 行为树决策追击[]
 
-## 未解决
-4.3.1 x_planner minco轨迹振荡，
-4.3.2 x_planner minco未+esdf梯度避障
-4.3.3 x_planner mpc 控制
-4.3.4 x_planner map(rog_map的接口)
+2. btc 重定位粗匹配[]
 
-## 4.2
+3. 全局地图与局部地图的同步与优化[][**]
 
-增加nav2_planner(<---- cod_nav)
-解决livox_ros_diver2 一起编译 (colcon 指定humble版本)
+4. 航点导航设计[]
 
-## 4.1 问题解决
+5. 跟头导航，小陀螺导航（决策切换）[][*]
 
-4.1.1.serial 重启 暂时解决 待优化
+## 7.13
 
-4.1.2.path_search a*融合 rog_map  改为super_planner原生规划器
+1. 行为树决策追击[]
 
-4.1.3.rog_map esdf 显示问题 解决  参数设置问题
+2. btc 重定位粗匹配[]
 
-4.1.6.planner 后端优化 ---
-                    |-------- super_planner
-4.1.7.路径跟随 mpc--------
+3. rog_map接收pcd并发布全局地图[][*]
 
-## 未解决
-4.1.5.decision rmuc 的决策  暂时准备所用24年的 
-4.2.1 串口增加ros2 部分
+4. 全局地图与局部地图的同步与优化[][**]
 
-4.2.2 测试少， 参数未调
+5. 导航重规划的优化，架构优化，参数优化[][***]
 
-## 4.1
+6. 航点导航设计[]
 
-### 未解决
-4.1.1.serial 重启
-4.1.2.path_search a*融合 rog_map
-4.1.3.rog_map esdf 显示问题
-4.1.4.rmuc 全局地图处理 opencv
-4.1.5.decision rmuc 的决策
-4.1.6.planner 后端优化
-4.1.7.路径跟随 mpc
-4.1.8.rog map测试少，对于地图动态障碍物的处理 以及地图质量(处理细微障碍物， 考虑上实车看效果)
+# 7.10
+
+1. 行为树决策
+
+2. btc 重定位粗匹配
+
+3. 更优的地图
+
+4. 导航模块优化
+ 
+https://zhuanlan.zhihu.com/p/636513768

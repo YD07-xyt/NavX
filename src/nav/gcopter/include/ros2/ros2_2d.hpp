@@ -53,7 +53,6 @@ class GlobalPlanner2d {
 private:
   Config config;
   rclcpp::Node::SharedPtr nh;
-  // planner::KinodynamicAstar astar_planner_;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr mapSub;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr targetSub;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr OdomSub;
@@ -72,7 +71,6 @@ private:
   std::shared_ptr<grid_map::GridMap> grid_map_;
   //重规划
   FSM fsm_;
-  
   tools::Plotter plotter_;
 private:
   //contorller
