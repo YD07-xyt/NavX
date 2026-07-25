@@ -23,13 +23,13 @@ find_package(TBB REQUIRED)
 set(includes
         include
         ${EIGEN3_INCLUDE_DIRS}
-        #            ${OpenCV_INCLUDE_DIRS}
+        #${OpenCV_INCLUDE_DIRS}
         ${PCL_INCLUDE_DIRS}
 )
 
 
 set(third_party_libs
-        #            ${OpenCV_LIBRARIES}
+        #${OpenCV_LIBRARIES}
         ${PCL_LIBRARIES}
         spdlog::spdlog
         small_gicp::small_gicp

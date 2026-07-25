@@ -200,10 +200,17 @@ void SerialNode::read_socket_data() {
           /*TODO:set Topics2Blackboard::GameData*/
           game_data.game_time = packet.game_time;
           game_data.is_game_start = packet.game_progress;
+
           if (packet.is_enemy_outpost_destroyed == 1) {
-            game_data.current_enemy_outpost_hp = 0;
-          } else {
             game_data.current_enemy_outpost_hp = 300;
+            game_data.ours_fort_occ_state= false;
+          } else if(packet.is_enemy_outpost_destroyed == 0)  {
+            game_data.current_enemy_outpost_hp = 0;
+            game_data.ours_fort_occ_state= false;
+          } else if(packet.is_enemy_outpost_destroyed == 3){
+            game_data.current_enemy_outpost_hp = 300;
+            game_data.ours_fort_occ_state= true;
+            spdlog::info("ours fort is occupied");
           }
           game_data.current_hp = packet.current_hp;
           game_data.projectile_allowance = packet.projectile_allowance;

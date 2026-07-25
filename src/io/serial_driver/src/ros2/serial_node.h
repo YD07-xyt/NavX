@@ -20,8 +20,8 @@
 #include "../serial/serial.h"
 #include "../tools/plotter.hpp"
 
-#include "rm_decision/include/config.hpp"
-#include "rm_decision/include/rm_decision.hpp"
+#include "../rm_decision/include/config.hpp"
+#include "../rm_decision/include/rm_decision.hpp"
 //#include <rm_interfaces/msg/rm_data.hpp>
 namespace io {
 enum SendingMethod {
