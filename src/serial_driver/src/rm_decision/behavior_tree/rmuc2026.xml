@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4" main_tree_to_execute="main_tree">
+  <!-- 主树不变 -->
+  <BehaviorTree ID="main_tree">
+    <Sequence>
+      <IsGameStart current_game_state="{is_game_start}"/>
+      <ReactiveFallback>
+          <Sequence>          <!-- 回家序列，优先级最高 -->
+            <IsGoHome current_projectile_allowance="{current_projectile_allowance}" 
+                        min_projectile_allowance="20" 
+                        current_hp="{current_hp}" 
+                        min_hp="80"/>
+            <Nav2Pose goal="10,-2.69,1.0" pub_model="publisher"/>
+            <Sleep msec="4000"/>
+          </Sequence>
+          <Sequence>
+            <IsRobotHealth current_projectile_allowance="{current_projectile_allowance}" 
+                          min_projectile_allowance="70" 
+                          current_hp="{current_hp}" 
+                          min_hp="350"/>
+            <!-- 健康情况下，执行备选任务 -->
+            <ReactiveFallback>
+              <SubTree ID="protect_fort_subtree" 
+                        ours_fort_occ_state="{ours_fort_occ_state}" 
+                        use_blackboard="false"/>
+              <SubTree ID="hit_enemy_outpost_subtree" 
+                        current_enemy_outpost_hp="{current_enemy_outpost_hp}" 
+                        game_time="{game_time}" 
+                        use_blackboard="false"/>
+              <SubTree ID="protect_hero_subtree" 
+                        game_time="{game_time}" 
+                        use_blackboard="false"/>
+              <SubTree ID="patrol_subtree" use_blackboard="true"/>
+            </ReactiveFallback>
+          </Sequence>
+      </ReactiveFallback>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="hit_enemy_outpost_subtree">
+      <Sequence>
+          <Inverter>
+              <IsEnemyOutpostDestroyed 
+                  enemy_outpost_hp="{current_enemy_outpost_hp}" 
+                  min_enemy_outpost_hp="40"/>
+          </Inverter>
+          <!-- <IsGameTimeExceeded game_time="{game_time}" threshold="300"/>
+          <IsGameTimeLess game_time="{game_time}" threshold="420"/> -->
+          <Nav2Pose goal="10.9,7.49,1.0" pub_model="publisher"/>
+          <Sleep msec="2000"/>
+      </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="protect_fort_subtree">
+      <Sequence>
+          <IsFortOccupied ours_fort_occ_state="{ours_fort_occ_state}"/>
+          <Nav2Pose goal="7.87,5.21,1.0" pub_model="publisher"/>
+          <Sleep msec="2000"/>
+      </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="protect_hero_subtree">
+      <Sequence>
+          <IsGameTimeExceeded game_time="{game_time}" threshold="350"/>
+          <IsGameTimeLess game_time="{game_time}" threshold="420"/>
+          <Nav2Pose goal="10.1,8.16,1.0" pub_model="publisher"/>
+          <Sleep msec="2000"/>
+      </Sequence>
+  </BehaviorTree>
+  <!-- ========== 巡逻子树（4点巡逻，每个点成功后才等待） ========== -->
+  <BehaviorTree ID="patrol_subtree">
+    <Repeat num_cycles="-1">
+      <Sequence>
+        <!-- 点1 -->
+        <Timeout msec="15000">
+          <Nav2Pose goal="9.19,4.82,1.0" pub_model="publisher"/>
+        </Timeout>
+        <Sleep msec="2000"/>
+
+        <!-- 点2 -->
+        <Timeout msec="15000">
+          <Nav2Pose goal="8.17,3.09,1.0" pub_model="publisher"/>
+        </Timeout>
+        <Sleep msec="2000"/>
+
+        <!-- 点3 -->
+        <Timeout msec="15000">
+          <Nav2Pose goal="8.45,-0.183,1.0" pub_model="publisher"/>
+        </Timeout>
+        <Sleep msec="2000"/>
+
+        <!-- 点4 -->
+        <Timeout msec="15000">
+          <Nav2Pose goal="9.19,-0.89,1.0" pub_model="publisher"/>
+        </Timeout>
+        <Sleep msec="2000"/>
+      </Sequence>
+    </Repeat>
+  </BehaviorTree>
+
+  <TreeNodesModel>
+    <!-- 已有节点 -->
+    <Action ID="Nav2Pose">
+      <input_port name="goal" type="Point"/>
+    </Action>
+    <Action ID="Sleep">
+      <input_port name="msec" type="double"/>
+    </Action>
+    <Condition ID="IsGameTimeExceeded">
+      <input_port name="game_time" type="int">当前游戏时间</input_port>
+      <input_port name="threshold" type="int">触发阈值</input_port>
+    </Condition>
+    <SubTree ID="patrol_subtree"/>
+    <SubTree ID="special_goal_subtree"/>
+  </TreeNodesModel>
+</root>

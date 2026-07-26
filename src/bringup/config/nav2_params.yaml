@@ -1,0 +1,561 @@
+slam_toolbox:
+  ros__parameters:
+    # https://github.com/SteveMacenski/slam_toolbox/tree/humble?#configuration
+    solver_plugin: solver_plugins::CeresSolver
+    ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
+    ceres_preconditioner: SCHUR_JACOBI
+    ceres_trust_strategy: LEVENBERG_MARQUARDT
+    ceres_dogleg_type: TRADITIONAL_DOGLEG
+    ceres_loss_function: None
+
+    odom_frame: world
+    map_frame: map
+    base_frame: base_link
+    scan_topic: /scan
+    use_map_saver: true
+    mode: mapping
+
+    # if you'd like to immediately start continuing a map at a given pose
+    # or at the dock, but they are mutually exclusive, if pose is given
+    # will use pose
+    # map_file_name: test_steve
+    # map_start_pose: [0.0, 0.0, 0.0]
+    # map_start_at_dock: true
+
+    debug_logging: false
+    throttle_scans: 1
+    scan_queue_size: 10
+    transform_publish_period: 0.0                # if 0 never publishes odometry
+    map_update_interval: 0.5
+    resolution: 0.05
+    min_laser_range: 0.3                         # for rastering images
+    max_laser_range: 10.0                         # for rastering images
+    minimum_time_interval: 0.2
+    transform_timeout: 0.2
+    tf_buffer_duration: 10.
+    stack_size_to_use: 40000000                   # program needs a larger stack size to serialize large maps
+    enable_interactive_mode: true
+
+    # General Parameters
+    #use_scan_matching为false时地图漂移
+    use_scan_matching: true
+    use_scan_barycenter: true
+    minimum_travel_distance: 0.1
+    minimum_travel_heading: 0.1
+    scan_buffer_size: 10
+    scan_buffer_maximum_scan_distance: 10.0
+    link_match_minimum_response_fine: 0.1
+    link_scan_maximum_distance: 1.5
+    loop_search_maximum_distance: 3.0
+    do_loop_closing: true
+    loop_match_minimum_chain_size: 10
+    loop_match_maximum_variance_coarse: 3.0
+    loop_match_minimum_response_coarse: 0.35
+    loop_match_minimum_response_fine: 0.45
+
+    # Correlation Parameters - Correlation Parameters
+    correlation_search_space_dimension: 0.5
+    correlation_search_space_resolution: 0.01
+    correlation_search_space_smear_deviation: 0.1
+
+    # Correlation Parameters - Loop Closure Parameters
+    loop_search_space_dimension: 8.0
+    loop_search_space_resolution: 0.05
+    loop_search_space_smear_deviation: 0.03
+
+    # Scan Matcher Parameters
+    distance_variance_penalty: 5.5
+    angle_variance_penalty: 5.0
+
+    fine_search_angle_offset: 0.00349
+    coarse_search_angle_offset: 0.349
+    coarse_angle_resolution: 0.0349
+    minimum_angle_penalty: 0.9
+    minimum_distance_penalty: 0.5
+    use_response_expansion: true
+
+bt_navigator:
+  ros__parameters:
+    use_sim_time: false
+    global_frame: map
+    robot_base_frame: base_link
+    odom_topic: /lio/base_odom
+    bt_loop_duration: 50
+    default_server_timeout: 5000
+    wait_for_service_timeout: 5000
+    default_nav_to_pose_bt_xml: /home/xyt/nav_now/src/bringup/behavior_trees/nav2_fish_update.xml
+    default_nav_through_poses_bt_xml: /home/xyt/nav_now/src/bringup/behavior_trees/nav2_fish_through.xml
+    plugin_lib_names:
+      - nav2_compute_path_to_pose_action_bt_node
+      - nav2_compute_path_through_poses_action_bt_node
+      - nav2_smooth_path_action_bt_node
+      - nav2_follow_path_action_bt_node
+      - nav2_spin_action_bt_node
+      - nav2_wait_action_bt_node
+      - nav2_assisted_teleop_action_bt_node
+      - nav2_back_up_action_bt_node
+      - nav2_drive_on_heading_bt_node
+      - nav2_clear_costmap_service_bt_node
+      - nav2_is_stuck_condition_bt_node
+      - nav2_goal_reached_condition_bt_node
+      - nav2_goal_updated_condition_bt_node
+      - nav2_globally_updated_goal_condition_bt_node
+      - nav2_is_path_valid_condition_bt_node
+      - nav2_initial_pose_received_condition_bt_node
+      - nav2_reinitialize_global_localization_service_bt_node
+      - nav2_rate_controller_bt_node
+      - nav2_distance_controller_bt_node
+      - nav2_speed_controller_bt_node
+      - nav2_truncate_path_action_bt_node
+      - nav2_truncate_path_local_action_bt_node
+      - nav2_goal_updater_node_bt_node
+      - nav2_recovery_node_bt_node
+      - nav2_pipeline_sequence_bt_node
+      - nav2_round_robin_node_bt_node
+      - nav2_transform_available_condition_bt_node
+      - nav2_time_expired_condition_bt_node
+      - nav2_path_expiring_timer_condition
+      - nav2_distance_traveled_condition_bt_node
+      - nav2_single_trigger_bt_node
+      - nav2_goal_updated_controller_bt_node
+      - nav2_is_battery_low_condition_bt_node
+      - nav2_navigate_through_poses_action_bt_node
+      - nav2_navigate_to_pose_action_bt_node
+      - nav2_remove_passed_goals_action_bt_node
+      - nav2_planner_selector_bt_node
+      - nav2_controller_selector_bt_node
+      - nav2_goal_checker_selector_bt_node
+      - nav2_controller_cancel_bt_node
+      - nav2_path_longer_on_approach_bt_node
+      - nav2_wait_cancel_bt_node
+      - nav2_spin_cancel_bt_node
+      - nav2_back_up_cancel_bt_node
+      - nav2_assisted_teleop_cancel_bt_node
+      - nav2_drive_on_heading_cancel_bt_node
+      - nav2_is_battery_charging_condition_bt_node
+
+
+controller_server:
+  ros__parameters:
+    cmd_vel_topic: "/cmd_vel_chassis"   # 改成你底盘订阅的话题
+    use_sim_time: False
+    controller_frequency: 50.0
+    min_x_velocity_threshold: 0.05
+    min_y_velocity_threshold: 0.05
+    min_theta_velocity_threshold: 0.1
+    failure_tolerance: 0.5      # 0.3→0.5，转折处允许短暂失控不报错
+    odom_topic: "/lio/base_odom"
+    progress_checker_plugin: "progress_checker"
+    goal_checker_plugins: ["general_goal_checker"] 
+    controller_plugins: ["FollowPath"]
+
+    progress_checker:
+      plugin: "nav2_controller::SimpleProgressChecker"
+      required_movement_radius: 0.2
+      movement_time_allowance: 10.0
+
+    general_goal_checker:
+      stateful: False
+      plugin: "nav2_controller::SimpleGoalChecker"
+      xy_goal_tolerance: 0.3
+      yaw_goal_tolerance: 3.14
+
+    FollowPath:    
+      plugin: "nav2_mppi_controller::MPPIController"
+      
+      adjustThre: 14.0
+      minAngleDiff: 365.0
+      adjustHeadingSpeed: 0.0
+      
+      time_steps: 50
+      model_dt: 0.04
+      batch_size: 2500          # 2000→2500，更多采样覆盖转折速度组合
+      
+      vx_max: 1.5
+      vx_min: -1.5
+      vy_max: 1.5
+      wz_max: 0.01
+      
+      vx_std: 0.7               # 0.6→0.7，丰富纵向候选
+      vy_std: 0.8               # 0.6→0.8，关键提高，转折处需要大量横向平移组合
+      wz_std: 0.01
+      
+      ax_max: 1.6               # 1.5→1.6，适度加速
+      ax_min: -2.2              # -2.5→-2.2，温和制动，不刹死
+      ay_max: 2.0
+      ay_min: -2.0
+      az_max: 0.01
+      az_min: -0.01
+      
+      iteration_count: 1
+      prune_distance: 3.5
+      transform_tolerance: 0.1
+      temperature: 0.5          # 保持，平滑综合不跳变
+      gamma: 0.08               # 0.065→0.08，提高轨迹平滑性，减少速度跳变
+      motion_model: "Omni"
+      visualize: false
+      reset_period: 1.0         # 2.0→1.0，关键缩短，卡死后1秒就恢复
+      regenerate_noises: false
+      retry_attempt_limit: 5    # 3→5，给转折处更多尝试机会
+      
+      TrajectoryVisualizer:
+        trajectory_step: 5
+        time_step: 3
+      
+      critics: ["ObstaclesCritic", "GoalCritic", "PathAlignCritic", "PathFollowCritic", "PathAngleCritic", "CostCritic"]
+      
+      GoalCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0
+        threshold_to_consider: 2.0
+      
+      PreferForwardCritic:
+        enabled: false
+      
+      ObstaclesCritic:
+        enabled: true
+        cost_power: 1
+        repulsion_weight: 1.0       # 1.5→1.0，降低，转折处给路径跟踪留空间
+        critical_weight: 35.0       # 40→35
+        consider_footprint: false
+        collision_cost: 10.0
+        collision_margin_distance: 0.1
+        near_goal_distance: 0.1
+        inflation_radius: 0.4
+        cost_scaling_factor: 10.0
+        inflation_layer_name: ["local_inflation_layer","global_inflation_layer"]
+      
+      PathAlignCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 8.0            # 保持，转折处宽容位置偏差
+        max_path_occupancy_ratio: 0.05
+        trajectory_point_step: 2
+        threshold_to_consider: 2.0
+        offset_from_furthest: 4     # 保持，只看脚下不跨越转折点
+        use_path_orientations: false
+      
+      PathFollowCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 14.0           # 保持，中高前进激励
+        offset_from_furthest: 5     # 保持
+        threshold_to_consider: 2.0
+      
+      PathAngleCritic:
+        enabled: true               # 关键启用，提供合速度方向连续性
+        cost_power: 1
+        cost_weight: 3.0            # 轻权重，软约束
+        offset_from_furthest: 4
+        threshold_to_consider: 2.0
+        max_angle_to_furthest: 1.0  # 宽松，约57度，转折处允许大角度调整
+        mode: 0
+      
+      TwirlingCritic:
+        enabled: false
+      
+      CostCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 2.0
+        critical_cost: 253.0
+        consider_footprint: false
+        collision_cost: 100000.0
+        near_goal_distance: 0.5
+        trajectory_point_step: 3
+
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      use_sim_time: false
+      update_frequency: 10.0
+      publish_frequency: 5.0
+      global_frame: world
+      robot_base_frame: base_link
+      rolling_window: true
+      width: 5
+      height: 5
+      resolution: 0.05
+      footprint: ""
+      robot_radius: 0.34
+      plugins: ["static_layer", "intensity_voxel_layer", "inflation_layer"]
+      intensity_voxel_layer:
+        plugin: pb_nav2_costmap_2d::IntensityVoxelLayer
+        enabled: true
+        track_unknown_space: true
+        footprint_clearing_enabled: true
+        publish_voxel_map: false
+        combination_method: 1
+        mark_threshold: 0
+        origin_z: 0.0
+        unknown_threshold: 5
+        z_resolution: 0.05
+        z_voxels: 16
+        min_obstacle_height: 0.0
+        max_obstacle_height: 3.0
+        min_obstacle_intensity: 0.1
+        max_obstacle_intensity: 150.0
+        observation_sources: terrain_map
+        terrain_map:
+          data_type: PointCloud2
+          # '<robot_namespace>' keyword shall be replaced with 'namespace' where user defined.
+          # It doesn't need to start with '/'
+          topic: /cloud_preprocess/obstacles
+          sensor_frame: imu
+          min_obstacle_height: 0.0
+          max_obstacle_height: 2.0
+          obstacle_max_range: 4.0
+          obstacle_min_range: 0.2
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 4.5
+        inflation_radius: 0.55
+      always_send_full_costmap: False
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      use_sim_time: false
+      update_frequency: 5.0
+      publish_frequency: 2.0
+      global_frame: map
+      robot_base_frame: base_link
+      robot_radius: 0.34
+      footprint: ""
+      resolution: 0.05
+      track_unknown_space: true
+      plugins: ["static_layer", "intensity_voxel_layer", "inflation_layer"]
+      intensity_voxel_layer:
+        plugin: pb_nav2_costmap_2d::IntensityVoxelLayer
+        enabled: true
+        track_unknown_space: true
+        footprint_clearing_enabled: true
+        publish_voxel_map: false
+        combination_method: 1
+        mark_threshold: 0
+        origin_z: 0.0
+        unknown_threshold: 5
+        z_resolution: 0.05
+        z_voxels: 16
+        min_obstacle_height: 0.0
+        max_obstacle_height: 3.0
+        min_obstacle_intensity: 0.1
+        max_obstacle_intensity: 2.0
+        observation_sources: terrain_map_ext
+        terrain_map_ext:
+          data_type: PointCloud2
+          # '<robot_namespace>' keyword shall be replaced with 'namespace' where user defined.
+          # It doesn't need to start with '/'
+          topic: /cloud_preprocess/obstacles
+          sensor_frame: imu
+          min_obstacle_height: 0.0
+          max_obstacle_height: 2.0
+          obstacle_max_range: 10.0
+          obstacle_min_range: 0.2
+      # stvl_layer:
+      #   plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"  # 时空体素层插件，用于处理动态障碍物
+      #   # https://github.com/SteveMacenski/spatio_temporal_voxel_layer  # 插件的GitHub链接
+      #   enabled:                  true  # 是否启用时空体素层
+      #   voxel_decay:              0.5  # 体素衰减时间，单位为秒
+      #   decay_model:              0  # 衰减模型，0=线性，1=指数，-1=持久
+      #   voxel_size:               0.01  # 每个体素的尺寸，单位为米
+      #   track_unknown_space:      true  # 是否跟踪未知空间
+      #   mark_threshold:           0  # 标记阈值，用于确定哪些体素被标记为障碍物
+      #   update_footprint_enabled: true  # 是否启用更新机器人足迹
+      #   combination_method:       1  # 组合方法，1=最大值，0=覆盖
+      #   origin_z:                 0.0  # 体素地图的Z轴原点，单位为米
+      #   publish_voxel_map:        true  # 是否发布体素地图
+      #   transform_tolerance:      0.5  # 坐标变换的容差，单位为秒
+      #   mapping_mode:             false  # 是否启用建图模式
+      #   map_save_duration:        60.0  # 地图保存间隔，单位为秒
+      #   observation_sources:      livox_mark livox_clear  # 观察源，这里使用了两个点云数据源
+      #   livox_mark:
+      #     data_type: PointCloud2  # 数据类型，这里为点云数据
+      #     topic: <robot_namespace>/terrain_map  # 注释掉的点云数据话题名称
+      #     marking: true  # 是否标记障碍物
+      #     clearing: false  # 是否清除障碍物
+      #     obstacle_range: 6.0  # 障碍物的最大范围，单位为米
+      #     min_obstacle_height: 0.1  # 障碍物的最小高度，单位为米
+      #     max_obstacle_height: 2.0  # 障碍物的最大高度，单位为米
+      #     expected_update_rate: 20.0  # 提高预期的更新速率，单位为赫兹
+      #     observation_persistence: 0.4  # 减少观察持久时间，单位为秒
+      #     inf_is_valid: false  # 是否将无穷大视为有效值
+      #     filter: "voxel"  # 数据过滤器，这里使用了体素过滤器
+      #     voxel_min_points: 0  # 体素过滤器的最小点数
+      #     clear_after_reading: true  # 是否在读取后清除缓冲区
+      #   livox_clear:
+      #     enabled: true  # 是否启用点云清除功能
+      #     data_type: PointCloud2  # 数据类型，这里为点云数据
+      #     topic: <robot_namespace>/terrain_map  # 注释掉的点云数据话题名称
+      #     marking: false  # 是否标记障碍物
+      #     clearing: true  # 是否清除障碍物
+      #     max_z: 8.0  # 点云数据的最大高度，单位为米
+      #     min_z: 0.05  # 点云数据的最小高度，单位为米
+      #     vertical_fov_angle: 1.029  # 垂直视场角，单位为弧度
+      #     vertical_fov_padding: 0.05  # 垂直视场角的填充，单位为米
+      #     horizontal_fov_angle: 6.29  # 水平视场角，单位为弧度
+      #     decay_acceleration: 5.0  # 衰减加速度，单位为1/s^2
+      #     model_type: 1  # 模型类型，0=深度相机，1=3D激光雷达
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 4.0
+        # robot 半径0.27
+        inflation_radius: 0.55
+      always_send_full_costmap: False
+
+
+# The yaml_filename does not need to be specified since it going to be set by defaults in launch.
+# If you'd rather set it in the yaml, remove the default "map" value in the tb3_simulation_launch.py
+# file & provide full path to map below. If CLI map configuration or launch default is provided, that will be used.
+map_server:
+
+  ros__parameters:
+    yaml_filename: ""
+
+map_saver:
+  ros__parameters:
+    use_sim_time: false
+    save_map_timeout: 5.0
+    free_thresh_default: 0.25
+    occupied_thresh_default: 0.65
+    map_subscribe_transient_local: True
+
+
+
+planner_server:
+  ros__parameters:
+    use_sim_time: false
+    expected_planner_frequency: 10.0
+    planner_plugins: ["GridBased"]
+    # GridBased:
+    #   plugin: "st::StPlanner"
+    #   trajectory:
+    #     rho_v: 20000.0 #速度惩罚权重
+    #     rho_collision: 150000.0 #碰撞惩罚权重
+    #     rho_T: 200.0 #时间惩罚权重
+    #     rho_energy: 150.0 #能量/平滑度惩罚权重
+    #     max_v: 0.8  #最大线速度（米/秒）
+    #     safe_threshold: 0.6 # 安全距离阈值（米）
+    #     int_K: 64 #每个轨迹段的采样点数
+    #     mem_size: 512 #L-BFGS 存储的历史梯度数量
+    #     past: 5 #L-BFGS 用于收敛检测的迭代次数
+    #     max_iter: 20000  #最大迭代次数
+    #     g_epsilon: 1.0e-8 #梯度范数收敛阈值
+    #     min_step: 1.0e-35 #最小步长
+    #     delta: 1.0e-7   #函数值变化收敛阈值
+    #     timeout_ms: 5000 #a* 规划 超时时间
+    #     min_obstacle_cost: 200 # 规划 障碍物的上下限
+    #     max_obstacle_cost: 254
+    GridBased:
+      plugin: "nav2_smac_planner/SmacPlanner2D"
+      tolerance: 0.5                      # 如果无法到达精确位置的规划容差，单位：米
+      allow_unknown: true                 # 允许在未知空间中行驶
+      downsample_costmap: false           # 是否对地图进行下采样
+      downsampling_factor: 1              # 代价地图层分辨率的倍数 (e.g. 2 on a 5cm costmap would be 10cm)
+      max_iterations: 1000000             # 搜索的最大总迭代次数（如果无法到达），设置为-1以禁用
+      max_on_approach_iterations: 1000    # 一旦在容差范围内，尝试到达目标的最大迭代次数
+      max_planning_time: 4.5              # 规划、平滑和上采样的最大时间（秒）。将根据规划后的剩余时间缩放最大平滑和上采样时间。
+      cost_travel_multiplier: 4.0         # For 2D: 应用于搜索的代价乘数，以避开高代价区域。较大的值将更精确地放置在通道的中心（如果存在非“FREE”代价势场），但计算时间稍长。为了优化速度，1.0是合理的值。合理的折衷值是2.0。0.0的值有效地禁用避开障碍物的功能，像一个简单的二进制搜索A*。
+      motion_model_for_search: "DUBIN"    # For Hybrid Dubin, Redds-Shepp
+      angle_quantization_bins: 72         # For Hybrid nodes: 搜索的角度桶数，对于2D节点必须为1（无角度搜索）
+      analytic_expansion_ratio: 3.5       # For Hybrid/Lattice nodes: 在搜索过程中尝试解析扩展的比例，用于最终接近。
+      analytic_expansion_max_length: 3.0  # For Hybrid/Lattice nodes: 解析扩展被认为有效的最大长度，以防止不安全的捷径（单位：米）。这应该与最小转弯半径成比例，不应小于最小半径的4-5倍。
+      minimum_turning_radius: 0.05        # For Hybrid/Lattice nodes: 路径/车辆的最小转弯半径，单位：米
+      retrospective_penalty: 0.025        # For Hybrid/Lattice nodes: 优先考虑路径上较晚的机动而不是较早的机动。节省搜索时间，因为较早的节点不会被扩展，直到有必要。必须 >= 0.0且 <= 1.0
+      reverse_penalty: 1.0                # For Reeds-Shepp model: 应用于倒车的惩罚，必须 >= 1
+      change_penalty: 0.0                 # For Hybrid nodes: 应用于改变方向的惩罚，必须 >= 0
+      non_straight_penalty: 0.0          # For Hybrid nodes: 应用于非直线运动的惩罚，必须 >= 1
+      cost_penalty: 2.0                   # For Hybrid nodes: 在将更高代价区域添加到障碍物地图动态规划距离扩展启发式时应用的惩罚。这将驱动机器人更靠近通道的中心。1.3 - 3.5 之间的值是合理的。
+      rotation_penalty: 5.0               # For Lattice node: 仅在使用包含原地旋转原语的最小控制集时应用于纯原地旋转命令的惩罚。除非严格必要用于避开障碍物，否则应始终设置足够高的权重，以避免此操作，否则可能会在路径中频繁出现不连续的情况，要求机器人原地旋转以节省路径距离。
+      lookup_table_size: 20.0             # For Hybrid nodes: 缓存的dubin/reeds-sheep距离窗口的大小，单位：米。
+      cache_obstacle_heuristic: True      # For Hybrid nodes: 在同一目标位置的后续重新规划之间缓存障碍物地图动态规划距离扩展启发式。如果代价地图基本静态，则显著加快重新规划性能（40倍）。
+      allow_reverse_expansion: True      # For Lattice node: 是否在前向原语或反向扩展状态格子图中扩展，将使每一步的分支因子加倍。
+      smooth_path: True                   # For Lattice/Hybrid nodes: 是否平滑路径，对于2D节点始终为 true。
+      smoother:
+        max_iterations: 10000
+        w_smooth: 0.4
+        w_data: 0.1
+        tolerance: 1.0e-10
+        do_refinement: true
+
+smoother_server:
+  ros__parameters:
+    costmap_topic: global_costmap/costmap_raw
+    footprint_topic: global_costmap/published_footprint
+    robot_base_frame: base_link
+    transform_tolerance: 0.1
+    smoother_plugins: ["savitzky_golay_smoother"]
+    savitzky_golay_smoother:
+      plugin: "nav2_smoother::SavitzkyGolaySmoother"
+      window_size: 7
+      poly_order: 3
+      do_refinement: True
+      refinement_num: 2
+      enforce_path_inversion: True
+
+
+
+behavior_server:
+  ros__parameters:
+    use_sim_time: false
+    local_costmap_topic: local_costmap/costmap_raw
+    global_costmap_topic: global_costmap/costmap_raw
+    local_footprint_topic: local_costmap/published_footprint
+    global_footprint_topic: global_costmap/published_footprint
+    cycle_frequency: 10.0
+    behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
+    spin:
+      plugin: "nav2_behaviors/Spin"
+    backup:
+      plugin:  "nav2_behaviors/BackUpTwzFree" # "pb_nav2_behaviors/BackUpFreeSpace" 
+    drive_on_heading:
+      plugin: "nav2_behaviors/DriveOnHeading"
+    wait:
+      plugin: "nav2_behaviors/Wait"
+    assisted_teleop:
+      plugin: "nav2_behaviors/AssistedTeleop"
+    local_frame: world
+    global_frame: map
+    robot_base_frame: base_link
+    transform_tolerance: 0.1
+    simulate_ahead_time: 2.0
+    max_rotational_vel: 1.0
+    min_rotational_vel: 0.4
+    rotational_acc_lim: 3.2
+    # params for pb_nav2_behaviors/BackUpFreeSpace
+    service_name: "global_costmap/get_costmap"
+    max_radius: 3.0
+    visualize: true
+
+waypoint_follower:
+  ros__parameters:
+    use_sim_time: false
+    loop_rate: 20
+    stop_on_failure: false
+    waypoint_task_executor_plugin: "wait_at_waypoint"
+    wait_at_waypoint:
+      plugin: "nav2_waypoint_follower::WaitAtWaypoint"
+      enabled: True
+      waypoint_pause_duration: 0
+velocity_smoother:
+  ros__parameters:
+    use_sim_time: false
+    smoothing_frequency: 20.0
+    scale_velocities: False
+    feedback: "OPEN_LOOP"
+    max_velocity: [1.5, 1.5, 2.5]
+    min_velocity: [-1.5, -1.5, -2.5]
+    max_accel: [1.0, 1.0, 4.5]
+    max_decel: [-1.0, -1.0, -4.5]
+    odom_topic: "/lio/base_odom"
+    odom_duration: 0.1
+    deadband_velocity: [0.001, 0.001, 0.001]
+    velocity_timeout: 1.0

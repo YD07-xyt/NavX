@@ -1,0 +1,89 @@
+rog_map:
+  # 地图基本参数
+  resolution: 0.08                      # 概率地图分辨率(m)
+  inflation_resolution: 0.1            # 膨胀分辨率(m)
+  inflation_step: 1                    # 膨胀步长
+  unk_inflation_en: false
+  unk_inflation_step: 1
+  map_size: [30, 30, 6]               # 地图大小 [x, y, z] (m) - 注意x方向较小
+  # If the map rolling is disable, the map origin [m] should be set.
+  fix_map_origin: [0, 0, 0]          # 固定地图原点
+  frontier_extraction_en: false
+
+  # Virtual ceil and ground
+  virtual_ceil_height: 5               # 天花板高度(m)
+  virtual_ground_height: -1.53 #-0.5          # 地面高度(m)
+
+  load_pcd_en: false
+
+  # Global map publishing (PCD -> 3docc + terrain_map)
+  global_map:
+    enable: false
+    pcd_path: "/home/xyt/nav_now/src/map/rog_map/pcd/map.pcd"
+    terrain_origin: [0.0, 0.0, 0.0]
+    time_rate: 20.0                     # global map 发布频率(Hz)
+
+  map_sliding:
+    enable: true                      # 滑动窗口
+    threshold: 0.3
+
+  esdf:
+    enable: false
+    resolution: 0.3                    # 修改为0.3，必须 >= rog_map.resolution
+    # The range of esdf around the odom [m]
+    local_update_box: [15, 15, 3]      # 增大ESDF更新范围以匹配地图
+
+  # If [enable = true], the ROG-Map will actively take ros topic as input.
+  # else user should call function [updateMap] to update the map.
+  ros_callback:
+    enable: true
+    cloud_topic: "/lio/cloud_world"
+    odom_topic: "/lio/base_odom"
+    odom_timeout: 20.0
+
+  visualization:
+    enable: true
+    use_dynamic_reconfigure: false
+    time_rate: 50                       #可视化更新
+    frame_rate: 0
+    range: [30, 30, 4]                 #可视化范围(m)
+    frame_id: "world"
+    pub_unknown_map_en: true
+
+  # Intensity filter for input point cloud
+  intensity_thresh: -10                # -10表示不进行强度滤波
+  point_filt_num: 1 #点云顺序下采样（步长滤波）  每隔 N 个点只取 1 个
+
+  # Terrain map 发布配置
+  terrain:
+    time_rate: 30.0                    # terrain_map 发布频率(Hz)，数值越高发布越频繁/越稳定
+    map_size_x: 10.0                    # 地形分析窗口 x 方向大小 (米)
+    map_size_y: 10.0                    # 地形分析窗口 y 方向大小 (米)
+    kernel_size: 7                     # 中值滤波核大小
+    max_step_height: 0.1              # 台阶/墙体最小高度差（用于触发间隙分析）
+    robot_height: 0.3                  # 机器人安全通行所需的最小垂直间隙
+    steep_threshold: 0.12              # 陡峭边缘阈值，用于触发垂直障碍判定
+
+  # Probabilistic update - 必须启用才能构建地图
+  raycasting:
+    enable: true                       # 改为true，启用射线投射更新地图
+    batch_update_size: 1
+    local_update_box: [10, 10, 4]      # 局部更新范围(m)
+    # The range of raycasting [m]
+    ray_range: [0.5, 30]               # 射线范围，根据LiDAR实际探测距离调整
+
+    # 概率参数
+    p_hit: 0.9   #0.9                 # 略微降低命中增益
+    p_miss: 0.49  #0.49               # 提升未命中增益 (关键！)
+    p_occ: 0.75   # 0.85              # 降低占据判定阈值，加快脱离占据状态
+    p_min: 0.12
+    p_free: 0.499
+    p_max: 0.98
+    # 未知区域阈值
+    unk_thresh: 1.0
+
+    # 占据时间衰减 (动态障碍物清除)
+    # 占据格若超过 occ_decay_time 秒未被再次观测, 则开始按 occ_decay_rate 倍 l_miss 向自由衰减;
+    # 离开的动态障碍因此自动淡出, 而持续被观测的静态障碍不受影响. 设为 0 关闭.
+    occ_decay_time: 0.0                 # 衰减触发的时间阈值(s), 0=关闭
+    occ_decay_rate: 1.0                 # 衰减强度 (每次施加的 l_miss 倍数)

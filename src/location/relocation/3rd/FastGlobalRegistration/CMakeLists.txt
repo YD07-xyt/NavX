@@ -1,0 +1,7 @@
+add_library(FastGlobalRegistrationLib ${FastGlobalRegistration_LINK_MODE} app.cpp app.h)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LZ4 REQUIRED liblz4)
+add_executable(FastGlobalRegistration main.cpp)
+add_executable(Evaluation evaluation.cpp)
+TARGET_LINK_LIBRARIES(FastGlobalRegistration FastGlobalRegistrationLib ${LZ4_LIBRARIES})
+TARGET_LINK_LIBRARIES(Evaluation FastGlobalRegistrationLib ${LZ4_LIBRARIES})

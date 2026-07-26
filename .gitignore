@@ -1,46 +1,12 @@
-.cache
 build
 install
 log
-
-# Prerequisites
-*.d
-
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Linker files
-*.ilk
-
-# Debugger Files
-*.pdb
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# debug information files
-*.dwo
+.vscode
+.cache
+/src/location/FAST_LIO/PCD/*pcd
+/src/location/point_lio/PCD/*pcd
+/src/location/relocation/pcd/*pcd
+/src/location/Super-LIO/src/super_lio/map/*pcd
+/src/map/rog_map/pcd/*pcd
+/src/tool/pcd2pgm
+/src/map/rog_map/map/*pcd

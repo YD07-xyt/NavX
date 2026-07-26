@@ -1,7 +1,32 @@
 # NavX
 
-## nav2 
+## env
 
-## x_2d
+[构建环境](docs/build.md)
 
-## x_3d
+## Run
+
+[RUN](docs/run.md)
+
+## run
+```bash
+source install/setup.sh
+ros2 launch livox_ros_driver2 msg_MID360_launch.py
+```
+```bash
+source install/setup.sh
+ros2 launch super_lio Livox_mid360.py
+```
+```bash
+source install/setup.sh
+ros2 launch rog_map rog_map.launch.py
+```
+保存地图
+```bash
+ros2 service call /rog_map/save_map std_srvs/srv/Trigger "{}"
+```
+
+```bash
+source install/setup.sh
+ros2 launch gcopter run.launch.py
+```

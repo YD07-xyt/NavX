@@ -1,0 +1,7 @@
+<library path="st_opt_ros2">
+  <class type="st::StPlanner" base_class_type="nav2_core::GlobalPlanner">
+    <description>
+      这是自定义的 St 规划器插件,用于生成基于ESDF的优化轨迹。
+    </description>
+  </class>
+</library>

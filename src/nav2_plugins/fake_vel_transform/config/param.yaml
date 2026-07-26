@@ -1,0 +1,11 @@
+fake_vel_transform_node:
+  ros__parameters:
+    robot_base_frame: "gimbal_link"
+    fake_robot_base_frame: "gimbal_link_fake"
+    odom_topic: "odom"
+    local_plan_topic: "local_plan"
+    cmd_spin_topic: "cmd_spin"
+    input_cmd_vel_topic: "cmd_vel_in"
+    output_cmd_vel_topic: "cmd_vel_out"
+    init_spin_speed: 0.0
+    use_sim_time: true

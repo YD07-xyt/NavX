@@ -1,0 +1,36 @@
+# cloud_preprocess 节点参数（与 PARAM_GUIDE.md 对应）
+cloud_preprocess_node:
+  ros__parameters:
+    # ---- 话题名（按实际设备修改） ----
+    input_cloud_topic: /lio/cloud_world #/livox/lidar/pointcloud #/lio/cloud_world
+    obstacles_topic: /cloud_preprocess/obstacles
+    ground_topic: /cloud_preprocess/ground
+    inflated_topic: /cloud_preprocess/inflated
+
+    # ---- 离群点滤波 ----
+    enable_outlier: true              # 是否开启离群点去除
+    outlier_mean_k: 20                # 统计邻域点数
+    outlier_std_mul: 1.0              # 标准差倍数阈值
+
+    # ---- 栅格地面分割 ----
+    grid_resolution: 0.1              # 2D 栅格边长 (m)
+    ground_height: 0.15               # 高于地面估计值的障碍物阈值 (m)
+    slope_tolerance: 0.3              # 邻域地面高度梯度阈值，超过判为垂直障碍(墙/悬崖)
+    suspend_gap: 0.2                  # 柱体内最大垂直间隙超过该值，判为悬浮障碍滤除 (m)
+    ground_median_kernel: 3           # 地面高度中值平滑核大小(奇数)
+    max_height: 3.0                   # 高于此值视为噪点/天花板 (m)
+    min_height: -0.8                  # 低于此值视为噪点 (m)
+
+    # ---- 悬浮障碍物过滤 ----
+
+    # ---- 点云地图膨胀 ----
+    enable_inflate: true             # 是否输出膨胀后的障碍物点云地图
+    inflate_radius: 0.2               # 膨胀半径 (m)，一般取机器人半径
+
+    # ---- 累计点云（可选，稠密化静态障碍） ----
+    enable_accumulate: false            # 是否累计多帧"输入"点云后再统一处理(稠密化)
+    accumulate_range: 14.0             # 机器人周围保留半径 (m)
+    accumulate_lifetime: 2.0          # 点存活时间 (s)，超出则衰减移除
+
+    # ---- 并行 ----
+    enable_tbb: true                  # 是否使用 TBB 并行处理栅格
