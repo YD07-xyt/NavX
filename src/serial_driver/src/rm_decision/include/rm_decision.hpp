@@ -10,6 +10,7 @@
 #include "condition/is_go_home.hpp"
 #include "condition/is_robot_health.hpp"
 #include "condition/is_success_nav.hpp"
+#include "condition/is_fort_occupied.hpp"
 #include "condition/set_blackboard_bool.hpp"
 #include "config.hpp"
 #include "custume_types.hpp"
@@ -84,6 +85,7 @@ private:
     // factory_.registerNodeType<bt::Topics2Blackboard>("Topics2Blackboard");
     factory_.registerNodeType<bt::IsGameTimeExceeded>("IsGameTimeExceeded");
     factory_.registerNodeType<bt::IsGameTimeLess>("IsGameTimeLess");
+    factory_.registerNodeType<bt::IsFortOccupied>("IsFortOccupied");
     factory_.registerNodeType<bt::IsEnemyOutpostDestroyed>(
         "IsEnemyOutpostDestroyed");
     factory_.registerNodeType<bt::IsGameStart>("IsGameStart");

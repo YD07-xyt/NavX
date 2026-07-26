@@ -13,8 +13,7 @@ int main(int argc, char *argv[]) {
   auto node = std::make_shared<rclcpp::Node>("test_node");
   bt::DecisionConfig decision_config;
   decision_config.tree_xml_file =
-      "/home/xyt/nav_now/src/serial_driver/src/rm_decision/behavior_tree/test/"
-      "main_tree.xml";
+      "/home/xyt/NavX/src/io/serial_driver/src/rm_decision/behavior_tree/rmuc2026.xml";
   decision_config.tree_node_model_export_path =
       "/home/xyt/nav_now/src/serial_driver/src/rm_decision/behavior_tree/test/"
       "generated_models.xml";
@@ -49,7 +48,7 @@ int main(int argc, char *argv[]) {
     }
 
     // 新增：第 10 秒设置前哨站血量为 30
-    if (!outpost_hp_set_30 && elapsed >= 10) {
+    if (!outpost_hp_set_30 && elapsed >= 15) {
       game_data.current_enemy_outpost_hp = 30;
       spdlog::info("[test] set current_enemy_outpost_hp to 30 at {}s", elapsed);
       outpost_hp_set_30 = true;
@@ -85,7 +84,7 @@ int main(int argc, char *argv[]) {
     auto nav_model_before =
         rm_decision.getBlackboardValue<std::string>("nav_model");
     if (nav_model_before.has_value()) {
-        spdlog::info("before tick: nav_model = {}", nav_model_before.value());
+        spdlog::debug("before tick: nav_model = {}", nav_model_before.value());
       
     }
 

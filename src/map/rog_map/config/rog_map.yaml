@@ -1,6 +1,6 @@
 rog_map:
   # 地图基本参数
-  resolution: 0.1                      # 概率地图分辨率(m)
+  resolution: 0.05                      # 概率地图分辨率(m)
   inflation_resolution: 0.1            # 膨胀分辨率(m)
   inflation_step: 1                    # 膨胀步长
   unk_inflation_en: false
@@ -52,7 +52,7 @@ rog_map:
 
   # Save map to disk (triggered via /rog_map/save_map service)
   save_map:
-    enable: true
+    enable: false
     save_dir: "/home/xyt/ai/rog_map/map"       # 保存目录
     save_3docc_pcd: true                 # 保存 3D occupied 点云为 PCD
     save_terrain_pcd: true               # 保存地形障碍物为 PCD
@@ -65,12 +65,12 @@ rog_map:
   # Terrain map 发布配置
   terrain:
     time_rate: 30.0                    # terrain_map 发布频率(Hz)，数值越高发布越频繁/越稳定
-    map_size_x: 10.0                    # 地形分析窗口 x 方向大小 (米)
-    map_size_y: 10.0                    # 地形分析窗口 y 方向大小 (米)
+    map_size_x: 30.0                    # 地形分析窗口 x 方向大小 (米)
+    map_size_y: 30.0                    # 地形分析窗口 y 方向大小 (米)
     kernel_size: 7                     # 中值滤波核大小
-    max_step_height: 0.25              # 台阶/墙体最小高度差（用于触发间隙分析）
+    max_step_height: 0.12              # 台阶/墙体最小高度差（用于触发间隙分析）
     robot_height: 0.3                  # 机器人安全通行所需的最小垂直间隙
-    steep_threshold: 0.25              # 陡峭边缘阈值，用于触发垂直障碍判定
+    steep_threshold: 0.12              # 陡峭边缘阈值，用于触发垂直障碍判定
 
   # Probabilistic update - 必须启用才能构建地图
   raycasting:
@@ -101,5 +101,5 @@ rog_map:
     # occ_decay_min_obs	最少观察多少次才信任 hit_ratio	次数
     #occ_decay_time = 传感器帧间隔 × (期望安全帧数)
     occ_decay_time: 1.0                 # 衰减触发的时间阈值(s), 0=关闭
-    occ_decay_rate: 1.0                 # 衰减强度 (每次施加的 l_miss 倍数)
-    occ_decay_min_obs: 4                # hit+miss 最小观测次数, 超过后才用比例调节
+    occ_decay_rate: 2.0                 # 衰减强度 (每次施加的 l_miss 倍数)
+    occ_decay_min_obs: 6                # hit+miss 最小观测次数, 超过后才用比例调节

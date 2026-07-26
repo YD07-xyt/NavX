@@ -11,6 +11,9 @@
             <input_port name="min_enemy_outpost_hp" type="int"/>
             <input_port name="enemy_outpost_hp" type="int"/>
         </Condition>
+        <Condition ID="IsFortOccupied">
+            <input_port name="ours_fort_occ_state" type="bool"/>
+        </Condition>
         <Condition ID="IsGameStart">
             <input_port name="current_game_state" type="bool"/>
         </Condition>

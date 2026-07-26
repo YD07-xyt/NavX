@@ -1,12 +1,12 @@
 #pragma once
 #include "../config.hpp"
+#include "../ros2/ros2_node.hpp"
 #include <behaviortree_cpp/action_node.h>
 #include <cstddef>
 #include <optional>
 #include <rclcpp/rclcpp.hpp>
 #include <spdlog/spdlog.h>
 #include <string>
-#include "../ros2/ros2_node.hpp"
 namespace bt {
 class Nav2Pose : public BT::StatefulActionNode {
 public:
@@ -30,13 +30,16 @@ public:
       return BT::NodeStatus::FAILURE;
     }
     navigation_goal_ = goal.value();
-    nav2_state_ = std::nullopt;  // 重置状态，防止旧值干扰
+    nav2_state_ = std::nullopt; // 重置状态，防止旧值干扰
     auto pub_temp =
         ros2_nav2_node_.value().pub_goal(pub_model.value(), goal.value());
     if (!pub_temp) {
       spdlog::warn("[Nav2Pose]pub goal failed");
       return BT::NodeStatus::FAILURE;
     }
+
+    last_pub_time_ = std::chrono::steady_clock::now();
+
     return BT::NodeStatus::RUNNING;
   };
   // If onStart() returned RUNNING, we will keep calling
@@ -65,11 +68,31 @@ public:
       }
     }
 
-    // 2. 【核心修正】不管目标是否改变，都要读取当前导航状态
+    // 不管目标是否改变，都要读取当前导航状态
     nav2_state_ = ros2_nav2_node_.value().get_nav2_state(pub_model.value());
     if (!nav2_state_.has_value()) {
       spdlog::warn("[Nav2Pose] get nav2_state is empty");
       return BT::NodeStatus::FAILURE;
+    }
+    
+    //重试逻辑：如果状态为空 或
+    // 是idle，且距离上次发布超过超时时间，则重发
+    if (!nav2_state_.has_value() ||
+        nav2_state_.value() == bt::Nav2State::idle) {
+      auto now = std::chrono::steady_clock::now();
+      if (now - last_pub_time_ >
+          std::chrono::milliseconds(static_cast<int>(timeout_ * 1000))) {
+        spdlog::warn("[Nav2Pose] Nav2 not responding, retrying goal...");
+        auto pub_bool = ros2_nav2_node_.value().pub_goal(pub_model.value(),
+                                                         navigation_goal_);
+        if (pub_bool) {
+          // 重发成功，更新发布的时间戳
+          last_pub_time_ = now;
+        } else {
+          spdlog::warn("[Nav2Pose] retry pub goal failed");
+          return BT::NodeStatus::FAILURE;
+        }
+      }
     }
 
     // 3. 根据状态返回结果
@@ -96,6 +119,8 @@ public:
   };
 
 private:
+  double timeout_ = 0.8;
+  std::chrono::steady_clock::time_point last_pub_time_;
   rclcpp::Node::SharedPtr node_;
   std::optional<ros2::Ros2Node> ros2_nav2_node_;
   bt::Point navigation_goal_;

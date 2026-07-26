@@ -1,3 +1,18 @@
+## 7.26
+1. [rog_map_node-3]  -- [ROG WARN] Unfinished frame cnt > 1, the map may not work in real-time
+
+2. gcopter ,导航 lmpc跟踪有时偏离轨迹， 
+
+3. gcopter 严重偏离轨迹时未重规划
+
+4. rog_map lidar视野问题，有部分障碍物会被时间衰减
+
+5. terrain 高程分析 效果激进
+
+6. gcopter 轨迹后半段 加速，并减速(并不影响)
+
+7. gcopter 重规划 轨迹优化 有概率不收敛
+
 ## 7.23
 1. 优化nav, 导航起始点增加当前速度
 

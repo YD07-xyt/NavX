@@ -20,7 +20,7 @@ public:
     }
     spdlog::debug("[IsEnemyOutpostDestroyed]current_enemy_outpost_hp : {}",enemy_outpost_hp_);
     if(enemy_outpost_hp_<min_enemy_outpost_hp_){
-      spdlog::info("[IsEnemyOutpostDestroyed] enemy_outpost is destroyed");
+      spdlog::debug("[IsEnemyOutpostDestroyed] enemy_outpost is destroyed");
         return BT::NodeStatus::SUCCESS;
     }
     return BT::NodeStatus::FAILURE;

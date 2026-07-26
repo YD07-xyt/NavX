@@ -1,7 +1,5 @@
 # build NavX
 
-
-
 ### ros2 
 
 ```bash
@@ -48,7 +46,7 @@ git clone https://github.com/Livox-SDK/livox_ros_driver2.git
 关于ROS2 Humble：
 ```bash
 source /opt/ros/humble/setup.sh
-./src/io/livox_ros_driver2/build.sh humble
+./src/driver/livox_ros_driver2/build.sh humble
 ```
 or
 ```bash
@@ -57,7 +55,7 @@ or
 
 #### 修改雷达ip 
 
-在src/io/livox_ros_driver2/config/MID360_config.json
+在src/driver/livox_ros_driver2/config/MID360_config.json
 中
 ```bash
 "lidar_configs" : [
@@ -94,8 +92,13 @@ or
 ```
 改为自己电脑的ip
 
+### utils 依赖
+```bash
+sudo apt update
+sudo apt install -y build-essential cmake git libgoogle-glog-dev libgflags-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev  libspdlog-dev  libeigen3-dev libboost-all-dev libyaml-cpp-dev libpcl-dev libopencv-dev libceres-dev
+``` 
 
-### odom 
+### location
 
 #### super_lio
 
@@ -103,11 +106,70 @@ or
 sudo apt install libgoogle-glog-dev libtbb-dev
 ```
 
+#### relocation
 
-### x_planner
+```bash
+git clone https://github.com/koide3/small_gicp.git
+cd ./small_gicp
+mkdir build && cd ./build
+cmake ..
+make 
+sudo make install
+```
+
+GTSAM ceres
+
+### gcopter
+
+#### planner
+
+ompl
+```bash
+sudo apt install libompl-dev ompl-demos
+```
 
 #### contoller
 
-##### mpc 
+##### lmpc 
 
-libqpOASES ipopt
+qpOASES
+```bash
+git clone https://github.com/coin-or/qpOASES.git
+cd ./qpOASES
+mkdir build && cd ./build
+cmake ..
+make 
+sudo make install
+```
+
+OsqpEigen
+
+```bash
+git clone https://github.com/gbionics/osqp-eigen.git
+cd ./osqp-eigen
+mkdir build && cd ./build
+cmake ..
+make 
+sudo make install
+```
+
+
+casadi
+
+```bash
+git clone https://github.com/casadi/casadi.git
+cd ./casadi
+mkdir build && cd ./build
+cmake ..
+make 
+sudo make install
+```
+
+### bt decision
+
+behaviortree_cpp
+nlohmann_json
+
+### serial_driver
+
+Boost

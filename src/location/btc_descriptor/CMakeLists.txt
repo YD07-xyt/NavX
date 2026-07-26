@@ -32,6 +32,7 @@ find_package(tf2 REQUIRED)
 find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Threads REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(Ceres REQUIRED)
 find_package(GTSAM QUIET)
 
@@ -81,6 +82,7 @@ target_link_libraries(btc_place_recognition
   ${OpenCV_LIBS}
   ${CERES_LIBRARIES}
   tbb
+  ${EIGEN3_INCLUDE_DIR}
 )
 
 install(TARGETS

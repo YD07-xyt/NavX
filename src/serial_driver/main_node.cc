@@ -4,11 +4,12 @@
 #include <rclcpp/logging.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/utilities.hpp>
+#include <spdlog/spdlog.h>
 #include <string>
 
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
-  // spdlog::set_level(spdlog::level::debug);
+
   auto serial_node = std::make_shared<rclcpp::Node>("serial_node");
   std::string serial_name;
   int baud_rate, max_try;
@@ -19,8 +20,22 @@ int main(int argc, char *argv[]) {
   std::string sending_method_name;
   decision::PatrolWaitTime temp_patrol_wait_time;
   decision::StateIsGoHome temp_state_is_go_home;
+  std::string log_level = "info";
+
   // 参数初始化
+  serial_node->declare_parameter<std::string>("log_level", "info");
+  serial_node->get_parameter("log_level", log_level);
+  if (log_level == "info") {
+    spdlog::set_level(spdlog::level::info);
+    spdlog::info("[param]:set spdlog level info");
+  } else if (log_level == "debug") {
+    spdlog::set_level(spdlog::level::debug);
+    spdlog::info("[param]:set spdlog level debug");
+  } else {
+    spdlog::error("[param]:set spdlog level failed");
+  }
   serial_node->declare_parameter<std::string>("serial_name", "/dev/ttyUSB0");
+
   serial_node->declare_parameter<int>("baud_rate", 115200);
   serial_node->declare_parameter<int>("max_try", 10);
 
@@ -91,7 +106,8 @@ int main(int argc, char *argv[]) {
   serial_node->declare_parameter<std::string>("map_tf_name", "map");
   bt::DecisionConfig decision_config;
   serial_node->get_parameter("tree_xml_file", decision_config.tree_xml_file);
-  serial_node->get_parameter("tree_node_model_export_path", decision_config.tree_node_model_export_path);
+  serial_node->get_parameter("tree_node_model_export_path",
+                             decision_config.tree_node_model_export_path);
   serial_node->get_parameter("map_tf_name", decision_config.map_tf_name);
 
   auto node = std::make_shared<io::SerialNode>(
