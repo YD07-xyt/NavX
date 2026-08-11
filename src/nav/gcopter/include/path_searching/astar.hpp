@@ -104,6 +104,23 @@ public:
     traj_cut_length_ = 8.0;
     distance_weight_ = 1.0;
     yaw_weight_ = 0.5;
+  };
+  AStar(){
+    // Initialize default parameters (can be loaded from config file)
+    max_vel_ = 1.0;
+    max_acc_ = 1.0;
+    time_resolution_ = 0.2;
+    min_traj_num_ = 3;
+    traj_cut_length_ = 8.0;
+    distance_weight_ = 1.0;
+    yaw_weight_ = 0.5;
+  };
+
+  auto SetMap(const grid_map::GridMap& map)->void{
+    map_ =map;
+  }
+  auto SetSafeThreshold(const double safe_threshold){
+    safe_threshold_=safe_threshold;
   }
 
   Trajectory planWithPostProcessing(const Eigen::Vector2d &start,
@@ -225,9 +242,11 @@ public:
   void setTrajectoryCutLength(double length) { traj_cut_length_ = length; }
   void setDistanceWeight(double weight) { distance_weight_ = weight; }
   void setYawWeight(double weight) { yaw_weight_ = weight; }
+  void setStartVelocity(double v) { start_vel_ = v; }
+  void setEndVelocity(double v) { end_vel_ = v; }
 
 private:
-  grid_map::GridMap &map_;
+  grid_map::GridMap map_;
   double safe_threshold_;
 
   // Trajectory parameters
@@ -238,6 +257,8 @@ private:
   double traj_cut_length_;
   double distance_weight_;
   double yaw_weight_;
+  double start_vel_{0.0};
+  double end_vel_{0.0};
 
   // Euclidean heuristic
   double heuristic(const Eigen::Vector2d &a, const Eigen::Vector2d &b) const {
@@ -397,9 +418,9 @@ private:
                               fabs(state.delta_theta) * yaw_weight_;
     }
 
-    // Calculate total time (trapezoidal velocity profile)
+    // Calculate total time (trapezoidal velocity profile, uses actual start/end vel)
     traj.total_time =
-        evaluateDuration(traj.weighted_length, 0, 0, max_vel_, max_acc_);
+        evaluateDuration(traj.weighted_length, start_vel_, end_vel_, max_vel_, max_acc_);
 
     // Sample time points
     double sample_time =
@@ -412,8 +433,8 @@ private:
     size_t state_idx = 0;
 
     for (double t = sample_time; t < traj.total_time - 1e-3; t += sample_time) {
-      double s = evaluateLength(t, traj.weighted_length, traj.total_time, 0, 0,
-                                max_vel_, max_acc_);
+      double s = evaluateLength(t, traj.weighted_length, traj.total_time,
+                                start_vel_, end_vel_, max_vel_, max_acc_);
 
       // Find corresponding state
       while (state_idx < traj.path_states.size() - 1 &&

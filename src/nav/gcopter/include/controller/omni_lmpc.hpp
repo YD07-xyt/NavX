@@ -123,7 +123,7 @@ public:
     solver_.data()->setLowerBound(zero_lb);
     solver_.data()->setUpperBound(zero_ub);
 
-    solver_.initSolver(); // 仅此一次！
+    solver_.initSolver(); 
   }
 
   // 更新当前机器人位姿
@@ -144,6 +144,9 @@ public:
 
     // 2. 生成未来 N+1 步的参考轨迹
     Eigen::Matrix3Xd x_ref(3, N + 1);
+    const double theta0 = x0.z();
+    const double c0 = std::cos(theta0), s0 = std::sin(theta0);
+    double theta_ref_prev = theta0;
     for (int k = 0; k <= N; ++k) {
       double t_eval = t_now + k * dt;
       if (t_eval > total_duration)
@@ -151,7 +154,13 @@ public:
 
       Eigen::Vector2d pos = trajectory.evaluate(t_eval, 0);
       Eigen::Vector2d vel = trajectory.evaluate(t_eval, 1);
-      double theta_ref = std::atan2(vel.y(), vel.x());
+      double theta_raw = std::atan2(vel.y(), vel.x());
+      // 沿 k 连续解卷绕参考航向（相对当前航向起步），
+      // 避免 atan2 在 ±π 边界跳变导致角度代价突增、转向错误
+      double dtheta = theta_raw - theta_ref_prev;
+      dtheta = std::atan2(std::sin(dtheta), std::cos(dtheta)); // wrap to [-π, π]
+      double theta_ref = theta_ref_prev + dtheta;
+      theta_ref_prev = theta_ref;
 
       x_ref.col(k) << pos.x(), pos.y(), theta_ref;
     }
@@ -162,6 +171,22 @@ public:
     for (int i = 0; i < N + 1; ++i) {
       Eigen::Vector3d Qx_ref = param_.Q * (-x_ref.col(i));
       gradient.segment(i * 3, 3) = Qx_ref;
+    }
+    // 控制量参考：追踪参考速度（世界系 → 机体系）与参考角速度，
+    // 避免只追踪位置导致弯道切弯/偏离轨迹
+    for (int k = 0; k < N; ++k) {
+      double t_eval = t_now + k * dt;
+      if (t_eval > total_duration)
+        t_eval = total_duration;
+      Eigen::Vector2d vel_w = trajectory.evaluate(t_eval, 1);
+      // R(θ0)^T · v_world → body frame
+      Eigen::Vector2d vel_b(c0 * vel_w.x() + s0 * vel_w.y(),
+                            -s0 * vel_w.x() + c0 * vel_w.y());
+      gradient.segment(3 * (N + 1) + k * 3, 2) =
+          -param_.R.diagonal().head<2>().cwiseProduct(vel_b);
+      // 角速度参考：参考航向的差分
+      double w_ref = (x_ref.col(k + 1)(2) - x_ref.col(k)(2)) / dt;
+      gradient[3 * (N + 1) + k * 3 + 2] = -param_.R.diagonal()(2) * w_ref;
     }
 
     // 4. 更新约束边界（时变）
@@ -268,6 +293,11 @@ private:
     if (duration <= 0.0) {
       t_track_ = 0.0;
       return 0.0;
+    }
+    // 兜底：若游标越界（如新轨迹尚未 reset_track），
+    // 从轨迹中段重新开始搜索，避免搜索窗口为空导致参考卡在轨迹末端
+    if (t_track_ > duration) {
+      t_track_ = duration * 0.5;
     }
     const double step = 0.05;
     const double t_lo = std::max(0.0, t_track_ - 0.3);

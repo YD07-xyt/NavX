@@ -323,7 +323,6 @@ namespace lbfgs
             {
                 return LBFGSERR_INVALID_FUNCVAL;
             }
-
             if(param.past > 0 && fabs(finit-f)/(fabs(finit)+1.0)<param.delta/param.past)
             {
                 return count;

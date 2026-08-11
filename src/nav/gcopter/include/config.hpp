@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utils/logger.hpp"
 #include <cmath>
 #include <controller/omni_lmpc.hpp>
 #include <fsm/fsm.hpp>
@@ -14,6 +15,8 @@ struct Config {
   std::string odomTopic = "/fake_odom";
   double map_size = 43.0;
   double resolution = 0.1;
+  bool mapping_model; // true: 建图模式，false: 规划模式
+  std::string map_params_path = "/home/xyt/map/src/gcopter/map/global_map.pgm";
   FSM::FSMConfig fsm_config;
   controller::LMpc::LMpcParam lmpc_param;
 
@@ -25,7 +28,8 @@ struct Config {
     node->declare_parameter<std::string>("odom_topic", odomTopic);
     node->declare_parameter<double>("map_size", map_size);
     node->declare_parameter<double>("resolution", resolution);
-
+    node->declare_parameter<bool>("mapping_model", mapping_model);
+    node->declare_parameter<std::string>("map_params_path", map_params_path);
     // AstarParam 剩余参数
     node->declare_parameter<double>("max_vel",
                                     fsm_config.astar_param_.max_vel_);
@@ -51,6 +55,14 @@ struct Config {
                                     fsm_config.deviation.y());
     node->declare_parameter<double>("fsm.deviation.z",
                                     fsm_config.deviation.z());
+    node->declare_parameter<double>("fsm.replan_interval",
+                                    fsm_config.replan_interval_);
+    node->declare_parameter<double>("fsm.replan_lateral_dev",
+                                    fsm_config.replan_lateral_dev_);
+    node->declare_parameter<double>("fsm.min_replan_interval",
+                                    fsm_config.min_replan_interval_);
+    node->declare_parameter<double>("fsm.goal_reached_radius",
+                                    fsm_config.goal_reached_radius_);
 
     // TrajectoryParams 参数（嵌套在 fsm_config_.params_ 中）
     node->declare_parameter<double>("traj.rho_v", fsm_config.params_.rho_v);
@@ -60,6 +72,8 @@ struct Config {
     node->declare_parameter<double>("traj.rho_energy",
                                     fsm_config.params_.rho_energy);
     node->declare_parameter<double>("traj.max_v", fsm_config.params_.max_v);
+    node->declare_parameter<double>("traj.rho_v_des", fsm_config.params_.rho_v_des);
+    node->declare_parameter<double>("traj.v_des_ratio", fsm_config.params_.v_des_ratio);
     node->declare_parameter<double>("traj.safe_threshold",
                                     fsm_config.params_.safe_threshold);
     node->declare_parameter<int>("traj.int_K", fsm_config.params_.int_K);
@@ -78,7 +92,8 @@ struct Config {
     node->get_parameter("odom_topic", odomTopic);
     node->get_parameter("map_size", map_size);
     node->get_parameter("resolution", resolution);
-
+    node->get_parameter("mapping_model", mapping_model);
+    node->get_parameter("map_params_path", map_params_path);
     node->get_parameter("max_vel", fsm_config.astar_param_.max_vel_);
     node->get_parameter("max_acc", fsm_config.astar_param_.max_acc_);
     node->get_parameter("time_resolution",
@@ -96,12 +111,18 @@ struct Config {
     node->get_parameter("fsm.deviation.y", dev_y);
     node->get_parameter("fsm.deviation.z", dev_z);
     fsm_config.deviation = Eigen::Vector3d(dev_x, dev_y, dev_z);
+    node->get_parameter("fsm.replan_interval", fsm_config.replan_interval_);
+    node->get_parameter("fsm.replan_lateral_dev", fsm_config.replan_lateral_dev_);
+    node->get_parameter("fsm.min_replan_interval", fsm_config.min_replan_interval_);
+    node->get_parameter("fsm.goal_reached_radius", fsm_config.goal_reached_radius_);
 
     node->get_parameter("traj.rho_v", fsm_config.params_.rho_v);
     node->get_parameter("traj.rho_collision", fsm_config.params_.rho_collision);
     node->get_parameter("traj.rho_T", fsm_config.params_.rho_T);
     node->get_parameter("traj.rho_energy", fsm_config.params_.rho_energy);
     node->get_parameter("traj.max_v", fsm_config.params_.max_v);
+    node->get_parameter("traj.rho_v_des", fsm_config.params_.rho_v_des);
+    node->get_parameter("traj.v_des_ratio", fsm_config.params_.v_des_ratio);
     node->get_parameter("traj.safe_threshold",
                         fsm_config.params_.safe_threshold);
     node->get_parameter("traj.int_K", fsm_config.params_.int_K);

@@ -37,6 +37,8 @@ using RowMatrixXi = Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic, Eigen::Ro
 
 class GridMap {
 public:
+    typedef std::shared_ptr<GridMap> Ptr;
+
     double getResolution() const { return resolution_; }
     Eigen::Vector2d getMapSize() const { return map_size_; }
     Eigen::Vector2d getOrigin() const { return map_origin_; }
@@ -61,14 +63,32 @@ public:
         occ_buffer_.resize(buffer_size_, 0);
         esdf_buffer_.resize(buffer_size_, 0.0);
     }
-
-    void setMap(const RowMatrixXi& map) {
+    //TODO: 考虑地图中已有的障碍物点，不2次加入
+    void direct_set_map(const RowMatrixXi& map) {
+        if (!checkMapSize(map)) return;
         for (int x = 0; x < voxel_num_.x(); ++x) {
             for (int y = 0; y < voxel_num_.y(); ++y) {
                 occ_buffer_[toAddress(Eigen::Vector2i(x, y))] = map(x, y);
             }
         }
         updateESDF();
+    }
+    void setMap(const RowMatrixXi& map) {
+        if (!checkMapSize(map)) return;
+        bool changed = false;
+        for (int x = 0; x < voxel_num_.x(); ++x) {
+            for (int y = 0; y < voxel_num_.y(); ++y) {
+                int addr = toAddress(Eigen::Vector2i(x, y));
+                char new_val = static_cast<char>(map(x, y));
+                if (occ_buffer_[addr] != new_val) {
+                    occ_buffer_[addr] = new_val;
+                    changed = true;
+                }
+            }
+        }
+        if (changed) {
+            updateESDF();
+        }
     }
 
     double getDistance(const Eigen::Vector2d& pos) const {
@@ -195,7 +215,19 @@ protected:
     inline int toAddress(int x, int y) const {
         return x * voxel_num_.y() + y;
     }
-    
+
+    // 保护 setMap/direct_set_map 不越界：输入矩阵行列必须与当前栅格一致，
+    // 否则直接拒绝（尺寸不一致时按像素索引拷贝会导致错位或读越界内存）
+    bool checkMapSize(const RowMatrixXi& map) const {
+        if (map.rows() != voxel_num_.x() || map.cols() != voxel_num_.y()) {
+            std::cerr << "[GridMap] size mismatch: got " << map.rows() << "x" << map.cols()
+                      << ", expected " << voxel_num_.x() << "x" << voxel_num_.y()
+                      << ", map update rejected" << std::endl;
+            return false;
+        }
+        return true;
+    }
+
     void updateESDF() {
         int rows = voxel_num_.x();
         int cols = voxel_num_.y();

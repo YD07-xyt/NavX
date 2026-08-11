@@ -10,3 +10,5 @@ log
 /src/map/rog_map/pcd/*pcd
 /src/tool/pcd2pgm
 /src/map/rog_map/map/*pcd
+/src/nav/gcopter/.agents
+/src/nav/gcopter/3rd

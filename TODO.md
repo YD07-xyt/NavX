@@ -1,3 +1,6 @@
+## 7.27
+1. gcopter lmpc 直线抄近路，单向偏离
+
 ## 7.26
 1. [rog_map_node-3]  -- [ROG WARN] Unfinished frame cnt > 1, the map may not work in real-time
 

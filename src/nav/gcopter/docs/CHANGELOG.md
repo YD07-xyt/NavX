@@ -1,6 +1,83 @@
 # 更改说明 (Changelog)
 
-记录近期对规划/控制模块的修改。仅改动 FSM 与控制器相关模块，未触及 A*、地图、轨迹优化等其他模块。
+记录近期对规划/控制模块的修改。
+
+---
+
+## 2026-08-12
+### lbfgs 参考中科大思路增加
+```bash
+if(param.past > 0 && fabs(finit-f)/(fabs(finit)+1.0)<param.delta/param.past)
+{
+  return count;
+}
+```
+
+### 1. 全局地图加载：按世界坐标重投影，修复地图尺寸/分辨率变化导致的错位与杂乱障碍 (`src/ros2_2d.cpp`, `include/map/grid_map.hpp`)
+
+**问题**
+- `save_global_map` 生成的 PGM 自带 `resolution/origin`（见 `global_map.yaml`），但 `load_global_map` 只读 PGM 头、忽略坐标信息；
+- `GridMap::setMap` 按“像素索引一一对应”拷贝，建图 41×41m、导航改为 24×24 或 6×6 后：旧 PGM 被错位截取（障碍整体平移 8.5m）或越界读取（读出内存垃圾），显示为一堆杂乱障碍物；
+- 首次重投影实现时 x/y 轴映射写反（PGM 列=世界 y、行=世界 x 顶行为 x 最大），加载出的地图方向颠倒。
+
+**修改**
+- `load_global_map` 解析同目录 `global_map.yaml` 的 `resolution/origin`，遍历当前栅格每个 cell：由世界坐标换算 PGM 像素坐标，仅当像素落在 PGM 范围内时取值，范围外保持自由——任何地图尺寸/分辨率下障碍都落在正确位置；
+- 像素映射与 `save_global_map` 对称：PGM 列=世界 Y、PGM 行=世界 X（顶行=x 最大）；
+- `GridMap::setMap/direct_set_map` 增加 `checkMapSize` 尺寸守卫，输入矩阵与当前栅格不一致时拒绝并打印 `[GridMap] size mismatch`，防止越界读。
+
+### 2. FSM 重规划触发机制：路径年龄 / 横向偏差 / 原始路径碰撞检查 / 防抖 (`include/fsm/fsm.hpp`, `src/replan/fsm.cpp`, `include/config.hpp`, `config/global_planning.yaml`)
+
+**问题**
+- 原 FSM 只在“目标变化”或“优化航点碰障”时重规划，且 `checkCollision` 只检查稀疏航点，两航点之间的新障碍检测不到；路径一旦生成就跑到底，地图变化响应差；
+- 机器人被 MPC 挤偏后无法自动拉回。
+
+**修改**
+- 新增三个触发条件（任一满足即重规划）：① 路径碰障（`checkCollision` 同时检查 A* 原始网格路径 `raw_path` + 优化航点，原始路径逐格密集）；② 路径年龄超过 `fsm.replan_interval`（默认 1.0s）；③ 机器人到优化轨迹采样点（`last_opt_path_`，0.2m 采样）的横向距离超过 `fsm.replan_lateral_dev`（默认 0.3m，对比实际执行轨迹而非 A* 折线，避免样条平滑拐弯被误判）；
+- 新增 `fsm.min_replan_interval`（默认 0.3s）防抖：多触发源共振时保留旧路径，失败（`failed` 状态）也纳入限频，避免 30Hz 空转刷屏；
+- 新增 `fsm.goal_reached_radius`（默认 0.3m）：机器人距目标小于该值时直接退出不规划，避免 A* 单点退化路径与目标点空转。
+
+### 3. 轨迹优化：L-BFGS 返回值语义修复 + 失败诊断 (`include/traj_optimize/traj_opt.hpp`, `src/replan/fsm.cpp`)
+
+**问题**
+- `TrajectoryOptimizer::plan()` 直接 `return result;`（L-BFGS 返回码），int→bool 把正常收敛（`LBFGS_CONVERGENCE=0`）转成 `false`，调用方 `!plan()` 将“正常收敛”误判为失败——到 goal 附近初始轨迹已是驻点（梯度≈0）时必现 `Trajectory optimization failed!`；反之真正错误（负数）被当成成功，坏轨迹被下发执行；
+- 优化失败时没有任何原因信息；`piece_len = total_length/total_time` 在退化路径上除零产生 NaN。
+
+**修改**
+- `plan()` 改为 `return result >= 0;`（0=收敛、1=停止准则均为成功，负数才是错误）；
+- `piece_len` 加 `safe_total_time` 除零兜底；
+- 失败诊断：`[opt-fail]` 打印 A* 路径点数/长度/时间/起终点；`[traj_opt]` 打印 `lbfgs_strerror(result)` 返回码与初始/最终代价；初始轨迹 NaN/Inf 检测。
+
+### 4. 起点速度边界投影：修复中途重规划/换目标时的掉头失败 (`include/traj_optimize/traj_opt.hpp`)
+
+**问题**
+- `set_start_vel` 直接把机器人当前速度向量（2~3 m/s，方向沿旧轨迹/旧目标）作为样条起点速度边界。中途重规划时速度方向与新 A* 路径首段不一致甚至相反（换目标=典型掉头），三次样条被迫“高速掉头”→ 初始轨迹能量爆炸（`initial_cost` 高达 163 vs 正常 ~30）→ 线搜索 64 次失败（`-1009 MAXIMUMLINESEARCH`），机器人无轨迹可执行、停在原地。
+
+**修改**
+- 把实际速度投影到路径首段方向：方向一致 → 保留沿路径分量（丢弃横向分量）；方向相反（掉头）→ 退化为沿路径方向 0.5 m/s 重新起步；
+- 附带修正：odom `twist.linear` 若为机体系速度，原代码等于拿机体系方向当世界系方向，投影后方向一律取路径方向，坐标系差异不再影响。
+
+### 5. 期望巡航速度项（默认禁用，待参数调优后启用） (`include/traj_optimize/traj_opt.hpp`, `config/global_planning.yaml`)
+
+**问题**
+- 轨迹优化代价只有“超速上限”惩罚，没有期望速度项，最小能量解从 0 缓慢爬升 → 起步慢、逐渐加速。
+
+**修改**
+- 新增 `traj.rho_v_des` / `traj.v_des_ratio`：速度低于 `v_des = v_des_ratio × max_v` 时惩罚 `ρ(v_des−|v|)²`，推动起步段快速提速；
+- **注意**：代价在 v=0 处不可导（|v| 尖角），大权重下与碰撞/时间项对抗，实测曾导致优化全失败（-1009）。当前 yaml 置 0 禁用；启用需先用全域光滑公式（如 `ρ(v²−v_des²)²/(4·v_des²)`）替换，或小权重逐步调。
+
+### 6. 地图配置：odom 超时修正 (`config/map.yaml`)
+
+**问题**
+- `map.yaml` 缺 `ros_callback` 段，`odom_timeout` 用默认 0.05s，里程计稍慢（<20Hz）就把所有点云帧丢弃，动态地图不更新，伴随 `Odom timeout, skip cloud callback` 刷屏。
+
+**修改**
+- 显式配置 `ros_callback.odom_timeout: 0.5`（本节点经 `MaMap::update_cloud` 手动喂数据，不依赖 ROGMap 自带订阅）。
+
+### 7. 调参经验记录（解决 -1009 的关键参数关系）
+
+- **`traj.rho_T` 时间惩罚过大（500）会导致优化全失败**：与能量项剧烈对抗，线搜索无法收敛。恢复到 200 后恢复。调大 rho_T 需同时评估 rho_energy；
+- **`traj.safe_threshold` 必须 ≤ `fsm.safe_threshold`**：A* 只保证路径点距离 ≥ fsm.safe_threshold（0.45），若优化阈值更高（0.5~0.7），初始样条（过 A* 航点）必然落入碰撞惩罚区且无处可退（窄通道无可行解）→ 优化失败。当前 0.5 略高于 0.45，窄通道/贴边路径仍偶发 -1009，建议 `traj.safe_threshold ≤ 0.45`（或加大 fsm.safe_threshold 留出走廊宽度）；
+- 速度三上限 `astar.max_vel == traj.max_v == lmpc.u_max == 3.0` 保持一致。
 
 ---
 

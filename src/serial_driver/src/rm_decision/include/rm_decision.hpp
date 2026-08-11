@@ -14,7 +14,7 @@
 #include "condition/set_blackboard_bool.hpp"
 #include "config.hpp"
 #include "custume_types.hpp"
-#include "rm_decision/include/action/switch_nav_model.hpp"
+#include "action/switch_nav_model.hpp"
 
 #include <behaviortree_cpp/actions/sleep_node.h>
 #include <behaviortree_cpp/behavior_tree.h>
