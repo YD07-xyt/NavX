@@ -1,0 +1,55 @@
+<root BTCPP_format="4">
+    <TreeNodesModel>
+        <Action ID="AsyncSleep">
+            <input_port name="msec" type="double"/>
+        </Action>
+        <Condition ID="CheckBlackboardBool">
+            <input_port name="value" type="bool">期望值</input_port>
+            <input_port name="key" type="std::string">黑板中的布尔键名</input_port>
+        </Condition>
+        <Condition ID="IsEnemyOutpostDestroyed">
+            <input_port name="min_enemy_outpost_hp" type="int"/>
+            <input_port name="enemy_outpost_hp" type="int"/>
+        </Condition>
+        <Condition ID="IsFortOccupied">
+            <input_port name="ours_fort_occ_state" type="bool"/>
+        </Condition>
+        <Condition ID="IsGameStart">
+            <input_port name="current_game_state" type="bool"/>
+        </Condition>
+        <Condition ID="IsGameTimeExceeded">
+            <input_port name="threshold" type="int">阈值（秒）</input_port>
+            <input_port name="game_time" type="int">当前游戏时间（秒）</input_port>
+        </Condition>
+        <Condition ID="IsGameTimeLess">
+            <input_port name="threshold" type="int">阈值（秒）</input_port>
+            <input_port name="game_time" type="int">当前游戏时间（秒）</input_port>
+        </Condition>
+        <Condition ID="IsGoHome">
+            <input_port name="min_hp" type="int"/>
+            <input_port name="current_hp" type="int"/>
+            <input_port name="min_projectile_allowance" type="int"/>
+            <input_port name="current_projectile_allowance" type="int"/>
+        </Condition>
+        <Condition ID="IsRobotHealth">
+            <input_port name="min_hp" type="int"/>
+            <input_port name="current_hp" type="int"/>
+            <input_port name="min_projectile_allowance" type="int"/>
+            <input_port name="current_projectile_allowance" type="int"/>
+        </Condition>
+        <Condition ID="IsSuccessNav">
+            <input_port name="current_nav_state" type="int"/>
+        </Condition>
+        <Action ID="Nav2Pose">
+            <input_port name="pub_model" type="std::string">发布模式标识</input_port>
+            <input_port name="goal" type="bt::Point">goal send to navigator.</input_port>
+        </Action>
+        <Action ID="SetBlackboardBool">
+            <input_port name="value" type="bool">要设置的值</input_port>
+            <input_port name="key" type="std::string">要设置的键名</input_port>
+        </Action>
+        <Action ID="SwitchNavModel">
+            <input_port name="model" type="std::string">切换导航模式(跟随云台or小陀螺模式)</input_port>
+        </Action>
+    </TreeNodesModel>
+</root>

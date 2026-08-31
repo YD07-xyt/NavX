@@ -17,6 +17,8 @@ namespace io {
         float v_x;
         float v_y;
         float w_z;
+        uint8_t is_chassis_follow;
+        float robot_yaw; 
         
         uint16_t crc16;
         
@@ -50,13 +52,31 @@ namespace io {
             return verify();
         }
         
-        // 设置速度
-        void setVelocity(float vx, float vy, float wz) {
-            v_x = vx;
-            v_y = vy;
-            w_z = wz;
-            crc16 = calculateCRC16();  // 更新 CRC
+        // // 设置速度
+        // void setVelocity(float vx, float vy, float wz) {
+        //     v_x = vx;
+        //     v_y = vy;
+        //     w_z = wz;
+        //     crc16 = calculateCRC16();  // 更新 CRC
+        // }
+    };
+     struct  __attribute__((packed))  SendSocketData{
+        //uint16_t sof;
+        uint8_t sof_0;
+        uint8_t sof_1;
+        //uint8_t sentry_pose;
+        float v_x;
+        float v_y;
+        float w_z;
+        uint8_t is_chassis_follow;
+        float robot_yaw; 
+        // 序列化
+        std::vector<uint8_t> serialize() const {
+            std::vector<uint8_t> buffer(sizeof(SendData));
+            memcpy(buffer.data(), this, sizeof(SendData));
+            return buffer;
         }
+         
     };
     struct  __attribute__((packed))  ReceiveSocketData{
          //uint16_t sof;
@@ -66,6 +86,8 @@ namespace io {
         uint8_t game_progress; //比赛是否开始 开始：1 / 未开始：0
         uint16_t current_hp; //哨兵当前血量
         uint16_t projectile_allowance; //哨兵可发弹量
+        uint8_t is_enemy_outpost_destroyed; //对方前哨站是否被摧毁
+        uint16_t game_time; //比赛时间，单位为秒
         float vx; // 当前速度
         float vy; 
         float wz;
@@ -86,6 +108,8 @@ namespace io {
         uint8_t game_progress; //比赛是否开始 开始：1 / 未开始：0
         uint16_t current_hp; //哨兵当前血量
         uint16_t projectile_allowance; //哨兵可发弹量
+        uint8_t is_enemy_outpost_destroyed; //对方前哨站是否被摧毁
+        uint16_t game_time; //比赛时间，单位为秒
         float vx; // 当前速度
         float vy; 
         float wz;

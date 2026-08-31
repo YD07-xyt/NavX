@@ -164,6 +164,7 @@ void imu_cbk(const sensor_msgs::msg::Imu::ConstSharedPtr & msg_in)
   // printf("time_diff%f, %f, %f\n", last_timestamp_imu - timestamp, last_timestamp_imu, timestamp);
 
   if (timestamp < last_timestamp_imu) {
+    //TODO:  clear deque
     RCLCPP_ERROR(rclcpp::get_logger("li_initialization"), "imu loop back, clear deque");
     // imu_deque.shrink_to_fit();
     // std::cout << "check time:" << timestamp << ";" << last_timestamp_imu << '\n';

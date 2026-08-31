@@ -7,7 +7,7 @@
   <BehaviorTree ID="MainTree">
     <RecoveryNode number_of_retries="8" name="NavigateRecovery">
       <PipelineSequence name="NavigateWithReplanning">
-        <RateController hz="2">
+        <RateController hz="5">
           <RecoveryNode number_of_retries="1" name="ComputePathToPose">
             <Sequence name="ComputeAndSmoothPath">
                 <GoalUpdater input_goal="{goal}" output_goal="{updated_goal}">
@@ -27,7 +27,7 @@
       <ReactiveFallback name="RecoveryFallback">
         <GoalUpdated/>
         <RoundRobin name="RecoveryActions">
-          <BackUp backup_dist="-0.05" backup_speed="-0.4"/>
+          <BackUp backup_dist="0.05" backup_speed="0.4"/>
           <BackUp backup_dist="0.07" backup_speed="0.4"/>
           <BackUp backup_dist="0.1" backup_speed="0.4"/>
           <!-- <Spin spin_dist="0.523"/> -->

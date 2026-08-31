@@ -1,0 +1,12 @@
+[Unit]
+After=graphical-session.target
+PartOf=nav.service
+
+[Service]
+ExecStart=bash %h/code/nav_rm_2026/pb_sentry/bt_tree.bash
+# ExecStart=/home/ma/code/nav_rm_2026/pb_sentry/src/ma_behavior_tree/target/release/ma_bt
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

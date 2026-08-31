@@ -23,7 +23,8 @@ namespace io {
             bool open_socket(std::string receive_name,std::string send_name);
             bool open_serial(std::string serial_name, int baud_rate);
             bool reopen(std::string serial_name,int baud_rate,int max_try);
-            bool send_socket(const SendData & send_data);
+            bool reopen_socket(std::string receive_name,std::string send_name,int max_try);
+            bool send_socket(const SendSocketData & send_data);
             bool send_serial(const SendData &send_data);
             void init();
             bool find_packet_in_buffer(std::vector<ReceiveData> & data);
@@ -33,6 +34,8 @@ namespace io {
 
         private:
             std::string serial_name_;
+            std::string socket_receive_name_;
+            std::string socket_send_name_;
             int baud_rate_;
             int max_try_;
             boost::system::error_code ec;

@@ -191,7 +191,7 @@ void laserCloudHandler(
     float dis = sqrt((pointX - vehicleX) * (pointX - vehicleX) +
                      (pointY - vehicleY) * (pointY - vehicleY));
     if (dis < robotRadius) {
-            continue;  // 跳过机器人自身范围内的点
+        continue;  // 跳过机器人自身范围内的点
     }
 
     if (pointZ - vehicleZ > minRelZ - disRatioZ * dis &&

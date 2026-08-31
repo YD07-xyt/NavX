@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4" main_tree_to_execute="main_tree">
+  <!-- 主树不变 -->
+  <BehaviorTree ID="main_tree">
+    <Sequence>
+      <IsGameStart current_game_state="{is_game_start}"/>
+      <ReactiveFallback>
+          <Sequence>          <!-- 回家序列，优先级最高 -->
+              <IsGoHome current_projectile_allowance="{current_projectile_allowance}" 
+                        min_projectile_allowance="50" 
+                        current_hp="{current_hp}" 
+                        min_hp="80"/>
+              <SubTree ID="go_home" 
+                      game_time="{game_time}" 
+                      uphill_done="{uphill_done}" 
+                      downhill_done="{downhill_done}"
+                      __shared_blackboard="true"/>
+          </Sequence>
+          <Sequence>
+            <IsRobotHealth current_projectile_allowance="{current_projectile_allowance}" 
+                          min_projectile_allowance="50" 
+                          current_hp="{current_hp}" 
+                          min_hp="350"/>
+            <!-- 健康情况下，执行备选任务 -->
+            <ReactiveFallback>
+              <SubTree ID="hit_enemy_outpost_subtree" 
+                        current_enemy_outpost_hp="{current_enemy_outpost_hp}" 
+                        game_time="{game_time}" 
+                        use_blackboard="false"/>
+              <SubTree ID="uphill_then_protect" 
+                      game_time="{game_time}" 
+                      uphill_done="{uphill_done}" 
+                      downhill_done="{downhill_done}"
+                      __shared_blackboard="true"/>
+              <!-- <IsGameTimeLess game_time="{game_time}" threshold="350"/> -->
+              <SubTree ID="down_hill_subtree" 
+                      game_time="{game_time}" 
+                      uphill_done="{uphill_done}" 
+                      downhill_done="{downhill_done}"
+                      __shared_blackboard="true"/>
+              <SubTree ID="patrol_subtree" use_blackboard="true"/>
+            </ReactiveFallback>
+          </Sequence>
+      </ReactiveFallback>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="uphill_then_protect">
+      <ReactiveFallback>
+          <!-- 分支A：上坡阶段（只执行一次） -->
+          <Sequence>
+              <CheckBlackboardBool key="uphill_done" value="false"/>
+              <IsGameTimeExceeded game_time="{game_time}" threshold="395"/>
+              <IsGameTimeLess game_time="{game_time}" threshold="420"/>
+              <!-- 上坡起点（坡下） -->
+              <Nav2Pose goal="6.17,2.79,1.0" pub_model="publisher"/>
+              <Nav2Pose goal="6.17,2.79,1.0" pub_model="publisher"/>
+              <SwitchNavModel model="follow"/>
+              <AsyncSleep msec="1000"/>
+              <!-- 上坡终点（坡上） -->
+              <Nav2Pose goal="5.5,4.43,1.0" pub_model="publisher"/>
+              <SwitchNavModel model="spinning"/>
+              <!-- 上坡完成，设标志 -->
+              <SetBlackboardBool key="uphill_done" value="true"/>
+              <SetBlackboardBool key="downhill_done" value="false"/>
+          </Sequence>
+
+          <!-- 分支B：保护阶段（持续运行，只要时间条件满足就一直在这里） -->
+          <Sequence>
+              <CheckBlackboardBool key="uphill_done" value="true"/>
+              <IsGameTimeExceeded game_time="{game_time}" threshold="350"/>
+              <IsGameTimeLess game_time="{game_time}" threshold="420"/>
+              <!-- 持续导航到保护点，到达后短暂等待，然后重新发目标，保持 RUNNING -->
+              <Nav2Pose goal="5.5,4.43,1.0" pub_model="publisher"/>
+              <AsyncSleep msec="500"/>
+          </Sequence>
+      </ReactiveFallback>
+  </BehaviorTree>
+
+  <BehaviorTree ID="go_home">
+    <Sequence>
+      <ReactiveFallback>
+        <!-- 尝试下坡，如果无需下坡则失败，但 ReactiveFallback 会尝试第二个永远成功的分支 -->
+        <Sequence>
+          <CheckBlackboardBool key="downhill_done" value="false"/>
+          <Nav2Pose goal="5.5,4.43,1.0" pub_model="publisher"/>
+          <SwitchNavModel model="downhill"/>
+          <AsyncSleep msec="2000"/>
+          <Nav2Pose goal="6.17,2.79,1.0" pub_model="publisher"/>
+          <SwitchNavModel model="spinning"/>
+          <SetBlackboardBool key="downhill_done" value="true"/>
+          <SetBlackboardBool key="uphill_done" value="false"/>
+        </Sequence>
+        <!-- 兜底分支：永远成功，保证整个 ReactiveFallback 不会失败 -->
+        <AsyncSleep msec="0"/>
+      </ReactiveFallback>
+      <Nav2Pose goal="1.3,-6.9,0.0" pub_model="publisher"/>
+    </Sequence>
+  </BehaviorTree>
+
+
+
+  <BehaviorTree ID="down_hill_subtree">
+      <Sequence>
+          <CheckBlackboardBool key="downhill_done" value="false"/>
+          <!-- 梯高上的 下坡点-->
+          <Nav2Pose goal="5.5,4.43,1.0" pub_model="publisher"/>
+          <SwitchNavModel model="downhill"/>
+          <AsyncSleep msec="2000"/>
+          <!-- 梯高下的 上坡点-->
+          <Nav2Pose goal="6.17,2.79,1.0" pub_model="publisher"/>
+          <!--follow   or  spinning  -->
+          <SwitchNavModel model="spinning"/>
+          <SetBlackboardBool key="uphill_done" value="false"/>
+          <SetBlackboardBool key="downhill_done" value="true"/>
+      </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="hit_enemy_outpost_subtree">
+      <Sequence>
+          <!-- <Inverter>
+              <IsEnemyOutpostDestroyed 
+                  enemy_outpost_hp="{current_enemy_outpost_hp}" 
+                  min_enemy_outpost_hp="40"/>
+          </Inverter> -->
+          <IsGameTimeExceeded game_time="{game_time}" threshold="420"/>
+          <IsGameTimeLess game_time="{game_time}" threshold="420"/>
+          <Nav2Pose goal="7.3,2.49,1.0" pub_model="publisher"/>
+          <Sleep msec="2000"/>
+      </Sequence>
+  </BehaviorTree>
+
+  <!-- ========== 巡逻子树（4点巡逻，每个点成功后才等待） ========== -->
+  <BehaviorTree ID="patrol_subtree">
+    <Repeat num_cycles="-1">
+      <Sequence>
+        <SetBlackboardBool key="downhill_done" value="true"/>
+        <SetBlackboardBool key="uphill_done" value="false"/>
+        <!-- 点1 -->
+        <Timeout msec="15000">
+          <Nav2Pose goal="5.14,1.08,1.0" pub_model="publisher"/>
+        </Timeout>
+        <Sleep msec="2000"/>
+
+        <!-- 点2 -->
+        <Timeout msec="15000">
+          <Nav2Pose goal="3.77,-0.466,1.0" pub_model="publisher"/>
+        </Timeout>
+        <Sleep msec="2000"/>
+
+        <!-- 点3 -->
+        <Timeout msec="15000">
+          <Nav2Pose goal="3.0,-2.57,1.0" pub_model="publisher"/>
+        </Timeout>
+        <Sleep msec="2000"/>
+
+        <!-- 点4 -->
+        <Timeout msec="15000">
+          <Nav2Pose goal="3.77,-0.466,1.0" pub_model="publisher"/>
+        </Timeout>
+        <Sleep msec="2000"/>
+      </Sequence>
+    </Repeat>
+  </BehaviorTree>
+
+  <TreeNodesModel>
+    <!-- 已有节点 -->
+    <Action ID="Nav2Pose">
+      <input_port name="goal" type="Point"/>
+    </Action>
+    <Action ID="Sleep">
+      <input_port name="msec" type="double"/>
+    </Action>
+    <Condition ID="IsGameTimeExceeded">
+      <input_port name="game_time" type="int">当前游戏时间</input_port>
+      <input_port name="threshold" type="int">触发阈值</input_port>
+    </Condition>
+    <SubTree ID="patrol_subtree"/>
+    <SubTree ID="special_goal_subtree"/>
+  </TreeNodesModel>
+</root>

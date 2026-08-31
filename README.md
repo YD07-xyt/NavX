@@ -67,6 +67,10 @@ slam:=True \
 use_robot_state_pub:=True
 ```
 
+```bash
+ros2 run nav2_map_server map_saver_cli -f ./src/nav/pb2025_nav_bringup/map/reality/ma --ros-args -r map:=/map
+```
+
 #### 建图补tf
 
 map.sh 中已补tf
@@ -89,3 +93,33 @@ ros2 run tf2_ros static_transform_publisher --x 0 --y 0 --z 0 --roll 0 --pitch 0
 ### 决策
 
 目前集成在serial_driver中
+
+### systemctl 自启
+1.将/service  中的文件放入/home/ma/.config/systemd/user中
+
+
+/service 中
+
+```bash
+#修改脚本位置 
+ExecStart=bash %h/code/nav_rm_2026/pb_sentry/bt_tree.bash
+```
+
+目前只需要
+nav_serial.service //串口和决策
+nav.service //导航
+nav_tf.service //tf map->odom
+
+注：service/nav_bt.service已集成串口中，不需要单独启动
+
+
+2.如何启动：
+```bash
+systemctl --user enable your_service_name.service
+systemctl --user start your_service_name.service
+```
+example:
+```bash
+systemctl --user enable nav.service
+systemctl --user start nav.service
+```

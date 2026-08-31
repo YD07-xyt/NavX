@@ -6,7 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /TF1/Frames1
-        - /TerrainMapExt1
+        - /Controller1/Local Plan1
       Splitter Ratio: 0.5833333134651184
     Tree Height: 425
   - Class: rviz_common/Selection
@@ -400,7 +400,7 @@ Visualization Manager:
             Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
-            Value: local_plan
+            Value: /plan_smoothed
           Value: true
         - Alpha: 0.800000011920929
           Class: rviz_default_plugins/PointStamped
@@ -444,6 +444,18 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: waypoints
       Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /trajectories
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -474,7 +486,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 11.86656379699707
+      Distance: 30.532663345336914
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -489,10 +501,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5647963285446167
+      Pitch: 1.5497963428497314
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz_default_plugins)
-      Yaw: 2.2518668174743652
+      Yaw: 2.146862745285034
     Saved: ~
 Window Geometry:
   Displays:

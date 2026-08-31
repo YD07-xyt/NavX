@@ -1,0 +1,1 @@
+systemctl --user restart  serial_mux.service

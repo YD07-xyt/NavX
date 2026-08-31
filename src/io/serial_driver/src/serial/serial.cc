@@ -1,6 +1,6 @@
 #include "serial.h"
 #include "packet_typedef.h"
-#include "utils.h"
+#include "../utils.h"
 #include <boost/asio/local/datagram_protocol.hpp>
 #include <cstddef>
 #include <cstdint>
@@ -177,12 +177,13 @@ bool SerialDriver::reopen(std::string serial_name, int baud_rate, int max_try) {
   return is_open;
 }
 bool SerialDriver::open_socket(std::string receive_name,std::string send_name){
+  this->socket_receive_name_=receive_name;
+  this->socket_send_name_=send_name;
   printf("socket_send_name:%s,socket_receive_name:%s\n",send_name.c_str(),receive_name.c_str());
   // 清理可能存在的旧 socket 文件
   ::unlink(receive_name.c_str());
   boost::asio::local::datagram_protocol::endpoint ep_send(send_name);
   boost::asio::local::datagram_protocol::endpoint ep_receive(receive_name);
-  
   
   port_.open();
   port_.bind(ep_receive,ec);
@@ -201,7 +202,7 @@ bool SerialDriver::open_socket(std::string receive_name,std::string send_name){
   return true;
 }
 
-bool SerialDriver::send_socket(const SendData &send_data) {
+bool SerialDriver::send_socket(const SendSocketData &send_data) {
   std::vector<uint8_t> buffer = send_data.serialize();
 
   size_t sent= port_.send(boost::asio::buffer(buffer), 0,ec);
@@ -300,7 +301,29 @@ bool SerialDriver::find_packet_in_buffer_socket(std::vector<ReceiveSocketData> &
     size_t remove = rx_buffer_.size() - keep;
     rx_buffer_.erase_begin(remove);
   }
-  std::cerr << "读取good " << std::endl;
+  //std::cerr << "读取good " << std::endl;
   return false;
 }
+bool SerialDriver::reopen_socket(std::string receive_name,std::string send_name,int max_try){
+  
+  if(port_.is_open()){
+    std::cout<<"scoket port is open when port_ reopen"<<std::endl;
+    return true;
+  }
+  bool is_open = false;
+  std::cout << "尝试重新打开端口：" << ec.message() << std::endl;
+  for (int i = 0; i < max_try; i++) {
+    is_open = open_socket(receive_name,send_name);
+    if (is_open) {
+      std::cout << "重新打开端口成功：" << ec.message() << std::endl;
+      break;
+    }
+    if (i == (max_try - 1)) {
+      std::cout << "尝试重新打开端口失败" << std::endl;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+
+  return is_open;
+};
 } // namespace io

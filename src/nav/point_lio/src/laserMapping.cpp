@@ -506,7 +506,7 @@ int main(int argc, char ** argv)
           // kf_output.x_.rot; //.normalize();
           kf_output.x_.acc = -rot_init.transpose() * kf_output.x_.gravity;
         } else {
-          RCLCPP_ERROR(LOGGER,"POINT_LIO get imu 失败");
+          //RCLCPP_ERROR(LOGGER,"POINT_LIO get imu 失败");
           continue;
         }
       }

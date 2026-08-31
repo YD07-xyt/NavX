@@ -32,6 +32,8 @@ namespace decision {
     struct GoalPoint{
         Point Patrol1=Point(1,1,1);
         Point Patrol2=Point(2,2,2);
+        Point Patrol3=Point(2,2,2);
+        Point Patrol4=Point(2,2,2);
         Point home=Point(3,3,3);
     };
     struct tf{
