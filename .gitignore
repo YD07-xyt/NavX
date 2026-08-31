@@ -3,9 +3,9 @@ install
 log
 .vscode
 .cache
-src/bringup/maps/auto_save
+/src/bringup/maps/auto_save
 /src/nav/pb2025_nav_bringup/pcd/reality/*pcd
-src/tool/pcd2pgm/pcd/
-scr/nav/point_lio/PCD/
-src/nav/point_lio/PCD/scans.pcd
+/src/tool/pcd2pgm/pcd/
+/src/nav/point_lio/PCD/
+/src/nav/point_lio/PCD/scans.pcd
 /src/relocation/pcd
