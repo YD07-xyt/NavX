@@ -1,4 +1,4 @@
-#include "serial_node.h"
+#include "ros2/node.h"
 #include "rm_decision/include/rm_decision.hpp"
 #include <chrono>
 #include <spdlog/spdlog.h>
@@ -11,7 +11,7 @@ SerialNode::SerialNode(const std::string &serial_name, int &baud_rate,
                        const std::string &socket_receive_name,
                        const SendingMethod sending_method,
                        const bt::DecisionConfig &decision_config)
-    : node_(node), running_(true), fsm_decision_(node),
+    : node_(node), running_(true),
       socket_send_name_(socket_send_name),
       socket_receive_name_(socket_receive_name),
       sending_method_(sending_method),
@@ -38,7 +38,7 @@ SerialNode::SerialNode(const std::string &serial_name, int &baud_rate,
 
   this->cmd_sub_ = node_->create_subscription<geometry_msgs::msg::Twist>(
       "cmd_vel", 10,
-      std::bind(&SerialNode::cmd_callback, this, std::placeholders::_1));
+      [this](auto && PH1) { cmd_callback(std::forward<decltype(PH1)>(PH1)); });
   this->bt_timer_ = node_->create_wall_timer(
       std::chrono::milliseconds(5), [this]() { this->rm_bt_callback(); });
   this->send_timer_ = node_->create_wall_timer(
@@ -135,10 +135,9 @@ void SerialNode::cmd_callback(geometry_msgs::msg::Twist::SharedPtr cmd_data) {
         multiple * cmd_data->angular.z;
     // std::get<SendSocketData>(send_cmd_variant_).is_chassis_follow = 1;
     // std::get<SendSocketData>(send_cmd_variant_).robot_yaw = 360.0;
-    // //  spdlog::info( "serial 发送 cmd vx: {} ,vy :
-    // //  {},wz:{}",std::get<SendSocketData>(send_cmd_variant_).v_x,
-    // //               std::get<SendSocketData>(send_cmd_variant_).v_y,
-    // //               std::get<SendSocketData>(send_cmd_variant_).w_z);
+    //  spdlog::info( "serial 发送 cmd vx: {} ,vy :{},wz:{}",multiple * cmd_data->linear.x,
+    //               multiple * cmd_data->linear.y,
+    //               multiple * cmd_data->angular.z);
     // //   spdlog::info("serial 发送 crc16:{}",send_cmd.crc16);
     // serial_driver->send_socket(std::get<SendSocketData>(send_cmd_variant_));
     plotter_debug_cmd(now, std::get<SendSocketData>(send_cmd_variant_).v_x,

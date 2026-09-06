@@ -13,7 +13,7 @@ public:
             BT::InputPort<int>("min_enemy_outpost_hp")};
   }
 
-  BT::NodeStatus tick() {
+  BT::NodeStatus tick() override {
     if(!getInput<int>("enemy_outpost_hp",enemy_outpost_hp_)||
         !getInput<int>("min_enemy_outpost_hp",min_enemy_outpost_hp_)){
         return BT::NodeStatus::FAILURE;

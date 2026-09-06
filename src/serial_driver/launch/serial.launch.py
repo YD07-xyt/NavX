@@ -7,7 +7,7 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
     # 获取包路径
-    package_name = 'serial'
+    package_name = 'ma'
     config_dir = os.path.join(get_package_share_directory(package_name), 'config')
     default_param_file = os.path.join(config_dir, 'param.yaml')
     
@@ -22,8 +22,8 @@ def generate_launch_description():
         # 启动节点
         Node(
             package=package_name,
-            executable='serial_node',
-            name='serial_node',
+            executable='ma_node',
+            name='ma_node',
             parameters=[LaunchConfiguration('param_file')],
             output='screen',
         )

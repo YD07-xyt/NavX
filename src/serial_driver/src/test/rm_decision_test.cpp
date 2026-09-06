@@ -18,8 +18,8 @@ int main(int argc, char *argv[]) {
       "/home/xyt/nav_now/src/serial_driver/src/rm_decision/behavior_tree/test/"
       "generated_models.xml";
   decision_config.map_tf_name = "map";
-  bt::RmDecision rm_decision(node, decision_config);
-  bt::Topics2Blackboard::GameData game_data;
+  bt::RmDecision rm_decision(decision_config);
+  bt::GameData game_data;
   int tick_count = 0;
   game_data.current_hp = 400;
   game_data.projectile_allowance = 200;
@@ -32,9 +32,9 @@ int main(int argc, char *argv[]) {
   // 在 main 开头声明新标志
   bool outpost_hp_set_30 = false;
   bool outpost_hp_set_300 = false;
-  rm_decision.setBlackboardValue("nav_model", "spinning");
-  rm_decision.setBlackboardValue("uphill_done", false);
-  rm_decision.setBlackboardValue("downhill_done", true);
+  rm_decision.set_blackboard_value("nav_model", "spinning");
+  rm_decision.set_blackboard_value("uphill_done", false);
+  rm_decision.set_blackboard_value("downhill_done", true);
   while (rclcpp::ok()) {
     auto now = std::chrono::steady_clock::now();
     auto elapsed =

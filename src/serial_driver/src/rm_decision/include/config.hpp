@@ -5,27 +5,6 @@
 #include <string>
 #include "behaviortree_cpp/json_export.h"
 namespace bt {
-enum class Nav2State {
-  idle, //一般未开始
-  aborted,
-  succeeded,
-  running,
-};
-
-inline auto Int2Nav2State(int int_state) -> std::optional<Nav2State> {
-  if (int_state == 0) {
-    return Nav2State::idle;
-  } else if (int_state == 1) {
-    return Nav2State::aborted;
-  } else if (int_state == 2) {
-    return Nav2State::running;
-  } else if (int_state == 3) {
-    return Nav2State::succeeded;
-  } else {
-    return std::nullopt;
-  }
-}
-
 // enum GameState {
 //   idle, //一般未开始
 //   running,
@@ -48,19 +27,13 @@ struct DecisionConfig {
   int send_goal_timeout=100;
 };
 
-struct NodeWithParam {
-  rclcpp::Node::SharedPtr node;
-  DecisionConfig decision_config;
-  NodeWithParam(rclcpp::Node::SharedPtr node_intput, DecisionConfig &config)
-      : node(node_intput), decision_config(config){};
-};
 
 struct Point {
   double x=0.0;
   double y=0.0;
   double yaw=0.0;
   // 默认构造函数（必须提供）
-    Point() : x(0), y(0), yaw(0) {}
+  Point() =default;
   Point(double x, double y, double yaw) : x(x), y(y), yaw(yaw){};
 };
 inline void to_json(nlohmann::json& j, const bt::Point& p) {

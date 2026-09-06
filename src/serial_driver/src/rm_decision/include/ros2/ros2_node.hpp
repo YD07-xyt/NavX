@@ -20,8 +20,8 @@
 namespace ros2 {
 class Ros2Node {
 public:
-  Ros2Node(){};
-  Ros2Node(std::optional<bt::NodeWithParam> &node_with_param)
+  Ros2Node()= default;
+  explicit Ros2Node(std::optional<bt::NodeWithParam> &node_with_param)
       : node_(node_with_param.value().node) {
     this->config_ = std::make_unique<bt::DecisionConfig>(
         node_with_param.value().decision_config);

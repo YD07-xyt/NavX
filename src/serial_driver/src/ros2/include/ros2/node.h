@@ -15,13 +15,12 @@
 #include <variant>
 #include <vector>
 
-#include "../decision/decision.h"
-#include "../serial/packet_typedef.h"
-#include "../serial/serial.h"
-#include "../tools/plotter.hpp"
+//#include "serial/include/serial/packet_typedef.h"
+#include "serial/include/serial/serial.h"
+#include "tools/include/plotter.hpp"
 
-#include "../rm_decision/include/config.hpp"
-#include "../rm_decision/include/rm_decision.hpp"
+#include "rm_decision/include/config.hpp"
+#include "rm_decision/include/rm_decision.hpp"
 //#include <rm_interfaces/msg/rm_data.hpp>
 namespace io {
 enum SendingMethod {
@@ -81,7 +80,7 @@ private:
 
 private:
   tools::Plotter plotter;
-  decision::FSMRos2 fsm_decision_;
+ 
 
 public:
   bool is_decision_ = true;
@@ -89,14 +88,7 @@ public:
   std::string socket_receive_name_;
 
 public:
-  void init_goal(decision::GoalPoint goal_point_sum,
-                 decision::PatrolWaitTime patrol_wait_time,
-                 decision::StateIsGoHome state_is_go_home) {
-    fsm_decision_.goal_point_sum_ = goal_point_sum;
-    fsm_decision_.patrol_.goal_point_sum_ = goal_point_sum;
-    fsm_decision_.patrol_.patrol_wait_time_ = patrol_wait_time;
-    fsm_decision_.state_is_go_home_ = state_is_go_home;
-  };
+
 
 private:
   // serial
