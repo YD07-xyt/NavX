@@ -23,6 +23,7 @@ public:
             logger::warn(logger, "[Nav2Pose]goal is not set");
             return BT::NodeStatus::FAILURE;
         }
+        logger::info(logger, "[Nav2Pose]set goal:{},{},{}",goal->x,goal->y,goal->yaw);
         if (!nav_state_) {
             logger::warn(logger, "[Nav2Pose]nav_state is not set");
             return BT::NodeStatus::FAILURE;

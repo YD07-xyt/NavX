@@ -12,19 +12,19 @@ def generate_launch_description():
     default_param_file = os.path.join(config_dir, 'param.yaml')
     
     return LaunchDescription([
-        # 声明参数文件参数
-        DeclareLaunchArgument(
-            'param_file',
-            default_value=default_param_file,
-            description='Path to parameter file'
-        ),
+        # # 声明参数文件参数
+        # DeclareLaunchArgument(
+        #     'param_file',
+        #     default_value=default_param_file,
+        #     description='Path to parameter file'
+        # ),
         
         # 启动节点
         Node(
             package=package_name,
             executable='test_node',
             name='test_node',
-            parameters=[LaunchConfiguration('param_file')],
+            #parameters=[LaunchConfiguration('param_file')],
             output='screen',
         )
     ])

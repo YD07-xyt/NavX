@@ -18,26 +18,27 @@ namespace bt {
 // };
 
 struct DecisionConfig {
-  std::string tree_xml_file="";
-  std::string tree_node_model_export_path="";
-  std::string pub_goal_topic_name="/goal_pose";
-  std::string nav2_state_topic_name="/navigate_to_pose/_action/status";
-  std::string map_tf_name="";
-  //std::string odom_sub_topic="";
-  int send_goal_timeout=100;
+    std::string tree_xml_file = "";
+    std::string tree_node_model_export_path = "";
+    std::string pub_goal_topic_name = "/goal_pose";
+    std::string nav2_state_topic_name = "/navigate_to_pose/_action/status";
+    std::string map_tf_name = "";
+    //std::string odom_sub_topic="";
+    int send_goal_timeout = 100;
 };
-
 
 struct Point {
-  double x=0.0;
-  double y=0.0;
-  double yaw=0.0;
-  // 默认构造函数（必须提供）
-  Point() =default;
-  Point(double x, double y, double yaw) : x(x), y(y), yaw(yaw){};
+    double x = 0.0;
+    double y = 0.0;
+    double yaw = 0.0;
+    // 默认构造函数（必须提供）
+    Point() = default;
+    Point(double x, double y, double yaw): x(x), y(y), yaw(yaw) {};
 };
 inline void to_json(nlohmann::json& j, const bt::Point& p) {
-    j["x"] = p.x; j["y"] = p.y; j["yaw"] = p.yaw;
+    j["x"] = p.x;
+    j["y"] = p.y;
+    j["yaw"] = p.yaw;
 }
 inline void from_json(const nlohmann::json& j, bt::Point& p) {
     j.at("x").get_to(p.x);
@@ -45,3 +46,16 @@ inline void from_json(const nlohmann::json& j, bt::Point& p) {
     j.at("yaw").get_to(p.yaw);
 }
 } // namespace bt
+
+namespace BT {
+template<>
+inline bt::Point convertFromString<bt::Point>(StringView str) {
+    const auto parts = BT::splitString(str, ',');
+    if (parts.size() != 3) throw BT::RuntimeError("bt::Point: need 3 values");
+    return bt::Point(
+        convertFromString<double>(parts[0]),
+        convertFromString<double>(parts[1]),
+        convertFromString<double>(parts[2])
+    );
+}
+}

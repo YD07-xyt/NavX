@@ -12,15 +12,15 @@
 
 namespace ros2 {
 SerialNode::SerialNode(
-    const io::SerialConfig& serial_config,
-    const rclcpp::Node::SharedPtr node,
-    const bt::DecisionConfig& decision_config
+   const Ros2config& ros2_config,
+    const rclcpp::Node::SharedPtr node
 ):
     node_(node),
     running_(true),
-    serial_config_(serial_config),
+    serial_config_(ros2_config.serial_config),
     waitStartTime(std::chrono::steady_clock::now()),
-    rm_decision_(decision_config) {
+    rm_decision_(ros2_config.decision_config),
+    is_decision_(ros2_config.is_decision) {
     serial_driver = std::make_shared<io::SerialDriver>();
     init_serial_driver();
     init_bt();
@@ -61,7 +61,7 @@ SerialNode::SerialNode(
         10,
         [this](const std_msgs::msg::Bool::SharedPtr msg) { this->fold_callback(msg); }
     );
-    this->goal_pub_ = node_->create_publisher<geometry_msgs::msg::Twist>("ma/goal", 10);
+    this->goal_pub_ = node_->create_publisher<geometry_msgs::msg::PoseStamped>("/goal_pose", 10);
     recv_thread_ = std::thread(&SerialNode::read_callback, this);
 }
 void SerialNode::init_bt() {
@@ -71,10 +71,16 @@ void SerialNode::rm_bt_callback() {
     rm_decision_.tree_tick(game_data, nav_data, std::chrono::milliseconds(10));
     auto [toGame, toNav] = rm_decision_.get_data();
     if (toNav.has_value()) {
-        geometry_msgs::msg::Twist goal;
-        goal.linear.x = toNav->goal_point.x;
-        goal.linear.y = toNav->goal_point.y;
-        goal.angular.z = toNav->goal_point.yaw;
+        geometry_msgs::msg::PoseStamped goal;
+        goal.pose.position.x = toNav->goal_point.x;
+        goal.pose.position.y = toNav->goal_point.y;
+        tf2::Quaternion q;
+        q.setRPY(0.0, 0.0, toNav->goal_point.yaw);
+        q.normalize(); // 保险起见归一化
+
+        goal.pose.orientation = tf2::toMsg(q);
+        spdlog::info("[test]pub goal:({},{},{})", goal.pose.position.x, goal.pose.position.y, toNav->goal_point.yaw);
+        goal_pub_->publish(goal);
     }
     if (toGame.has_value()) {
         decision2game_data->sentry_model = toGame->sentry_model;

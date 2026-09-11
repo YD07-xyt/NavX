@@ -1,10 +1,11 @@
 #pragma once
 
 #include <chrono>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <memory>
 #include <optional>
 #include <rclcpp/node.hpp>
-#include <std_msgs/msg/detail/bool__struct.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <string>
 #include <variant>
 #include <vector>
@@ -27,14 +28,15 @@
 #include "rm_decision/config.hpp"
 #include "rm_decision/rm_decision.hpp"
 #include "rm_decision/api.hpp"
+
+#include "ros2/config.hpp"
 namespace ros2 {
 
 class SerialNode {
 public:
     SerialNode(
-        const io::SerialConfig& serial_config,
-        const rclcpp::Node::SharedPtr node,
-        const bt::DecisionConfig& decision_config
+        const Ros2config& ros2_config,
+        const rclcpp::Node::SharedPtr node
     );
     ~SerialNode() {
         running_ = false;
@@ -74,7 +76,7 @@ private:
 private:
     tools::Plotter plotter;
 
-public:
+private:
     bool is_decision_ = true;
 
 public:
@@ -91,10 +93,12 @@ private:
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::Subscription<std_msgs::msg::Int16>::SharedPtr nav_feedback_sub_;
-    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr goal_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr goal_pub_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr fold_sub_;
     rclcpp::TimerBase::SharedPtr bt_timer_;
     rclcpp::TimerBase::SharedPtr send_timer_;
+   
+
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg){};
     void nav_feedback_callback(const std_msgs::msg::Int16::SharedPtr msg);
     void cmd_callback(const geometry_msgs::msg::Twist::SharedPtr cmd_data);

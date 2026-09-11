@@ -10,37 +10,28 @@ class Outputblackboard {
 public:
     explicit Outputblackboard(BT::Blackboard::Ptr tree_blackboard): tree_blackboard_(tree_blackboard) {};
     auto get_data() -> std::pair<std::optional<Decision2Game>, std::optional<Decision2Nav>> {
-        return {to_game_, to_nav_};
+        return {get_game_data(), get_nav_data()};
     }
 
 private:
     template<typename T>
     std::optional<T> get_blackboard_value(const std::string& key) const {
-        return tree_blackboard_->get<T>(key);
+        T value {};
+        if (!tree_blackboard_->get(key, value)) {
+            return std::nullopt;
+        }
+        return value;
     }
     auto get_game_data() -> std::optional<Decision2Game> {
         auto sentry_opt = get_blackboard_value<bt::SentryModel>("sentry_model");
-        if (sentry_opt) { // 或者 if (sentry_opt.has_value())
-            to_game_.value().sentry_model = sentry_opt.value();
-            return to_game_;
-        } else {
-            // 处理缺失情况：记录错误、使用默认值、或返回 FAILURE
-            logger::error(logger, "sentry_model not found on blackboard");
-            // 可设置默认值或直接返回失败状态
-            return std::nullopt;
-        }
-        return std::nullopt;
+        if (!sentry_opt) return std::nullopt;
+        return Decision2Game {sentry_opt.value()};
     }
+
     auto get_nav_data() -> std::optional<Decision2Nav> {
         auto nav_opt = get_blackboard_value<bt::Point>("goal");
-        if (nav_opt) {
-            to_nav_.value().goal_point = nav_opt.value();
-            return to_nav_;
-        } else {
-            logger::error(logger, "goal not found on blackboard");
-            return std::nullopt;
-        }
-        return std::nullopt;
+        if (!nav_opt) return std::nullopt;
+        return Decision2Nav {nav_opt.value()};
     }
 
 private:

@@ -37,12 +37,10 @@
             <input_port name="min_projectile_allowance" type="int"/>
             <input_port name="current_projectile_allowance" type="int"/>
         </Condition>
-        <Condition ID="IsSuccessNav">
-            <input_port name="current_nav_state" type="int"/>
-        </Condition>
         <Action ID="Nav2Pose">
-            <input_port name="pub_model" type="std::string">发布模式标识</input_port>
-            <input_port name="goal" type="bt::Point">goal send to navigator.</input_port>
+            <output_port name="goal2nav" type="bt::Point">输出给导航的目标点</output_port>
+            <input_port name="nav_state" type="bt::NavState">导航状态</input_port>
+            <input_port name="goal" type="bt::Point">目标点输入</input_port>
         </Action>
         <Action ID="SetBlackboardBool">
             <input_port name="value" type="bool">要设置的值</input_port>

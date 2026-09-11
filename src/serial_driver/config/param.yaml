@@ -1,14 +1,14 @@
-# config/serial_params.yaml
-ma_node:
-  ros__parameters:
-    serial_name: "/dev/ttyACM1"
-    baud_rate: 115200
-    max_try: 100
-    is_decision: true
-    socket_send_name: "/tmp/serial_mux.sock"
-    socket_receive_name: "/tmp/serial_nav.sock"
-    sending_method: "socket"  # 可选值: "serial" 或 "socket"
-    tree_xml_file: "/home/ma/nav/NavX/src/io/serial_driver/src/rm_decision/behavior_tree/rmuc2026.xml"
-    tree_node_model_export_path: "/home/ma/nav/NavX/src/io/serial_driver/src/rm_decision/behavior_tree/test/generated_models.xml"
-    map_tf_name: "map"
-    log_level: "debug"
+serial_node:
+    serial:
+      serial_name: "/dev/ttyACM1"
+      baud_rate: 115200
+      max_try: 100
+      socket_send_name: "/tmp/serial_mux.sock"
+      socket_receive_name: "/tmp/serial_nav.sock"
+      sending_method: "socket"  # 可选值: "serial" 或 "socket"
+    decision:
+      is_decision: true
+      tree_xml_file: "/home/ma/nav/NavX/src/io/serial_driver/src/rm_decision/behavior_tree/rmuc2026.xml"
+      tree_node_model_export_path: "/home/ma/nav/NavX/src/io/serial_driver/src/rm_decision/behavior_tree/test/generated_models.xml"
+      map_tf_name: "map"
+    

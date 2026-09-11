@@ -10,7 +10,7 @@
                         min_projectile_allowance="10" 
                         current_hp="{current_hp}" 
                         min_hp="60"/>
-            <Nav2Pose goal="0.0,0.0,1.0" nav_state="{nav_state}" goal2nav="{goal}"/>
+            <Nav2Pose goal="-0.476,-6.84,1.0" pub_model="publisher"/>
             <Sleep msec="4000"/>
           </Sequence>
           <Sequence>
@@ -23,14 +23,14 @@
               <!-- <SubTree ID="protect_fort_subtree" 
                         ours_fort_occ_state="{ours_fort_occ_state}" 
                         use_blackboard="false"/> -->
-              <SubTree ID="hit_enemy_outpost_subtree"
-                      current_enemy_outpost_hp="{current_enemy_outpost_hp}"
-                      game_time="{game_time}"
-                      _autoremap="true"/>
-              <SubTree ID="protect_hero_subtree"
-                      game_time="{game_time}"
-                      _autoremap="true"/>
-              <SubTree ID="patrol_subtree" _autoremap="true"/>
+              <SubTree ID="hit_enemy_outpost_subtree" 
+                        current_enemy_outpost_hp="{current_enemy_outpost_hp}" 
+                        game_time="{game_time}" 
+                        use_blackboard="false"/>
+              <SubTree ID="protect_hero_subtree" 
+                        game_time="{game_time}" 
+                        use_blackboard="false"/>
+              <SubTree ID="patrol_subtree" use_blackboard="true"/>
             </ReactiveFallback>
           </Sequence>
       </ReactiveFallback>
@@ -46,7 +46,7 @@
           </Inverter>
           <!-- <IsGameTimeExceeded game_time="{game_time}" threshold="300"/>
           <IsGameTimeLess game_time="{game_time}" threshold="420"/> -->
-          <Nav2Pose goal="2.65,4.36,1.0" nav_state="{nav_state}" goal2nav="{goal}"/>
+          <Nav2Pose goal="8.79,2.24,1.0" pub_model="publisher"/>
           <Sleep msec="2000"/>
       </Sequence>
   </BehaviorTree>
@@ -55,7 +55,7 @@
   <BehaviorTree ID="protect_fort_subtree">
       <Sequence>
           <IsFortOccupied ours_fort_occ_state="{ours_fort_occ_state}"/>
-          <Nav2Pose goal="2.65,4.36,1.0" nav_state="{nav_state}" goal2nav="{goal}"/>
+          <Nav2Pose goal="8.38,3.16,1.0" pub_model="publisher"/>
           <Sleep msec="2000"/>
       </Sequence>
   </BehaviorTree>
@@ -64,7 +64,7 @@
       <Sequence>
           <IsGameTimeExceeded game_time="{game_time}" threshold="1"/>
           <IsGameTimeLess game_time="{game_time}" threshold="420"/>
-          <Nav2Pose goal="2.65,4.36,1.0" nav_state="{nav_state}" goal2nav="{goal}"/>
+          <Nav2Pose goal="8.19,3,1.0" pub_model="publisher"/>
           <Sleep msec="2000"/>
       </Sequence>
   </BehaviorTree>
@@ -74,25 +74,25 @@
       <Sequence>
         <!-- 点1 -->
         <Timeout msec="15000">
-          <Nav2Pose goal="2.18,3.2,1.0" nav_state="{nav_state}" goal2nav="{goal}"/>
+          <Nav2Pose goal="5.92,0.108,1.0" pub_model="publisher"/>
         </Timeout>
         <Sleep msec="2000"/>
 
         <!-- 点2 -->
         <Timeout msec="15000">
-          <Nav2Pose goal="2.15,-0.73,1.0" nav_state="{nav_state}" goal2nav="{goal}"/>
+          <Nav2Pose goal="8.38,3.16,1.0" pub_model="publisher"/>
         </Timeout>
         <Sleep msec="20000"/>
 
         <!-- 点3 -->
         <Timeout msec="15000">
-          <Nav2Pose goal="8.56,3.07,1.0" nav_state="{nav_state}" goal2nav="{goal}"/>
+          <Nav2Pose goal="8.38,3.16,1.0" pub_model="publisher"/>
         </Timeout>
         <Sleep msec="2000"/>
 
         <!-- 点4 -->
         <Timeout msec="15000">
-          <Nav2Pose goal="10.6,-0.54,1.0" nav_state="{nav_state}" goal2nav="{goal}"/>
+          <Nav2Pose goal="8.38,3.16,1.0" pub_model="publisher"/>
         </Timeout>
         <Sleep msec="2000"/>
       </Sequence>

@@ -15,9 +15,9 @@ struct Nav2Decision {
     NavState nav_state;
 };
 struct Game2Decision {
-    bool is_game_start;
-    int current_hp;
-    int projectile_allowance;
+    bool is_game_start;//比赛是否开始
+    int current_hp;//哨兵的血量
+    int projectile_allowance;//所并
     //bool is_enemy_outpost_destroyed;
     int current_enemy_outpost_hp;
     int game_time;
