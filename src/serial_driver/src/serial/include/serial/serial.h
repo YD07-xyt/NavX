@@ -34,12 +34,12 @@ public:
     void init_serial(std::string serial_name, int baud_rate, int max_try);
     void init_socket(std::string receive_name, std::string send_name,int max_try);
     //TODO：处理crc
-    bool receive_all_serial(std::vector<ReceiveData>& data, int timeout_ms);
+    bool receive_all_serial(std::vector<ReceiveSerialData>& data, int timeout_ms);
     bool receive_all_socket(std::vector<ReceiveSocketData>& data, int timeout_ms);
 
 private:
     //TODO：模板统一
-    bool find_packet_in_buffer(std::vector<ReceiveData>& data);
+    bool find_packet_in_buffer(std::vector<ReceiveSerialData>& data);
     bool find_packet_in_buffer_socket(std::vector<ReceiveSocketData>& data);
 
 private:

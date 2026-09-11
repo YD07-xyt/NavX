@@ -43,22 +43,22 @@ bool ReceiveSocketData::deserialize(const uint8_t* data, size_t size) {
     memcpy(this, data, sizeof(ReceiveSocketData));
     return true;
 }
-uint16_t ReceiveData::calculate_crc() const {
+uint16_t ReceiveSerialData::calculate_crc() const {
     const uint8_t* data = reinterpret_cast<const uint8_t*>(this);
-    size_t len = offsetof(ReceiveData, crc16);
+    size_t len = offsetof(ReceiveSerialData, crc16);
     return crc16::get_CRC16_check_sum(data, len, 0xffff);
 }
 
-bool ReceiveData::verify() const {
+bool ReceiveSerialData::verify() const {
     if (sof_0 != SOF0 || sof_1 != SOF1) {
         return false;
     }
     return calculate_crc() == crc16;
 }
 
-bool ReceiveData::deserialize(const uint8_t* data, size_t size) {
-    if (size < sizeof(ReceiveData)) return false;
-    memcpy(this, data, sizeof(ReceiveData));
+bool ReceiveSerialData::deserialize(const uint8_t* data, size_t size) {
+    if (size < sizeof(ReceiveSerialData)) return false;
+    memcpy(this, data, sizeof(ReceiveSerialData));
     return verify();
 }
 }

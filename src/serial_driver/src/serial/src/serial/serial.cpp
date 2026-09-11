@@ -41,7 +41,7 @@ bool SerialDriver::send_serial(const SendSerialData& send_data) {
     return sent == buffer.size();
 }
 
-bool SerialDriver::receive_all_serial(std::vector<ReceiveData>& data, int timeout_ms) {
+bool SerialDriver::receive_all_serial(std::vector<ReceiveSerialData>& data, int timeout_ms) {
     std::lock_guard<std::mutex> lock(serial_buffer_mutex_);
 
     if (!serial_port_.is_open()) {
@@ -69,8 +69,8 @@ bool SerialDriver::receive_all_serial(std::vector<ReceiveData>& data, int timeou
     // 无论是否读到新数据，都尝试从现有缓冲区解析数据包
     return find_packet_in_buffer(data);
 }
-bool SerialDriver::find_packet_in_buffer(std::vector<ReceiveData>& data) {
-    const size_t data_len = sizeof(ReceiveData);
+bool SerialDriver::find_packet_in_buffer(std::vector<ReceiveSerialData>& data) {
+    const size_t data_len = sizeof(ReceiveSerialData);
     if (serial_rx_buffer_.size() < data_len) {
         return false; // 缓冲区数据不足一个完整包
     }
@@ -88,7 +88,7 @@ bool SerialDriver::find_packet_in_buffer(std::vector<ReceiveData>& data) {
                 packet[j] = serial_rx_buffer_[i + j]; // 无需取模，因为 i+j < size()
             }
 
-            ReceiveData new_data;
+            ReceiveSerialData new_data;
             if (new_data.deserialize(packet.data(), data_len)) {
                 // CRC 校验
                 if (new_data.crc16 != new_data.calculate_crc()) {

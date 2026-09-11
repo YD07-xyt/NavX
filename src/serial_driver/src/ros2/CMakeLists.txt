@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(ros2 VERSION 0.10)
 
 find_package(ament_cmake REQUIRED)
-set(ROS2_LIB_NAMES geometry_msgs rclcpp)
+set(ROS2_LIB_NAMES geometry_msgs rclcpp std_msgs)
 foreach(LIB_NAME ${ROS2_LIB_NAMES})
     find_package(${LIB_NAME} REQUIRED)
 endforeach()

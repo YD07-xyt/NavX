@@ -1,5 +1,5 @@
 #pragma once
-#include "config.hpp"
+#include "rm_decision/config.hpp"
 #include <behaviortree_cpp/action_node.h>
 #include <spdlog/spdlog.h>
 #include <string>

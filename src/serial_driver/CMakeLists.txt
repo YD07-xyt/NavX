@@ -11,7 +11,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(ament_cmake_auto REQUIRED)
 find_package(ament_cmake REQUIRED)
-set(ROS2_LIB_NAMES geometry_msgs rclcpp)
+set(ROS2_LIB_NAMES geometry_msgs rclcpp std_msgs)
 foreach(LIB_NAME ${ROS2_LIB_NAMES})
     find_package(${LIB_NAME} REQUIRED)
 endforeach()
@@ -20,7 +20,7 @@ endforeach()
 add_subdirectory(src/tools)
 add_subdirectory(src/rm_decision)
 add_subdirectory(src/serial)
-#add_subdirectory(src/ros2)
+add_subdirectory(src/ros2)
 
 target_include_directories(serial PUBLIC src)
 
@@ -28,7 +28,7 @@ add_executable(ma_node
   main_node.cc
 )
 ament_target_dependencies(ma_node PUBLIC ${ROS2_LIB_NAMES})
-target_link_libraries(ma_node PUBLIC serial rm_decision )#ros2)
+target_link_libraries(ma_node PUBLIC serial rm_decision ros2)
 
 ##  TODO:
 # add_executable(test_node
