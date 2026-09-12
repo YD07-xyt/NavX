@@ -1,0 +1,152 @@
+# ==================== ROS2 话题 / 路径配置 ====================
+ros2:
+  map_topic_name: "/lio/cloud_world"          # 点云地图话题，用于实时建图/更新
+  target_topic_name: "/goal_pose"             # 目标点话题，rviz 下发目标
+  clickedPoint_topic_name: "/clicked_point"   # rviz 点选话题，用于画区域等
+  odom_topic_name: "/lio/base_odom"           # 里程计话题，提供位置/速度/姿态
+  cmd_vel_name: "/cmd_vel_chassis" #"/cmd_vel" #"/cmd_vel_chassis"
+  save_global_map_path:  "/home/xyt/map/src/MA_Nav/map"
+  save_map_srv_topic: "/save_global_map"
+  map_params_path: "/home/xyt/map/src/MA_Nav/config/map.yaml"   # 地图参数
+  global_map_path: "/home/xyt/map/src/MA_Nav/map/global_map.pgm" # 全局栅格地图
+  is_minco: false
+    # 点击隧道区域保存/加载
+  tunnel_regions_path: "/home/xyt/map/src/MA_Nav/maps/tunnel_regions.yaml"
+  save_tunnel_regions_srv_topic: "/save_tunnel_regions"
+# ==================== 地图模式 ====================
+map:
+  mapping_model: false   # true=建图模式，false=规划模式
+
+# ==================== 规划器配置 ====================
+planner_config:
+    # ---------- 上游路径规划 / 梯形速度规划参数 ----------
+  path_planning_params:
+    safe_threshold: 0.35       # JPS/A* 与后处理的安全距离阈值 (m)
+    max_vel: 3.0               # 梯形速度规划最大速度 (m/s)
+    max_acc: 5.0               # 梯形速度规划最大加速度 (m/s²)
+    time_resolution: 0.4       # 均匀时间重采样间隔 (s)；
+                               # 越小 timed_trajectory 点越密，过弯处越容易密集
+    min_traj_num: 5            # 最少时间分段数，防止轨迹时间过短导致采样点太少
+    max_traj_num: 16
+    traj_cut_length: 10        # 轨迹截断长度阈值 (m)，超过则标记需要截断
+    distance_weight: 1.0       # 路径长度权重，用于梯形速度规划的加权长度计算
+    yaw_weight: 0.5            # 航向变化权重，转弯越多加权长度越大、速度越慢
+    dense_sample_resolution: 0.1   # 高密度采样间距
+    rotation_penalty_weight: 1.0   # 转弯惩罚权重
+
+    # ---------- 云台折叠参数 ----------
+    fold_time: 1.0          # 折叠所需时间 s
+    unfold_time: 1.0        # 展开所需时间 s
+    fold_margin: 0.5        # 折叠/展开安全时间裕量 s
+    fold_prep_speed: 0.05   # 折叠前准备速度 m/s
+    fold_prep_margin: 0.3   # 额外安全距离 m
+
+    # ---------- MA Spline 轨迹优化参数 ----------
+  ma_spline_opt_params:
+    #mode: "OMNI_XY"
+    safe_distance: 0.35
+    v_max: 3.0
+    a_max: 5.0
+    integral_num_steps: 8
+
+    weight_yaw_vel: 40.0
+    weight_yaw_acc: 40.0
+    yaw_rate_max: 1.5
+    yaw_acc_max: 1.5
+
+    # ========== Stage 1：形状优化 ==========
+    stage1:
+      rho_energy: 10.0
+      weight_time: 80.0
+      weight_mean_time: 40.0
+      mean_lower: 0.9
+      mean_upper: 1.1
+      min_time: 0.1
+      weight_min_time: 100.0
+      weight_obstacle: 800.0
+      weight_vel: 5.0
+      weight_acc: 5.0
+      max_iterations: 100
+      g_epsilon: 1e-4
+      lbfgs_mem_size: 64
+      lbfgs_delta: 5e-3
+
+    # ========== Stage 2：严格优化 ==========
+    stage2:
+      rho_energy: 5.0
+      weight_time: 20.0
+      weight_mean_time: 40.0
+      mean_lower: 0.9
+      mean_upper: 1.1
+      min_time: 0.1
+      weight_min_time: 100.0
+      weight_obstacle: 8000.0
+      weight_vel: 40.0
+      weight_acc: 40.0
+      max_iterations: 200
+      g_epsilon: 1e-4
+      lbfgs_mem_size: 64
+      lbfgs_delta: 5e-3
+
+  # ---------- MINCO 轨迹优化参数 ----------
+  minco_opt_params:
+    weight_smooth: 5.0        # 平滑代价权重：越大轨迹越平滑，可抑制过弯振荡；
+                              # 但太大会过度拉直，可能切弯/靠近障碍物
+    weight_obstacle: 8000.0    # 避障代价权重：越大越远离障碍物；
+                              # 太大可能导致轨迹在窄缝中过于保守
+    weight_feasibility: 40.0  # 速度/加速度可行性软约束权重：
+                              # 越大越不容易超速/超加速度
+    weight_time: 20.0         # 时间代价权重：越大总时间越短、速度越快；
+                              # 但太大会把时间压得过短，可能触发速度/加速度极限
+    weight_mean_time: 40.0    # 平均时间约束权重：让各段时间不要过于不均匀，
+                              # 防止某一段特别慢或特别快
+    max_vel: 3.0              # MINCO 最大速度 (m/s)，轨迹速度软约束上限
+    max_acc: 5.0              # MINCO 最大加速度 (m/s²)，轨迹加速度软约束上限
+    safe_distance: 0.3       # MINCO 避障安全距离 (m)，轨迹离障碍物至少保持这个距离
+    mean_time_lower_bound: 0.9  # 平均时间下界比例：每段不得短于平均时间的 0.9 倍
+    mean_time_upper_bound: 1.1  # 平均时间上界比例：每段不得长于平均时间的 1.1 倍
+    integral_resolution: 8      # 每段轨迹积分采样点数：越大避障/可行性评估越精细，但更慢
+    max_iterations: 8000         # L-BFGS 最大迭代次数
+    g_epsilon: 1e-4             # 梯度收敛阈值，越小优化越精细
+    min_time: 0.1               # 最小段时间 (s)，防止某段被优化得过短
+
+  # ---------- 重规划参数 ----------
+  replan_params:
+    goal_deviation: [0.2, 0.2, 0.0]   # 目标点变化阈值，超过任一轴就触发重规划
+    #replan_interval: 2.0              # 已注释：按时间强制重规划，暂时不用
+    replan_lateral_dev: 0.5            # 横向偏差阈值 (m)：机器人偏离参考轨迹超过 0.5m 就重规划
+    min_replan_interval: 0.5           # 最小重规划间隔 (s)，防止频繁重规划
+    goal_reached_radius: 0.3           # 到达判定半径 (m)：距目标小于 0.3m 直接认为到达
+    #hard_clearance: 0.2               # 已注释：硬安全距离检查，暂时不用
+    minco_traj_validity_duration: 2.0  # MINCO 轨迹有效期 (s)，超过后不再用旧轨迹做热启动
+    minco_traj_continuity_threshold: 0.3 # 热启动连续性阈值 (m)：
+                                         # 机器人距旧轨迹投影点小于 0.3m 时，用旧轨迹 PVA 热启动
+    projection_search_resolution: 0.02   # 投影点搜索时间分辨率 (s)，越小越精确但计算量越大
+
+
+# ==================== 线性 MPC 参数 ====================
+# 状态: [x, y, vx, vy]
+# 控制: [ax, ay]
+mpc_param:
+  N: 20                # 预测步数
+  dt: 0.05             # MPC 步长 (s)
+
+  # 状态权重 [x, y, vx, vy]
+  Q:  [30.0, 30.0, 1.0, 1.0]
+
+  # 终端状态权重
+  QN: [40.0, 40.0, 2.0, 2.0]
+
+  # 控制权重 [ax, ay]
+  R:  [0.05, 0.05]
+
+  # 控制增量权重 [dax, day]
+  Rd: [0.05, 0.05]
+
+  # x/y 不设硬约束，给很大值；vx/vy 限制 ±3
+  x_min: [-1000.0, -1000.0, -3.0, -3.0]
+  x_max: [ 1000.0,  1000.0,  3.0,  3.0]
+
+  # 控制限幅 [ax, ay]
+  u_min: [-3.0, -3.0]
+  u_max: [ 3.0,  3.0]
