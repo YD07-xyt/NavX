@@ -19,7 +19,9 @@ public:
     explicit TestNode(rclcpp::Node::SharedPtr node, const bt::DecisionConfig& decision_config):
         node_(node),
         start_time_(std::chrono::steady_clock::now()),
-        rm_decision_(decision_config) {
+        rm_decision_(decision_config)
+        {
+        logger = logger::create_colored_logger("test");
         this->cmd_sub_ = node_->create_subscription<geometry_msgs::msg::Twist>(
             "/cmd_vel",
             10,
@@ -62,5 +64,7 @@ private:
     bt::Game2Decision game_data;
     bt::RmDecision rm_decision_;
     std::chrono::steady_clock::time_point start_time_;
+private:
+    std::shared_ptr<spdlog::logger> logger;
 };
 } // namespace test

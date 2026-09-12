@@ -15,50 +15,58 @@ public:
         BT::StatefulActionNode(name, config),
         navigation_goal_(0.0, 0.0, 0.0) {};
 
-    // this function is invoked once at the beginning.
-    BT::NodeStatus onStart() override {
-        auto goal = getInput<bt::Point>("goal");
-        nav_state_ = getInput<NavState>("nav_state");
-        if (!goal) {
-            logger::warn(logger, "[Nav2Pose]goal is not set");
-            return BT::NodeStatus::FAILURE;
-        }
-        logger::info(logger, "[Nav2Pose]set goal:{},{},{}",goal->x,goal->y,goal->yaw);
-        if (!nav_state_) {
-            logger::warn(logger, "[Nav2Pose]nav_state is not set");
-            return BT::NodeStatus::FAILURE;
-        }
-        setOutput<bt::Point>("goal2nav", goal.value());
-        return BT::NodeStatus::RUNNING;
-    };
-    // If onStart() returned RUNNING, we will keep calling
-    // this method until it return something different from RUNNING
-    BT::NodeStatus onRunning() override {
-        if (!nav_state_) {
-            logger::warn(logger, "[Nav2Pose]nav_state is not set");
-            return BT::NodeStatus::FAILURE;
-        }
-        switch (nav_state_.value()) {
-            case NavState::IDLE:
-                return BT::NodeStatus::RUNNING;
-            case NavState::RUNNING:
-                return BT::NodeStatus::RUNNING;
-            case NavState::SUCCEEDED:
-                return BT::NodeStatus::SUCCESS;
-            case NavState::FAILURE:
-                return BT::NodeStatus::FAILURE;
-            default:
-                logger::error(logger, "[Nav2Pose]unexpected nav_state: {}", nav_state_.value());
-                return BT::NodeStatus::FAILURE;
-        }
+   BT::NodeStatus onStart() override {
+    auto goal = getInput<bt::Point>("goal");
+    if (!goal) {
+        logger::warn(logger, "[Nav2Pose]goal is not set");
+        return BT::NodeStatus::FAILURE;
     }
-    // callback to execute if the action was aborted by another node
-    void onHalted() override {
-        logger::info(logger, "[Nav2Pose] Halted by external interrupt.");
+    logger::info(logger, "[Nav2Pose]set goal:{},{},{}", goal->x, goal->y, goal->yaw);
 
-        // 重置内部持有的状态，确保下次 onStart 时逻辑干净
-        nav_state_ = {};
-    };
+    nav_state_ = getInput<NavState>("nav_state");
+    if (!nav_state_) {
+        logger::warn(logger, "[Nav2Pose]nav_state is not set");
+        return BT::NodeStatus::FAILURE;
+    }
+
+    seen_active_ = false;   // 新目标，先认为还没激活
+
+    setOutput<bt::Point>("goal2nav", goal.value());
+    return BT::NodeStatus::RUNNING;
+}
+
+BT::NodeStatus onRunning() override {
+    nav_state_ = getInput<NavState>("nav_state");
+    if (!nav_state_) {
+        logger::warn(logger, "[Nav2Pose]nav_state is not set");
+        return BT::NodeStatus::FAILURE;
+    }
+
+    switch (nav_state_.value()) {
+        case NavState::IDLE:
+        case NavState::RUNNING:
+            seen_active_ = true;
+            return BT::NodeStatus::RUNNING;
+
+        case NavState::SUCCEEDED:
+            // 如果本次目标还没见过 IDLE/RUNNING，说明这是上一个目标的残留状态
+            return seen_active_ ? BT::NodeStatus::SUCCESS : BT::NodeStatus::RUNNING;
+
+        case NavState::FAILURE:
+            return seen_active_ ? BT::NodeStatus::FAILURE : BT::NodeStatus::RUNNING;
+
+        default:
+            logger::error(logger, "[Nav2Pose]unexpected nav_state: {}", nav_state_.value());
+            return BT::NodeStatus::FAILURE;
+    }
+}
+
+void onHalted() override {
+    logger::info(logger, "[Nav2Pose] Halted by external interrupt.");
+    nav_state_ = {};
+    seen_active_ = false;
+}
+
 
     static BT::PortsList providedPorts() {
         const char* description = "goal send to nav.";
@@ -73,5 +81,6 @@ private:
     std::chrono::steady_clock::time_point last_pub_time_;
     bt::Point navigation_goal_;
     BT::Expected<NavState> nav_state_;
+    bool seen_active_;
 };
 } // namespace bt

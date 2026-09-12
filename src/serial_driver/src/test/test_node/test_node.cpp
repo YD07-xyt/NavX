@@ -1,23 +1,28 @@
 #include "test_node.hpp"
 #include "rm_decision/api.hpp"
+#include "tools/logger.hpp"
 #include <geometry_msgs/msg/detail/twist__struct.hpp>
 #include <spdlog/spdlog.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 namespace test {
 void TestNode::nav_feedback_callback(const std_msgs::msg::Int16::SharedPtr msg) {
     if (msg->data == 0) {
+        logger::info(logger, "IDLE");
         nav_data.nav_state = bt::NavState::IDLE;
     } else if (msg->data == 1) {
+        logger::info(logger, "RUNNING");
         nav_data.nav_state = bt::NavState::RUNNING;
     } else if (msg->data == 2) {
+        logger::info(logger, "FAILURE");
         nav_data.nav_state = bt::NavState::FAILURE;
     } else if (msg->data == 3) {
+        logger::info(logger, "SUCCEEDED");
         nav_data.nav_state = bt::NavState::SUCCEEDED;
     }
 };
 void TestNode::fold_callback(const std_msgs::msg::Bool::SharedPtr msg) {
     if (msg->data == true) {
-        spdlog::info("[test]fold:");
+        logger::info(logger, "[test]fold");
     }
 }
 void TestNode::rm_bt_callback() {
@@ -32,14 +37,15 @@ void TestNode::rm_bt_callback() {
         q.normalize(); // 保险起见归一化
 
         goal.pose.orientation = tf2::toMsg(q);
-        spdlog::info("[test]pub goal:({},{},{})", goal.pose.position.x, goal.pose.position.y, nav->goal_point.yaw);
+        //logger::info(logger,"[test]pub goal:({},{},{})", goal.pose.position.x, goal.pose.position.y, nav->goal_point.yaw);
         goal_pub_->publish(goal);
     }
 }
 void TestNode::init_game() {
     game_data.projectile_allowance = 600;
     game_data.current_hp = 500;
-    game_data.current_enemy_outpost_hp = 1000;
+    game_data.current_enemy_outpost_hp = 0;
+    game_data.ours_fort_occ_state = false;
     nav_data.nav_state = bt::NavState::IDLE;
 }
 void TestNode::rm_game_callback() {
@@ -48,17 +54,17 @@ void TestNode::rm_game_callback() {
     double elapsed = std::chrono::duration<double>(now - start_time_).count();
 
     if (elapsed > 420) {
-        spdlog::info("game is 结束");
+        logger::info(logger, "game is 结束");
         return;
     }
     // ---- 5s 后 is_game_start = true ----
-    if (elapsed >= 1.0) {
+    if (elapsed >= 0.5) {
         game_data.is_game_start = true;
         //std::cout << "[t=" << elapsed << "s] is_game_start = true\n";
     }
 
     // ---- 10s 后 current_hp = 10 ----
-    if (elapsed >= 10.0) {
+    if (elapsed >= 400.0) {
         game_data.current_hp = 10;
         //std::cout << "[t=" << elapsed << "s] current_hp = 10\n";
     }

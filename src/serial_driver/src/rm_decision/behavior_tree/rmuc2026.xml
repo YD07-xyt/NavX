@@ -62,7 +62,7 @@
 
   <BehaviorTree ID="protect_hero_subtree">
       <Sequence>
-          <IsGameTimeExceeded game_time="{game_time}" threshold="1"/>
+          <IsGameTimeExceeded game_time="{game_time}" threshold="420"/>
           <IsGameTimeLess game_time="{game_time}" threshold="420"/>
           <Nav2Pose goal="2.65,4.36,1.0" nav_state="{nav_state}" goal2nav="{goal}"/>
           <Sleep msec="2000"/>
@@ -73,28 +73,28 @@
     <Repeat num_cycles="-1">
       <Sequence>
         <!-- 点1 -->
-        <Timeout msec="15000">
+        <Timeout msec="24000">
           <Nav2Pose goal="2.18,3.2,1.0" nav_state="{nav_state}" goal2nav="{goal}"/>
         </Timeout>
-        <Sleep msec="2000"/>
+        <Sleep msec="1000"/>
 
         <!-- 点2 -->
-        <Timeout msec="15000">
+        <Timeout msec="25000">
           <Nav2Pose goal="2.15,-0.73,1.0" nav_state="{nav_state}" goal2nav="{goal}"/>
         </Timeout>
-        <Sleep msec="20000"/>
+        <Sleep msec="1000"/>
 
         <!-- 点3 -->
-        <Timeout msec="15000">
+        <Timeout msec="25000">
           <Nav2Pose goal="8.56,3.07,1.0" nav_state="{nav_state}" goal2nav="{goal}"/>
         </Timeout>
-        <Sleep msec="2000"/>
+        <Sleep msec="1000"/>
 
         <!-- 点4 -->
-        <Timeout msec="15000">
+        <Timeout msec="25000">
           <Nav2Pose goal="10.6,-0.54,1.0" nav_state="{nav_state}" goal2nav="{goal}"/>
         </Timeout>
-        <Sleep msec="2000"/>
+        <Sleep msec="1000"/>
       </Sequence>
     </Repeat>
   </BehaviorTree>
