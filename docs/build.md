@@ -154,7 +154,7 @@ sudo make install
 ```
 
 
-casadi
+casadi（不需要）
 
 ```bash
 git clone https://github.com/casadi/casadi.git
@@ -172,4 +172,4 @@ nlohmann_json
 
 ### serial_driver
 
-Boost
+Boost::Asio

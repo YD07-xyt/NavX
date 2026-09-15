@@ -138,14 +138,14 @@ private:
 
   void MainCallback() {
     auto now = std::chrono::steady_clock::now();
-    if (now - start_ > std::chrono::seconds(config_.max_relocation_time)&&relocation_is_success==true) {
-      spdlog::info("now > max time: {},not relocation",config_.max_relocation_time);  
-      return;
-    }
-    if (now - start_ > std::chrono::seconds(config_.end_relocation_time)) {
-      spdlog::info("now >end time :{},not relocation",config_.end_relocation_time);  
-      return;
-    }
+    // if (now - start_ > std::chrono::seconds(config_.max_relocation_time)&&relocation_is_success==true) {
+    //   spdlog::info("now > max time: {},not relocation",config_.max_relocation_time);  
+    //   return;
+    // }
+    // if (now - start_ > std::chrono::seconds(config_.end_relocation_time)) {
+    //   spdlog::info("now >end time :{},not relocation",config_.end_relocation_time);  
+    //   return;
+    // }
     if (!target_cloud_.has_value() || !accumulated_cloud_.has_value()) {
       return;
     }
@@ -194,6 +194,7 @@ private:
       return;
     }
 
+
     Eigen::Matrix4d mat_d = tf_rough.cast<double>();
     std::optional<Eigen::Isometry3d> iso_tf_sac_ia(mat_d);
 
@@ -212,7 +213,6 @@ private:
       // clear，让下一帧新点云加进来，增加匹配成功率
       return;
     }
-
     // 5. 发布对齐后的点云用于可视化
     if (relocation_is_success) {
       pcl::PointCloud<pcl::PointXYZ>::Ptr aligned_scan(

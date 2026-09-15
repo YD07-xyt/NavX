@@ -30,8 +30,8 @@ find_package(PCL REQUIRED)
 find_package(behaviortree_cpp REQUIRED)
 
 # CasADi 通常安装在 /usr/local
-include_directories(/usr/local/include)
-link_directories(/usr/local/lib)
+# include_directories(/usr/local/include)
+# link_directories(/usr/local/lib)
 
 include_directories(
   include
@@ -66,7 +66,7 @@ src/ros2_node.cpp
 target_link_libraries(planner
   ${OMPL_LIBRARIES}
   spdlog::spdlog
-  casadi
+  #casadi
   osqp::osqp
   Boost::boost
   OsqpEigen::OsqpEigen
@@ -85,7 +85,7 @@ target_link_libraries(ma_nav
   ${OMPL_LIBRARIES}
   ${EIGEN3_LIBRARIES}
   spdlog::spdlog
-  casadi
+  #casadi
   OsqpEigen::OsqpEigen
   Boost::boost
   libqpOASES.a
