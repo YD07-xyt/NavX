@@ -161,6 +161,7 @@ auto MaSplineTrajectoryOptimizer<ESDF>::check_trajectory_collision(
 
     return true;
 }
+
 template <typename ESDF>
 auto MaSplineTrajectoryOptimizer<ESDF>::optimize(const MaSplineInput& input) -> MAsplineOutput {
     switch (input.model) {
