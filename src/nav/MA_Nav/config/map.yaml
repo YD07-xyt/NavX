@@ -1,6 +1,6 @@
 rog_map:
   # 地图基本参数
-  resolution: 0.1                      # 概率地图分辨率(m)
+  resolution: 0.05                      # 概率地图分辨率(m)
   inflation_resolution: 0.1            # 膨胀分辨率(m)
   inflation_step: 1                    # 膨胀步长
   unk_inflation_en: false
