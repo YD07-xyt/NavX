@@ -5,18 +5,18 @@ ros2:
   target_topic_name: "/goal_pose"             # 目标点话题，rviz 下发目标
   clickedPoint_topic_name: "/clicked_point"   # rviz 点选话题，用于画区域等
   odom_topic_name: "/lio/base_odom"           # 里程计话题，提供位置/速度/姿态
-  cmd_vel_name: "/cmd_vel_chassis" #"/cmd_vel" #"/cmd_vel_chassis"
-  save_global_map_path:  "/home/xyt/map/src/MA_Nav/map"
+  cmd_vel_name: "/cmd_vel" #"/cmd_vel" #"/cmd_vel_chassis"
+  save_global_map_path:  "/home/ma/nav/NavX/src/nav/MA_Nav/map"
   save_map_srv_topic: "/save_global_map"
-  map_params_path: "/home/xyt/map/src/MA_Nav/config/map.yaml"   # 地图参数
-  global_map_path: "/home/xyt/map/src/MA_Nav/map/global_maps.pgm" # 全局栅格地图
+  map_params_path: "/home/ma/nav/NavX/src/nav/MA_Nav/config/map.yaml"   # 地图参数
+  global_map_path: "/home/ma/nav/NavX/src/nav/MA_Nav/map/global_maps.pgm" # 全局栅格地图
   is_minco: false
     # 点击隧道区域保存/加载
-  tunnel_regions_path: "/home/xyt/map/src/MA_Nav/maps/tunnel_regions.yaml"
+  tunnel_regions_path: "/home/ma/nav/NavX/src/nav/MA_Nav/maps/tunnel_regions.yaml"
   save_tunnel_regions_srv_topic: "/save_tunnel_regions"
 # ==================== 地图模式 ====================
 map:
-  mapping_model: false   # true=建图模式，false=规划模式
+  mapping_model: true   # true=建图模式，false=规划模式
 
 # ==================== 规划器配置 ====================
 planner_config:

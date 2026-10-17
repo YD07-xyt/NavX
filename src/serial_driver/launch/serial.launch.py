@@ -13,18 +13,18 @@ def generate_launch_description():
     
     return LaunchDescription([
         # 声明参数文件参数
-        DeclareLaunchArgument(
-            'param_file',
-            default_value=default_param_file,
-            description='Path to parameter file'
-        ),
+        # DeclareLaunchArgument(
+        #     'param_file',
+        #     default_value=default_param_file,
+        #     description='Path to parameter file'
+        # ),
         
         # 启动节点
         Node(
             package=package_name,
             executable='ma_node',
             name='ma_node',
-            parameters=[LaunchConfiguration('param_file')],
+            #parameters=[LaunchConfiguration('param_file')],
             output='screen',
         )
     ])

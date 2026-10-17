@@ -9,6 +9,8 @@ foreach(LIB_NAME ${LIB_NAMES})
     list(APPEND LIB_3RD "${LIB_NAME}::${LIB_NAME}")
 endforeach()
 
+find_package(Eigen3 REQUIRED)
+
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
 add_library(${PROJECT_NAME}  SHARED ${SOURCES})
@@ -29,6 +31,6 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LIB_3RD})
 
 find_package(Boost REQUIRED COMPONENTS system)
-target_link_libraries(${PROJECT_NAME} PRIVATE Boost::system)
+target_link_libraries(${PROJECT_NAME} PRIVATE Boost::system Eigen3::Eigen)
 
 target_link_libraries(serial PUBLIC tools)

@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) {
   rclcpp::init(argc,argv);
   auto node=rclcpp::Node::make_shared("ma_node");
   ros2::Ros2config config;
-   if (!load_config("/home/xyt/map/src/serial_driver/config/param.yaml", config)) {
+   if (!load_config("/home/ma/nav/NavX/src/serial_driver/config/param.yaml", config)) {
     return -1;
    }
   ros2::SerialNode serial_node(config,node);

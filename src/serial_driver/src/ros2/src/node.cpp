@@ -146,11 +146,11 @@ void SerialNode::cmd_callback(const geometry_msgs::msg::Twist::SharedPtr cmd_dat
         std::get<io::SendSocketData>(send_cmd_variant_).wz = multiple * cmd_data->angular.z;
         // std::get<SendSocketData>(send_cmd_variant_).is_chassis_follow = 1;
         // std::get<SendSocketData>(send_cmd_variant_).robot_yaw = 360.0;
-        //  spdlog::info( "serial 发送 cmd vx: {} ,vy :{},wz:{}",multiple * cmd_data->linear.x,
-        //               multiple * cmd_data->linear.y,
-        //               multiple * cmd_data->angular.z);
-        // //   spdlog::info("serial 发送 crc16:{}",send_cmd.crc16);
-        // serial_driver->send_socket(std::get<SendSocketData>(send_cmd_variant_));
+        spdlog::info( "serial 发送 cmd vx: {} ,vy :{},wz:{}",multiple * cmd_data->linear.x,
+                       multiple * cmd_data->linear.y,
+                       multiple * cmd_data->angular.z);
+          // spdlog::info("serial 发送 crc16:{}",send_cmd.crc16);
+        //serial_driver->send_socket(std::get<SendSocketData>(send_cmd_variant_));
         plotter_debug_cmd(
             now,
             std::get<io::SendSocketData>(send_cmd_variant_).vx,

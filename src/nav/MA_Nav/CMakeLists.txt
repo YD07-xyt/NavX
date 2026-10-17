@@ -30,13 +30,15 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3  -DNDEBUG")
 
 
 #rog_map need
-add_definitions(-DROOT_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/\")
+add_definitions( -DROOT_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/\" )
 
 add_definitions(-DORIGIN_AT_CORNER)
 
 # 查找依赖
 find_package(ament_cmake_auto REQUIRED)
+
 # ---- ROS 2 显式 find_package，创建 std_msgs::std_msgs 等现代 target ----
+
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -85,7 +87,7 @@ target_link_libraries(ma_nav PUBLIC
   spdlog::spdlog
   osqp::osqp
   OsqpEigen::OsqpEigen
-  yaml-cpp::yaml-cpp
+  yaml-cpp
   utils
   3d_occ_map
   path_planning

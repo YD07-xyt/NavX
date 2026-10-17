@@ -26,7 +26,7 @@ inline bool load_config(const std::string& filepath, Ros2config& cfg) {
         cfg.serial_config.socket_send_name = s["socket_send_name"].as<std::string>();
         cfg.serial_config.socket_receive_name = s["socket_receive_name"].as<std::string>();
         auto sm = s["sending_method"].as<std::string>();
-        if (sm == "scoket") {
+        if (sm == "socket") {
             cfg.serial_config.sending_method = io::SendingMethod::SOCKET;
         } else if (sm == "serial") {
             cfg.serial_config.sending_method = io::SendingMethod::SERIAL;

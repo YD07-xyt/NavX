@@ -50,7 +50,7 @@ rog_map:
   # Terrain analysis (通过性分析)
   terrain:
     kernel_size: 5                      # 中值滤波核大小
-    max_step_height: 0.15               # 台阶/墙体最小高度差（触发间隙分析）
+    max_step_height: 0.1               # 台阶/墙体最小高度差（触发间隙分析）
     robot_height: 0.3                   # 机器人安全通行所需最小垂直间隙
     steep_threshold: 0.17               # 陡坡阈值
 
