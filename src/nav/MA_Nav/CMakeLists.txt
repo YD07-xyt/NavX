@@ -10,9 +10,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_BUILD_TYPE "Release")
 # set(CMAKE_CXX_FLAGS_RELEASE "-O3  -Wall -g -DNDEBUG -march=native")
-#set(CMAKE_CXX_FLAGS_RELEASE "-O3  -Wall -g -DNDEBUG")
-#set(CMAKE_CXX_FLAGS_RELEASE "-O3  -g -DNDEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3  -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -flto=auto")
+set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-flto=auto")
+set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "-flto=auto")
 #########################################################
 ###################     LTO     #########################
 #########################################################
@@ -26,9 +26,20 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3  -DNDEBUG")
 # else()
 #     message(WARNING "IPO/LTO 不被支持: ${ipo_error}")
 # endif()
+include(CheckIPOSupported)
+check_ipo_supported(RESULT ipo_supported OUTPUT ipo_error)
+
+if(ipo_supported)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+    message(STATUS "全局 LTO 已启用")
+else()
+    message(WARNING "LTO 不被支持: ${ipo_error}")
+endif()
 #########################################################
 
 
+# add_link_options(-fuse-ld=lld)
+# link_directories(/usr/local/lib)
 #rog_map need
 add_definitions( -DROOT_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/\" )
 
@@ -97,18 +108,18 @@ target_link_libraries(ma_nav PUBLIC
   ros2
 )
 
-target_link_libraries(ma_nav PUBLIC
-    rclcpp::rclcpp
-    ${std_msgs_LIBRARIES}
-    ${geometry_msgs_LIBRARIES}
-    ${nav_msgs_LIBRARIES}
-    ${sensor_msgs_LIBRARIES}
-    ${visualization_msgs_LIBRARIES}
-    ${std_srvs_LIBRARIES}
-    ${pcl_conversions_LIBRARIES}
-    tf2::tf2
-    tf2_ros::tf2_ros
-)
+# target_link_libraries(ma_nav PUBLIC
+#     rclcpp::rclcpp
+#     ${std_msgs_LIBRARIES}
+#     ${geometry_msgs_LIBRARIES}
+#     ${nav_msgs_LIBRARIES}
+#     ${sensor_msgs_LIBRARIES}
+#     ${visualization_msgs_LIBRARIES}
+#     ${std_srvs_LIBRARIES}
+#     ${pcl_conversions_LIBRARIES}
+#     tf2::tf2
+#     tf2_ros::tf2_ros
+# )
 
 
 # 导出包

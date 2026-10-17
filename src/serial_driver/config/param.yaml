@@ -1,14 +1,16 @@
 serial_node:
     serial:
-      serial_name: "/dev/ttyACM0"
+      serial_name: "/dev/ttyACM0" #串口名称
       baud_rate: 115200
       max_try: 100
-      socket_send_name: "/tmp/serial_mux.sock"
-      socket_receive_name: "/tmp/serial_nav.sock"
+      socket_send_name: "/tmp/serial_mux.sock" #Socket发送名称 ---->serial_mux
+      socket_receive_name: "/tmp/serial_nav.sock" #Socket接收名称 ---->serial_mux
       sending_method: "socket"  # 可选值: "serial" 或 "socket"
     decision:
-      is_decision: false
+      is_decision: false #是否决策
+      #行为树xml位置
       tree_xml_file: "/home/ma/nav/NavX/src/serial_driver/src/rm_decision/behavior_tree/rmuc2026.xml"
+      #行为树模型导出位置(可视化)
       tree_node_model_export_path: "/home/ma/nav/NavX/src/io/serial_driver/src/rm_decision/behavior_tree/test/generated_models.xml"
+      #决策ros2 发布坐标系
       map_tf_name: "map"
-    

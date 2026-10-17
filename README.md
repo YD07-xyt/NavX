@@ -46,5 +46,8 @@ ros2 service call /save_tunnel_regions std_srvs/srv/Trigger "{}"
 ```
 
 ### serial
+
+```sh
 source install/setup.sh
 ros2 launch ma serial.launch.py
+```
