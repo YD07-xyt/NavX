@@ -18,6 +18,7 @@ class WorldType:
     RMUC = 'RMUC'
     RMUL = 'RMUL'
     RMUL2026H = 'RMUL2026H'#thth
+    RMUC2027 = 'RMUC2027'
 
 def get_world_config(world_type):
     world_configs = {
@@ -45,6 +46,15 @@ def get_world_config(world_type):
             'world_path': 'RMUL2026_world/RMUL2026_world.world'
             #'world_path': 'RMUL2026_world/RMUL2026_world_dynamic_obstacles.world'
             #'world_path': 'RMUL2026H_world/RMUL2026H_world.world'
+        },
+
+        WorldType.RMUC2027: {
+            # 出生点下方地面高约 0.29m，z 留出轮子半径和余量
+            'x': '3.21',   # 6.35 - 3.14
+            'y': '9.6',    # 6.6 + 3.00
+            'z': '0.4',
+            'yaw': '0.0',
+            'world_path': 'RMUC2027_world/RMUC2027_world.world'
         }
     }
     return world_configs.get(world_type, None)
@@ -78,7 +88,7 @@ def generate_launch_description():
     declare_world_cmd = DeclareLaunchArgument(
         'world',
         default_value=WorldType.RMUC,#thth
-        description='Choose <RMUC> or <RMUL>'
+        description='Choose <RMUC>, <RMUL>, <RMUL2026H> or <RMUC2027>'
     )
 
     declare_rviz_config_file_cmd = DeclareLaunchArgument(
@@ -158,6 +168,7 @@ def generate_launch_description():
     bringup_RMUC_cmd_group = create_gazebo_launch_group(WorldType.RMUC)
     bringup_RMUL_cmd_group = create_gazebo_launch_group(WorldType.RMUL)
     bringup_RMUL2026H_cmd_group = create_gazebo_launch_group(WorldType.RMUL2026H)#thth
+    bringup_RMUC2027_cmd_group = create_gazebo_launch_group(WorldType.RMUC2027)
 
     # Create the launch description and populate
     ld = LaunchDescription()
@@ -175,6 +186,7 @@ def generate_launch_description():
     ld.add_action(bringup_RMUL_cmd_group) # type: ignore
     ld.add_action(bringup_RMUC_cmd_group) # type: ignore
     ld.add_action(bringup_RMUL2026H_cmd_group) #thth type: ignore
+    ld.add_action(bringup_RMUC2027_cmd_group) # type: ignore
 
     # Uncomment this line if you want to start RViz
     ld.add_action(start_rviz_cmd)

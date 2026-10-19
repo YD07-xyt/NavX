@@ -16,11 +16,16 @@ ros2 launch livox_ros_driver2 msg_MID360_launch.py
 launch文件中的xfer_format 为发布的点云话题类型
 publish_freq为发布频率
 
-### super lio定位
+### 定位
+
+### super lio
 ```sh
 source install/setup.sh
 ros2 launch super_lio Livox_mid360.py
 ```
+
+### lightning-lm
+[解决编译卡死的问题](https://blog.csdn.net/qq_35102059/article/details/134083996?fromshare=blogdetail&sharetype=blogdetail&sharerId=134083996&sharerefer=PC&sharesource=2301_80216316&sharefrom=from_link)
 
 ### ma_nav
 #### 运行

@@ -129,9 +129,9 @@ pgo:
   smooth_factor: 0.01
 roi:
   height_max: 10.0
-  height_min: 0.5
+  height_min: 0.1
   range_max: 70
-  range_min: 3.0
+  range_min: 1.0
 ui:
   car_length: 2.0
   car_width: 1.6
