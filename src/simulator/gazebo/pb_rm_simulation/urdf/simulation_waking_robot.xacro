@@ -120,11 +120,17 @@
     <xacro:default_inertial mass="0.5"/>
   </link>
 
+  <!-- 轮子关节加一点粘性阻尼和库仑摩擦，模拟电机/减速器阻力。
+       原来 wheel 是零阻尼自由滚动的理想轮，在倾斜的地图网格（RMUC2027 出生台约 1.5° 坡）
+       上会缓慢蠕动；planar_move 只是每 tick 覆写一次速度，覆写之间重力仍会积分，
+       自由轮 + 接触求解会积累出"轻微缓慢移动"。
+       damping 取得很小，不影响正常行驶（planar_move 是直接给模型速度）。 -->
   <joint name="base_to_wheel1" type="continuous">
     <parent link="base_link"/>
     <child link="wheel_1"/>
     <origin rpy="${-PI/2} 0 0" xyz="0.1 0.13 0"/>
     <axis xyz="0 0 1" />
+    <dynamics damping="0.01" friction="0.05"/>
   </joint>
 
   <joint name="base_to_wheel2" type="continuous">
@@ -134,6 +140,7 @@
     <parent link="base_link"/>
     <child link="wheel_2"/>
     <origin rpy="${-PI/2} 0 0" xyz="-0.1 0.13 0"/>
+    <dynamics damping="0.01" friction="0.05"/>
   </joint>
 
   <joint name="base_to_wheel3" type="continuous">
@@ -141,6 +148,7 @@
     <axis xyz="0 0 1" />
     <child link="wheel_3"/>
     <origin rpy="${-PI/2} 0 0" xyz="0.1 -0.13 0"/>
+    <dynamics damping="0.01" friction="0.05"/>
   </joint>
 
   <joint name="base_to_wheel4" type="continuous">
@@ -148,33 +156,23 @@
     <axis xyz="0 0 1" />
     <child link="wheel_4"/>
     <origin rpy="${-PI/2} 0 0" xyz="-0.1 -0.13 0"/>
+    <dynamics damping="0.01" friction="0.05"/>
   </joint>
 
-  <!-- IMU joint -->
+  <!-- IMU joint 说明（注意注释里不要出现英文冒号加空格，会让 launch 的 robot_description 解析失败）
+       Mid-360 内置 IMU，挂在雷达坐标系下，随雷达 xyz/rpy 参数一起移动。
+       偏移量由本仓库 Super-LIO 配置反推：
+         lio.extrinsic.lidar_imu = [-0.011, -0.02329, 0.04412, I]   (LiDAR 在 IMU 系下的平移)
+       => IMU 在 LiDAR 系下 = (0.011, 0.02329, -0.04412)，旋转为单位阵。
+       这样仿真里 IMU 与 LiDAR 的相对几何，和 Super-LIO 内部假设的外参完全一致。 -->
   <joint name="imu_joint" type="fixed">
-    <axis xyz="0 1 0" />
-    <origin xyz="-0.038 0 0.433" rpy="3.14 0 0"/>
-    <parent link="base_link"/>
+    <origin xyz="0.011 0.02329 -0.04412" rpy="0 0 0"/>
+    <parent link="livox_frame"/>
     <child link="imu_link"/>
   </joint>
 
-  <!-- IMU -->
+  <!-- IMU：在雷达外壳内部，不需要单独的外观和碰撞体 -->
   <link name="imu_link">
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="0.05 0.05 0.05"/>
-      </geometry>
-    </collision>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="0.05 0.05 0.05"/>
-      </geometry>
-      <material name="green">
-        <color rgba="0 1 0 1"/>
-      </material>
-    </visual>
     <inertial>
       <mass value="1e-2" />
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -217,8 +215,13 @@
         <remapping>odom:=odom</remapping>
       </ros>
 
+      <!-- 控制循环与物理步长对齐（world 里 max_step_size=0.001 → 1 kHz）。
+           原来是 100 Hz，等于每 10 ms 才覆写一次模型速度；两次覆写之间重力仍会积分
+           （约 -0.098 m/s 的竖直速度增量），落地后接触求解把这点能量转成水平方向的
+           微小位移，表现就是"没给速度机器人却缓慢移动"。提到 1000 Hz 后几乎没有
+           可以积累的间隙，静止时不再蠕动。publish_rate 仍是 10，不影响话题频率。 -->
       <!-- Set control loop update rate -->
-      <update_rate>100</update_rate>
+      <update_rate>1000</update_rate>
       <!-- Set odom publish rate -->
       <publish_rate>10</publish_rate>
 
@@ -237,12 +240,33 @@
     </plugin>
   </gazebo>
 
-  <!-- mid360_imu plugin -->
+  <!-- mid360_imu plugin：仿 Livox Mid-360 内置 IMU (ICM40609)
+       - 200 Hz：与实物 IMU 输出频率一致（原 100 Hz 偏慢，会让 LIO 预积分区间与点云帧不匹配）。
+       - 加速度单位 m/s^2：Gazebo 原生单位；Super-LIO 用 lio.sensor.gravity_norm 自标定，
+         只要加速度与陀螺单位自洽即可，无需换算成 g。
+       - 噪声：按实物量级加入高斯噪声（非手册精确标称值），保留噪声便于 LIO 在线估计协方差，
+         不想引入噪声时把对应 stddev 改为 0 即可。
+       - orientation 按 REP 145 是世界系参考，与实物一致（实物 IMU 不输出有效姿态），
+         下游 LIO 只取 acc/gyro，不受影响。
+       - frame_id 用 imu_link（与 URDF 中 imu_link 的真实安装位置一致）；
+         Super-LIO 不使用 TF，而是用 lio.extrinsic.lidar_imu 描述该外参，二者相互对应。 -->
   <!-- https://github.com/ros-simulation/gazebo_ros_pkgs/wiki/ROS-2-Migration:-IMU-Sensors -->
   <gazebo reference="imu_link">
     <sensor name="mid360_imu" type="imu">
       <always_on>true</always_on>
-      <update_rate>100</update_rate>
+      <update_rate>200</update_rate>
+      <imu>
+        <angular_velocity>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.002</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.002</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.002</stddev></noise></z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.02</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.02</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.02</stddev></noise></z>
+        </linear_acceleration>
+      </imu>
       <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
         <ros>
           <namespace>/</namespace>
