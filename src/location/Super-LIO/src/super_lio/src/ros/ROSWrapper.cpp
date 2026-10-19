@@ -117,6 +117,13 @@ void LoadParamFromRos(rclcpp::Node &node) {
                         .toRotationMatrix();
   g_lidar_robo_yaw = temp_R_yaw.cast<scalar>();
 
+  LOG(INFO) << GREEN
+            << " ---> [Param] extrinsic/odom_robo (imu in robot, rpy in deg): ["
+            << extrinsic_odom_robo[0] << ", " << extrinsic_odom_robo[1] << ", "
+            << extrinsic_odom_robo[2] << "] rpy ["
+            << extrinsic_odom_robo[3] << ", " << extrinsic_odom_robo[4] << ", "
+            << extrinsic_odom_robo[5] << "]" << RESET;
+
   // ================= hash map =================
   node.declare_parameter<int>("lio.hash_map.hash_capacity", 1000000);
   node.get_parameter("lio.hash_map.hash_capacity", g_ivox_capacity);
@@ -379,27 +386,16 @@ void ROSWrapper::imuHandler(const sensor_msgs::msg::Imu::SharedPtr msg) {
       odom_robo.pose.pose.orientation.z = q.z();
       odom_robo.pose.pose.orientation.w = q.w();
     }
-      // 定义 imu 到 base_link 的固定外参(请根据实际情况修改）
-    V3 t_imu_base(0.038f, 0.0f, 0.433f);   // 实际的平移量
-    V3 R_imu_base_euler(3.14f, 0.0f, 0.0f); // 欧拉角 (roll, pitch, yaw)
-      // 将欧拉角转换为旋转矩阵
-    M3 R_imu_base;
-    R_imu_base = Eigen::AngleAxisf(R_imu_base_euler(0), V3::UnitX()) *
-                 Eigen::AngleAxisf(R_imu_base_euler(1), V3::UnitY()) *
-                 Eigen::AngleAxisf(R_imu_base_euler(2), V3::UnitZ());
-    
-    // 计算 base_link 在世界坐标系下的位姿
-    // base 位置: p_base = p_imu + R_imu * t_imu_base
-    // base 旋转: R_base = R_imu * R_imu_base
-    V3 p_base = imu_state.p + imu_state.R * t_imu_base;
-    M3 R_base = imu_state.R * R_imu_base;
+    // base_link 位姿直接复用 ESKF 已算好的 robo_state：外参统一由
+    // lio.extrinsic.odom_robo（config/livox_360.yaml）决定，
+    // 满足 T_world_base = T_world_imu * T_imu_robo，T_imu_robo = (g_odom_robo)^-1。
     
     {
-      odom_base.pose.pose.position.x = p_base(0);
-      odom_base.pose.pose.position.y = p_base(1);
-      odom_base.pose.pose.position.z = p_base(2);
+      odom_base.pose.pose.position.x = robo_state.p(0);
+      odom_base.pose.pose.position.y = robo_state.p(1);
+      odom_base.pose.pose.position.z = robo_state.p(2);
 
-      Quat q(R_base);
+      Quat q(robo_state.R);
       q.normalize();
 
       odom_base.pose.pose.orientation.x = q.x();
@@ -647,46 +643,24 @@ void ROSWrapper::pub_odom(const NavState &state) {
 
   tf_broadcaster_->sendTransform(tf_msg);
 
-  // ==========发布 world -> base_link 的 TF==========
-  // 定义 imu 到 base_link 的固定外参(请根据实际情况修改）
-  V3 t_imu_base(0.038, 0.0, 0.433);   //实际的平移量
-  V3 R_imu_base_euler(3.14, 0.0, 0.0); // 欧拉角 (roll, pitch, yaw)
-
-  // 将欧拉角转换为旋转矩阵
-  M3 R_imu_base;
-  R_imu_base =
-      Eigen::AngleAxisf(R_imu_base_euler[0], Eigen::Vector3f::UnitX()) *
-      Eigen::AngleAxisf(R_imu_base_euler[1], Eigen::Vector3f::UnitY()) *
-      Eigen::AngleAxisf(R_imu_base_euler[2], Eigen::Vector3f::UnitZ());
-
-  // 计算 base_link 在 world 坐标系下的位姿
-  // world -> base_link = world -> imu * imu -> base_link
-  V3 base_position = state.p + state.R.R_ * t_imu_base;
-  M3 base_rotation = state.R.R_ * R_imu_base;
-  Quat base_quat(base_rotation);
-  V4 base_temp_q = base_quat.coeffs();
-
-  // 发布 world -> base_link 的 TF
+  // ========== 发布 world -> base_link 的 TF ==========
+  // 与 world -> robo 同源：外参统一由 lio.extrinsic.odom_robo（yaml）决定，
+  // T_world_base = T_world_imu * T_imu_robo，T_imu_robo = (g_odom_robo)^-1。
+  // robo_position / robo_temp_q 已在上面按同一外参算好，不再重复硬编码。
   tf_msg.header.stamp = odom.header.stamp;
   tf_msg.header.frame_id = "world";
   tf_msg.child_frame_id = "base_link";
 
-  tf_msg.transform.translation.x = base_position[0];
-  tf_msg.transform.translation.y = base_position[1];
-  tf_msg.transform.translation.z = base_position[2];
+  tf_msg.transform.translation.x = robo_position[0];
+  tf_msg.transform.translation.y = robo_position[1];
+  tf_msg.transform.translation.z = robo_position[2];
 
-  tf_msg.transform.rotation.x = base_temp_q[0];
-  tf_msg.transform.rotation.y = base_temp_q[1];
-  tf_msg.transform.rotation.z = base_temp_q[2];
-  tf_msg.transform.rotation.w = base_temp_q[3];
+  tf_msg.transform.rotation.x = robo_temp_q[0];
+  tf_msg.transform.rotation.y = robo_temp_q[1];
+  tf_msg.transform.rotation.z = robo_temp_q[2];
+  tf_msg.transform.rotation.w = robo_temp_q[3];
 
   tf_broadcaster_->sendTransform(tf_msg);
-  // tf_msg.child_frame_id = "god";
-  // tf_msg.transform.rotation.x = 0.0;
-  // tf_msg.transform.rotation.y = 0.0;
-  // tf_msg.transform.rotation.z = 0.0;
-  // tf_msg.transform.rotation.w = 1.0;
-  // tf_broadcaster_->sendTransform(tf_msg);
 }
 
 void ROSWrapper::pub_cloud_world(const CloudPtr &pc, double time) {

@@ -16,7 +16,7 @@
   <!-- base_link to livox_frame -->
   <!-- <xacro:arg name="xyz" default="-0.038 0.0 0.433" />
   <xacro:arg name="rpy" default="3.14 0 0" /> -->
-  <xacro:arg name="xyz" default="0.0 0.0 0.1" />
+  <xacro:arg name="xyz" default="0.0 0.0 0.15" />
   <xacro:arg name="rpy" default="0 0 0" />
 
 

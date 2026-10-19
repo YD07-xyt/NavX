@@ -27,9 +27,10 @@
                               1.0, 0.0, 0.0, 
                               0.0, 1.0, 0.0, 
                               0.0, 0.0, 1.0]
-    #odom robo tf变换
-    lio.extrinsic.odom_robo: [-0.038, 0.0, 0.433, 3.14, 0.0, 0.0]
-    #lio.extrinsic.odom_robo: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    # odom robo tf 变换：imu 在 base/robot 系下的位姿 [x, y, z, roll, pitch, yaw]
+    # 角度单位是“度（deg）”，不是弧度：倒装 IMU 应写 180.0 而不是 3.14
+    #lio.extrinsic.odom_robo: [-0.038, 0.0, 0.433, 180.0, 0.0, 0.0]
+    lio.extrinsic.odom_robo: [0.011, 0.02329, -0.04412, 0.0, 0.0, 0.0]
     lio.hash_map.hash_capacity: 2000000
     lio.hash_map.vox_resolution: 0.5
 
