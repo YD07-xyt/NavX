@@ -1,4 +1,3 @@
-#include <boost/chrono.hpp>
 #include <gazebo/physics/Model.hh>
 #include <gazebo/physics/MultiRayShape.hh>  // Store the latest laser scans into laserMsg
 #include <gazebo/physics/PhysicsEngine.hh>
@@ -111,6 +110,30 @@ namespace gazebo
         rayShape->Init();
         minDist = rangeElem->Get<double>("min");
         maxDist = rangeElem->Get<double>("max");
+
+        // <ray><noise> 只在 sensors::RaySensor 内部生效（噪声加在它自己的 laserMsg 上），
+        // 本插件的点云直接读 multiray shape，所以这里自己读参数、自己加噪声，
+        // 否则 mid360.xacro 里的 <noise> 就是一段死配置。
+        if (rayElem->HasElement("noise"))
+        {
+            auto noiseElem = rayElem->GetElement("noise");
+            if (noiseElem->HasElement("stddev"))
+            {
+                const std::string noise_type =
+                    noiseElem->HasElement("type") ? noiseElem->Get<std::string>("type") : std::string();
+                const double noise_mean = noiseElem->HasElement("mean") ? noiseElem->Get<double>("mean") : 0.0;
+                const double noise_stddev = noiseElem->Get<double>("stddev");
+                if (noise_type == "gaussian" && noise_stddev > 0.0)
+                {
+                    range_noise_ = std::normal_distribution<double>(noise_mean, noise_stddev);
+                    range_noise_enabled_ = true;
+                }
+                RCLCPP_INFO(rclcpp::get_logger("LivoxPointsPlugin"),
+                            "range noise: type %s mean %.4f stddev %.4f enabled %d",
+                            noise_type.c_str(), noise_mean, noise_stddev, range_noise_enabled_ ? 1 : 0);
+            }
+        }
+
         auto offset = laserCollision->RelativePose();
         ignition::math::Vector3d start_point, end_point;
         for (int j = 0; j < samplesStep; j += downSample)
@@ -146,7 +169,16 @@ namespace gazebo
         pp_livox.header.stamp = node_->get_clock()->now();
         pp_livox.header.frame_id = raySensor->Name();
         int count = 0;
-        boost::chrono::high_resolution_clock::time_point start_time = boost::chrono::high_resolution_clock::now();
+
+        // 每点时间偏移 offset_time：实物 10 Hz 一帧约 100 ms 扫完，这里按
+        // “帧内序号 × 帧周期/N” 均匀铺开。原来用 boost::chrono 量循环墙钟耗时
+        // （1~10 ms 级），而 Super-LIO 的 Propagation_Undistort() 用
+        // start_time + offset_time 逐点插值姿态，所有点几乎落在同一时刻
+        // → 去畸变被跳过，和实机数据对不上。
+        const double update_rate = raySensor->UpdateRate() > 0.0 ? raySensor->UpdateRate() : 10.0;
+        const double offset_step_ns =
+            1e9 / update_rate / static_cast<double>(points_pair.empty() ? 1 : points_pair.size());
+        int64_t point_index = 0;
 
         // 用于 PointCloud2 类型消息发布
         sensor_msgs::msg::PointCloud2 cloud2;
@@ -163,12 +195,25 @@ namespace gazebo
 
         // 遍历射线扫描点对
         for (const auto &pair : points_pair) {
-            auto range = rayShape->GetRange(pair.first);
+            auto depth = rayShape->GetRange(pair.first);
             auto intensity = rayShape->GetRetro(pair.first);
 
-            // 处理超出范围的数据
-            if (range <= RangeMin() || range >= RangeMax()) {
-                range = 0;
+            // GetRange() 的语义（已用反汇编 libgazebo_physics.so 确认）：
+            //   · 未命中 → 返回哨兵值 (MultiRayShape::maxRange - minRange) = 1000 = RangeMax()
+            //   · 命中   → 返回 contact.depth = 真实距离 - minDist
+            //     因为射线起点在离传感器 minDist 的位置；而本插件的 Init 没有调用基类
+            //     MultiRayShape::Init()，基类私有成员 minRange/maxRange 一直是默认 0 / 1000，
+            //     不会再把 minDist 补偿回来。
+            // 所以：先剔掉未命中哨兵，再把 minDist 补回去，最后按 <range><max> 截断。
+            double distance = 0.0;
+            if (depth > RangeMin() && depth < RangeMax()) {
+                distance = depth + minDist;
+                if (range_noise_enabled_) {
+                    distance += range_noise_(rng_);
+                }
+                if (distance <= 0.0 || distance >= maxDist) {
+                    distance = 0.0;  // 无效点，与实物驱动一致按 (0,0,0) 发布
+                }
             }
 
             // 计算点云数据
@@ -176,7 +221,7 @@ namespace gazebo
             ignition::math::Quaterniond ray;
             ray.Euler(ignition::math::Vector3d(0.0, rotate_info.zenith, rotate_info.azimuth));
             auto axis = ray * ignition::math::Vector3d(1.0, 0.0, 0.0);
-            auto point = range * axis;
+            auto point = distance * axis;
 
             // 填充 CustomMsg 点云消息
             livox_ros_driver2::msg::CustomPoint p;
@@ -194,10 +239,9 @@ namespace gazebo
             ++out_y;
             ++out_z;
 
-            // 计算时间戳偏移
-            boost::chrono::high_resolution_clock::time_point end_time = boost::chrono::high_resolution_clock::now();
-            boost::chrono::nanoseconds elapsed_time = boost::chrono::duration_cast<boost::chrono::nanoseconds>(end_time - start_time);
-            p.offset_time = elapsed_time.count();
+            // 帧内扫描时间偏移（0 ~ 帧周期），替代原来的墙钟耗时
+            p.offset_time = static_cast<uint32_t>(point_index * offset_step_ns);
+            ++point_index;
 
             // 将点云数据添加到 CustomMsg 消息中
             pp_livox.points.push_back(p);

@@ -4,8 +4,8 @@
   <xacro:property name="M_PI" value="3.1415926"/> 
   <!-- 参数对齐 Livox Mid-360 实物：盲区 0.1 m，量程 40 m(10% 反射率)/70 m(80% 反射率)，
        10 Hz 出帧，约 200000 点/秒。
-       注意：本工程 libros2_livox 插件不读取下面 <noise>，点云为无噪声理想值；
-       噪声只在需要模拟真实测距抖动时才需要在插件里补（ranging 精度约 ±2 cm）。 -->
+       <noise> 由 libros2_livox 插件自己读取并加到测距上（插件直接读 multiray shape，
+       不经过 sensors::RaySensor，Gazebo 自带噪声对它不生效）；stddev 设 0 即关闭噪声。 -->
   <xacro:property name="laser_min_range" value="0.1"/>
   <xacro:property name="laser_max_range" value="40.0"/>
   <xacro:property name="samples" value="30000"/>
@@ -46,6 +46,9 @@
     <gazebo reference="${name}">
       <sensor type="ray" name="${name}">
         <pose>0 0 0 0 0 0</pose>
+        <!-- SDF 里 always_on 默认是 false：不写的话雷达只在有 gzclient/可视化订阅者时
+             才被激活，无头（gzserver only）跑仿真时点云完全不更新。 -->
+        <always_on>true</always_on>
         <visualize>true</visualize>
         <update_rate>10.0</update_rate>
         <plugin name="${name}_plugin" filename="libros2_livox.so">

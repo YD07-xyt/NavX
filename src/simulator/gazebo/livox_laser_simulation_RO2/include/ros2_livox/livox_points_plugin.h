@@ -5,6 +5,8 @@
 #ifndef SRC_GAZEBO_LIVOX_POINTS_PLUGIN_H
 #define SRC_GAZEBO_LIVOX_POINTS_PLUGIN_H
 
+#include <random>
+
 #include <gazebo/gazebo.hh>
 #include <gazebo/plugins/RayPlugin.hh>
 #include <gazebo_ros/node.hpp>
@@ -112,6 +114,14 @@ namespace gazebo
 
       double maxDist = 400.0;
       double minDist = 0.1;
+
+      // 测距噪声（对应 SDF 里的 <ray><noise type="gaussian">）。
+      // Gazebo 的 <noise> 只在 sensors::RaySensor 内部生效，本插件的点云直接来自
+      // multiray shape、不经过 RaySensor，所以必须自己读参数、自己加噪声。
+      // 固定种子：同一场景每次仿真的噪声序列一致，仿真结果可复现。
+      std::mt19937 rng_{5489u};
+      std::normal_distribution<double> range_noise_{0.0, 0.0};
+      bool range_noise_enabled_ = false;
    };
 
 } // namespace gazebo
