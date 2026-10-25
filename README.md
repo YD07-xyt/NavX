@@ -50,9 +50,21 @@ ros2 service call /save_global_map std_srvs/srv/Trigger "{}"
 ros2 service call /save_tunnel_regions std_srvs/srv/Trigger "{}"
 ```
 
+
+```sh
+
+rviz2 -d nav.rviz
+```
+
 ### serial
 
 ```sh
 source install/setup.sh
 ros2 launch ma serial.launch.py
 ```
+
+
+### tool
+
+source install/setup.sh
+    ros2 launch map_edit map_edit.launch.py 

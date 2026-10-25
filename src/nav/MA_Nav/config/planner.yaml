@@ -8,7 +8,7 @@ ros2:
   cmd_vel_name: "/cmd_vel_chassis" #"/cmd_vel" #"/cmd_vel_chassis"
   save_global_map_path:  "src/nav/MA_Nav/map"
   save_map_srv_topic: "/save_global_map"
-  map_params_path: "src/nav/MA_Nav/config/map.yaml"   # 地图参数
+  map_params_path: "config/map.yaml"   # 地图参数
   global_map_path: "src/nav/MA_Nav/map/global_maps.pgm" # 全局栅格地图
   is_minco: false
     # 点击隧道区域保存/加载
@@ -16,7 +16,7 @@ ros2:
   save_tunnel_regions_srv_topic: "/save_tunnel_regions"
 # ==================== 地图模式 ====================
 map:
-  mapping_model: false   # true=建图模式，false=规划模式
+  mapping_model: true   # true=建图模式，false=规划模式
 
 # ==================== 规划器配置 ====================
 planner_config:
@@ -24,7 +24,7 @@ planner_config:
   path_planning_params:
     safe_threshold: 0.35       # JPS/A* 与后处理的安全距离阈值 (m)
     max_vel: 3.0               # 梯形速度规划最大速度 (m/s)
-    max_acc: 5.0               # 梯形速度规划最大加速度 (m/s²)
+    max_acc: 3.0               # 梯形速度规划最大加速度 (m/s²) 
     time_resolution: 0.4       # 均匀时间重采样间隔 (s)；
                                # 越小 timed_trajectory 点越密，过弯处越容易密集
     min_traj_num: 5            # 最少时间分段数，防止轨迹时间过短导致采样点太少
@@ -47,9 +47,10 @@ planner_config:
     #mode: "OMNI_XY"
     safe_distance: 0.35
     v_max: 3.0
-    a_max: 5.0
+    a_max: 3.0
     integral_num_steps: 8
 
+    #暂时无用
     weight_yaw_vel: 40.0
     weight_yaw_acc: 40.0
     yaw_rate_max: 1.5
@@ -102,6 +103,9 @@ planner_config:
     minco_traj_continuity_threshold: 0.3 # 热启动连续性阈值 (m)：
                                          # 机器人距旧轨迹投影点小于 0.3m 时，用旧轨迹 PVA 热启动
     projection_search_resolution: 0.02   # 投影点搜索时间分辨率 (s)，越小越精确但计算量越大
+    # 反向重规划（目标在速度反方向，夹角 > 90°）：先沿当前速度方向匀减速刹停，再从刹停点反向规划
+    brake_acc: 6.0         # 常规刹车减速度 (m/s²)
+    brake_acc_max: 10.0    # 刹车距离不够时最多提到该值 (m/s²)，仍不够则急停发零速；应 ≤ 底盘能力且 ≤ MPC u_max
 
 
 # ==================== 线性 MPC 参数 ====================

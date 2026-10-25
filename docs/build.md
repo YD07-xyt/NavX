@@ -100,6 +100,18 @@ sudo apt install -y build-essential cmake git libgoogle-glog-dev libgflags-dev l
 
 ### location
 
+#### z-localization
+```sh
+https://github.com/borglab/gtsam.git v4.2x
+cd ./gtsam
+mkdir build && cd ./build
+cmake .. \
+  -DGTSAM_USE_SYSTEM_EIGEN=ON \
+  -DCMAKE_INSTALL_PREFIX=/usr/local
+make -j 
+sudo make install 
+```
+
 #### super_lio
 
 ```bash

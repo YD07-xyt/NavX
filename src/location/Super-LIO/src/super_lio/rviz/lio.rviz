@@ -56,8 +56,8 @@ Visualization Manager:
     - Alpha: 0.699999988079071
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 3.0870730876922607
-        Min Value: -0.8656464219093323
+        Max Value: 3.2792491912841797
+        Min Value: -0.04188841953873634
         Value: true
       Axis: Z
       Channel Name: z
@@ -65,7 +65,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: AxisColor
       Decay Time: 2000
-      Enabled: false
+      Enabled: true
       Invert Rainbow: true
       Max Color: 255; 255; 255
       Max Intensity: 150
@@ -86,12 +86,12 @@ Visualization Manager:
         Value: /lio/cloud_world
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 3.0092368125915527
-        Min Value: -0.9331462383270264
+        Max Value: 3.2792491912841797
+        Min Value: -0.04188841953873634
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -99,7 +99,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: AxisColor
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 152
@@ -120,7 +120,7 @@ Visualization Manager:
         Value: /lio/cloud_world
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz_default_plugins/Path
@@ -229,7 +229,7 @@ Visualization Manager:
             Reliability Policy: Reliable
             Value: /lio/imu/odom
           Value: true
-      Enabled: false
+      Enabled: true
       Name: LIOdom
     - Class: rviz_common/Group
       Displays:
@@ -272,7 +272,7 @@ Visualization Manager:
             Reliability Policy: Reliable
             Value: /lio/robo/odom
           Value: true
-      Enabled: false
+      Enabled: true
       Name: RoboOdom
     - Class: rviz_default_plugins/TF
       Enabled: true
@@ -283,7 +283,19 @@ Visualization Manager:
           Value: true
         imu:
           Value: true
-        map:
+        imu_link:
+          Value: true
+        livox_frame:
+          Value: true
+        mesh:
+          Value: true
+        wheel_1:
+          Value: true
+        wheel_2:
+          Value: true
+        wheel_3:
+          Value: true
+        wheel_4:
           Value: true
         world:
           Value: true
@@ -293,12 +305,21 @@ Visualization Manager:
       Show Axes: true
       Show Names: false
       Tree:
-        map:
-          world:
-            base_link:
+        world:
+          base_link:
+            livox_frame:
+              imu_link:
+                {}
+            wheel_1:
               {}
-            imu:
+            wheel_2:
               {}
+            wheel_3:
+              {}
+            wheel_4:
+              {}
+          imu:
+            {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -319,7 +340,7 @@ Visualization Manager:
       Max Intensity: 4096
       Min Color: 0; 0; 0
       Min Intensity: 0
-      Name: PointCloud2
+      Name: /relocation/map
       Position Transformer: XYZ
       Selectable: true
       Size (Pixels): 3
@@ -336,12 +357,12 @@ Visualization Manager:
       Use rainbow: true
       Value: true
     - Class: rviz_default_plugins/Axes
-      Enabled: true
+      Enabled: false
       Length: 1000
       Name: Axes
       Radius: 0.10000000149011612
       Reference Frame: <Fixed Frame>
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -354,13 +375,13 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: AxisColor
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
       Min Color: 0; 0; 0
       Min Intensity: 0
-      Name: PointCloud2
+      Name: /relocation/aligned_scan
       Position Transformer: XYZ
       Selectable: true
       Size (Pixels): 3
@@ -375,11 +396,11 @@ Visualization Manager:
         Value: /relocation/aligned_scan
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 36; 31; 49
-    Fixed Frame: map
+    Fixed Frame: world
     Frame Rate: 30
   Name: root
   Tools:
@@ -422,25 +443,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 27.16423988342285
+      Distance: 8.596894264221191
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.8219171762466431
-        Y: 1.5193954706192017
-        Z: -4.540899753570557
+        X: 3.057968854904175
+        Y: -0.920056164264679
+        Z: -2.356086254119873
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 0.45979738235473633
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.1095941066741943
+      Yaw: 3.094604969024658
     Saved: ~
 Window Geometry:
   Displays:

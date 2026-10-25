@@ -72,11 +72,11 @@ void ProbMap::initProbMap() {
 
     cfg_.virtual_ceil_height = sc_.virtual_ceil_height_id_g * cfg_.resolution;
     cfg_.virtual_ground_height = sc_.virtual_ground_height_id_g * cfg_.resolution;
-    logger::ProbMap->info("virtual_ceil_height: {}", cfg_.virtual_ceil_height);
-    logger::ProbMap->info("virtual_ground_height: {}", cfg_.virtual_ground_height);
+    logger::info(logger::ProbMap, "virtual_ceil_height: {}", cfg_.virtual_ceil_height);
+    logger::info(logger::ProbMap, "virtual_ground_height: {}", cfg_.virtual_ground_height);
 
     if (!cfg_.map_sliding_en) {
-        logger::ProbMap->warn("Map sliding disabled, set origin to [{}]", cfg_.fix_map_origin.transpose());
+        logger::warn(logger::ProbMap, "Map sliding disabled, set origin to [{}]", cfg_.fix_map_origin.transpose());
         slideAllMap(cfg_.fix_map_origin);
     }
 
@@ -92,7 +92,7 @@ void ProbMap::initProbMap() {
     occ_timestamp_buffer_.resize(map_size, utils::get_current_dir_name());
     //forget_threshold_ = (cfg_.forget_threshold > 0) ? cfg_.forget_threshold : 10.0;
     forget_threshold_ = cfg_.forget_threshold;
-    logger::ProbMap->info("Init successfully");
+    logger::info(logger::ProbMap, "Init successfully");
     printMapInformation();
 }
 
@@ -304,17 +304,17 @@ void ProbMap::updateProbMap(const PointCloud& cloud, const Pose& pose) {
     const utils::Vec3f& pos = pose.first;
     time_consuming_[4] = cloud.size();
     if (cfg_.map_sliding_en && !insideLocalMap(pos) && raycast_data_.batch_update_counter == 0) {
-        logger::ProbMap->warn("cur_pose out of map range, reset the map.");
-        logger::ProbMap->warn("Sliding to map center at: {}", pos.transpose());
+        logger::warn(logger::ProbMap, "cur_pose out of map range, reset the map.");
+       logger::warn(logger::ProbMap, "Sliding to map center at: {}", pos.transpose());
         slideAllMap(pos);
         return;
     }
 
     if (pos.z() > cfg_.virtual_ceil_height) {
-        logger::ProbMap->warn("Odom above virtual ceil, please check map parameter.");
+        logger::warn(logger::ProbMap, "Odom above virtual ceil, please check map parameter.");
         return;
     } else if (pos.z() < cfg_.virtual_ground_height) {
-        logger::ProbMap->warn("Odom below virtual ground, please check map parameter.");
+        logger::warn(logger::ProbMap, "Odom below virtual ground, please check map parameter.");
         return;
     }
 
@@ -426,17 +426,17 @@ void ProbMap::boxSearch(
 ) const {
     out_points.clear();
     if (map_empty_) {
-        logger::ProbMap->warn("Map is empty, cannot perform box search.");
+       logger::warn(logger::ProbMap, "Map is empty, cannot perform box search.");
         return;
     }
     if ((_box_max - _box_min).minCoeff() <= 0) {
-        logger::ProbMap->warn("Box search failed, box size is zero.");
+        logger::warn(logger::ProbMap, "Box search failed, box size is zero.");
         return;
     }
     utils::Vec3f box_min_d = _box_min, box_max_d = _box_max;
     boundBoxByLocalMap(box_min_d, box_max_d);
     if ((box_max_d - box_min_d).minCoeff() <= 0) {
-        logger::ProbMap->warn("Box search failed, box size is zero.");
+       logger::warn(logger::ProbMap, "Box search failed, box size is zero.");
 
         return;
     }
@@ -503,7 +503,7 @@ void ProbMap::boxSearchInflate(
 void ProbMap::boundBoxByLocalMap(utils::Vec3f& box_min, utils::Vec3f& box_max) const {
     if ((box_max - box_min).minCoeff() <= 0) {
         box_min = box_max;
-        logger::ProbMap->warn("Bound box is invalid.");
+        logger::warn(logger::ProbMap, "Bound box is invalid.");
         return;
     }
 
@@ -812,7 +812,7 @@ void ProbMap::updateLocalBox(const utils::Vec3f& cur_odom) {
 }
 
 void ProbMap::resetLocalMap() {
-    logger::ProbMap->warn("Clear all local map.");
+    logger::warn(logger::ProbMap, "Clear all local map.");
     double unk_value = (cfg_.l_free + cfg_.l_occ) / 2.0;
     // Clear local map
     std::fill(occupancy_buffer_.begin(), occupancy_buffer_.end(), unk_value);
@@ -846,6 +846,6 @@ void ProbMap::applyForgetting() {
         }
     }
     if (cleared > 0) {
-        logger::ProbMap->debug("[Forget] cleared {} cells older than {:.1f}s", cleared, forget_threshold_);
+        logger::debug(logger::ProbMap, "[Forget] cleared {} cells older than {:.1f}s", cleared, forget_threshold_);
     }
 }

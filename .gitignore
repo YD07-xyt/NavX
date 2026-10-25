@@ -1,6 +1,7 @@
 build
 install
 log
+3rd
 .vscode
 .cache
 /src/location/FAST_LIO/PCD/*pcd

@@ -12,10 +12,10 @@
 
     lio.sensor.lidar_type: 1
     lio.sensor.blind: 0.5 #0.78 # 盲区距离(m)，0.78m内的点被忽略
-    lio.sensor.maxrange: 60.0 # 最大有效距离(m)
-    lio.sensor.filter_rate: 3 # 滤波频率(Hz)
+    lio.sensor.maxrange: 35.0 # 最大有效距离(m)
+    lio.sensor.filter_rate: 1 # "每隔 N 个点取 1 个"
     lio.sensor.enable_downsample: true #是否降采样
-    lio.sensor.voxel_fliter_size: 0.5 #分辨率
+    lio.sensor.voxel_fliter_size: 0.05 #分辨率
     lio.sensor.gravity_norm: 9.7946 #重力
     lio.sensor.imu_type: 1
     lio.sensor.imu_na: 0.1
@@ -30,9 +30,10 @@
     # odom robo tf 变换：imu 在 base/robot 系下的位姿 [x, y, z, roll, pitch, yaw]
     # 角度单位是“度（deg）”，不是弧度：倒装 IMU 应写 180.0 而不是 3.14
     #lio.extrinsic.odom_robo: [-0.038, 0.0, 0.433, 180.0, 0.0, 0.0]
-    lio.extrinsic.odom_robo: [0.011, 0.02329, -0.04412, 0.0, 0.0, 0.0]
+    #lio.extrinsic.odom_robo: [0.011, 0.02329, -0.04412, 180.0, 0.0, 0.0]
+    lio.extrinsic.odom_robo: [0.011, -0.02329, 0.19412, 0.0, 0.0, 0.0]
     lio.hash_map.hash_capacity: 2000000
-    lio.hash_map.vox_resolution: 0.5
+    lio.hash_map.vox_resolution: 0.3
 
     lio.kf.kf_type: 0
     lio.kf.kf_max_iterations: 4
@@ -40,8 +41,8 @@
     lio.kf.kf_quit_eps: 0.001
 
     lio.output.robot: true
-    lio.output.plan_env_world: false
-    lio.output.plan_env_body: false
+    lio.output.plan_env_world: true
+    lio.output.plan_env_body: true
     lio.output.ml_map: false
     lio.output.planner: false
     lio.output.map: true

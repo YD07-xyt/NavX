@@ -22,7 +22,7 @@ rog_map:
     enable: true
     cloud_topic: "/lio/cloud_world"
     odom_topic: "/lio/base_odom"
-    odom_timeout: 0.5
+    odom_timeout: 0.2
 
   map_sliding:
     enable: true                      # 禁用滑动窗口（因为已固定原点）
@@ -45,22 +45,37 @@ rog_map:
   point_filt_num: 1
 
 
-  forget_threshold: 0.6                 # 遗忘阈值(s)，小于等于0表示不进行遗忘衰减
+  forget_threshold: -1                  # 遗忘阈值(s)，小于等于0表示不进行遗忘衰减。关闭：按时间遗忘会误删被遮挡的静态障碍，改由射线清除动态障碍
 
-  # Terrain analysis (通过性分析)
   terrain:
-    kernel_size: 5                      # 中值滤波核大小
-    max_step_height: 0.1               # 台阶/墙体最小高度差（触发间隙分析）
-    robot_height: 0.3                   # 机器人安全通行所需最小垂直间隙
-    steep_threshold: 0.17               # 陡坡阈值
+      # 3x3 滤波，如果发现台阶边缘 2D 漏检严重，可改为 1 关闭滤波
+      kernel_size: 3                    
+      # 超过 5cm 就不当平地，必须做间隙分析
+      max_step_height: 0.05              
+      # 机器狗实际高度 + 安全余量。
+      # 改为 0.24：限高杆实测净空约 250mm，判据是"间隙 >= robot_height 才放行"，
+      # 取 0.26 时 0.25 >= 0.26 不成立，限高杆必然判障碍。0.24 可放行，20cm 台阶仍判障碍。
+      robot_height: 0.24                 
+      # 建议从 0.12 调低到 0.08，让算法对台阶和墙体边缘更敏感，
+      # 因为新代码不会因为陡峭而误杀限高杆，所以可以放心调小。
+      steep_threshold: 0.08              
+      # ---- 悬空结构（杆/洞）3D 证据 ----
+      # 间隙在 [min_overhang_clearance, robot_height) 之间时，只有下沿正下方被射线扫空、
+      # 且空闲段一直通到地面才放行；悬空列（最低占据下方就是已知空闲）不当地面来源。
+      # 台面/台阶顶面下方是实心，射线进不去（未知），不会被放行。
+      # 0.225：rosbag 回放里 0.18 会多放掉 2 格台阶边沿，0.225 台阶与旧逻辑一致。
+      min_overhang_clearance: 0.225
+      overhang_free_voxels: 3          # 下沿正下方至少连续 3 个已知空闲体素（0.15 m）
+      overhang_unknown_skip: 1         # 允许跳过 1 个未知体素（杆底混合体素）
+      overhang_ground_radius: 6        # 悬空列找邻域地面的半径（格，0.3 m）
 
   # 2D grid map (A* 规划用)。边界按原点向四个方向的延伸量设置：
   # x ∈ [-x_left, +x_right], y ∈ [-y_left, +y_right]，即 x,-x,y,-y
   grid_map:
     x_left: 6.0                      # 原点向左（-x）延伸 (m)
     x_right: 22.0                      # 原点向右（+x）延伸 (m)
-    y_left: 8.0                        # 原点向左（-y）延伸 (m)
-    y_right: 8.0                       # 原点向右（+y）延伸 (m)
+    y_left: 10.0                        # 原点向左（-y）延伸 (m)
+    y_right: 10.0                       # 原点向右（+y）延伸 (m)
     resolution: 0.05                   # 2D 栅格分辨率(m)
 
 
@@ -74,10 +89,10 @@ rog_map:
 
     # 概率参数
     p_min: 0.12
-    p_miss: 0.49
+    p_miss: 0.45                       # 原 0.49；配合 p_max 0.93，饱和体素约 5 次射线穿过即清除
     p_free: 0.499
     p_occ: 0.85
-    p_hit: 0.9
-    p_max: 0.98
+    p_hit: 0.8
+    p_max: 0.93                        # 原 0.98；上限越低，久站的动态障碍离开后清除越快
     # 未知区域阈值
     unk_thresh: 1.0
