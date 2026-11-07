@@ -102,7 +102,10 @@ def generate_launch_description():
     )
 
     declare_use_composition_cmd = DeclareLaunchArgument(
-        "use_composition", default_value="True", description="Whether to use composed bringup"
+        "use_composition",
+        default_value="True",
+        description="Whether to use composed bringup；仿真默认关闭（Humble 的 "
+                    "component_container_isolated 在 SIGINT 时可能卡住 15s 才被 SIGKILL）",
     )
 
     declare_use_respawn_cmd = DeclareLaunchArgument(
@@ -130,7 +133,9 @@ def generate_launch_description():
     declare_lidar_rpy_cmd = DeclareLaunchArgument(
         "lidar_rpy",
         default_value="3.14 0 0",
-        description="MID360 相对 base_link 的姿态；实车倒装 3.14 0 0，正装 0 0 0",
+        description="MID360 相对 base_link 的姿态；实车倒装 3.14 0 0，正装 0 0 0。"
+                    "注意：正装时 config/simulation 里 point_lio 的 gravity/gravity_init 必须改成 -9.81，"
+                    "否则 odom->base_link 会翻 180°",
     )
 
     declare_rviz_config_file_cmd = DeclareLaunchArgument(

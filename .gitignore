@@ -10,3 +10,4 @@ scr/nav/point_lio/PCD/
 src/nav/point_lio/PCD/scans.pcd
 /src/relocation/pcd、
 .dsh
+.tmp_*

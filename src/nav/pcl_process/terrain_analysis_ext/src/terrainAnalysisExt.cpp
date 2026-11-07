@@ -274,7 +274,15 @@ int main(int argc, char **argv)
   bool status = rclcpp::ok();
   while (status)
   {
-    rclcpp::spin_some(nh);
+    // 与 rclcpp::shutdown() 存在竞态：shutdown 后再创建 executor 会抛 RCLError 直接 abort
+    if (!rclcpp::ok()) {
+      break;
+    }
+    try {
+      rclcpp::spin_some(nh);
+    } catch (const rclcpp::exceptions::RCLError &) {
+      break;
+    }
 
     if (newlaserCloud)
     {

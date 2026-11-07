@@ -52,8 +52,8 @@ point_lio:
       plane_thr: 0.1                                    # 0.05, the threshold for plane criteria, the smaller, the flatter a plane
       match_s: 81.0
       ivox_grid_resolution: 0.5
-      gravity: [ 0.0, 0.0, 9.81 ]                        # gravity to be aligned（仿真雷达水平安装）
-      gravity_init: [ 0.0, 0.0, 9.81 ]                   # preknown gravity in the first IMU body frame
+      gravity: [ 0.0, 0.0, -9.81 ]                        # 倒装(默认)时 IMU 测到 -9.81，取负后与 +9.81 对齐
+      gravity_init: [ 0.0, 0.0, -9.81 ]                   # 正装(lidar_rpy 0 0 0)时必须改成 -9.81，否则 odom->base 翻 180°
       extrinsic_T: [ -0.011, -0.02329, 0.04412 ]
       extrinsic_R: [ 1.0, 0.0, 0.0,
                      0.0, 1.0, 0.0,
