@@ -210,7 +210,7 @@
         <!-- Add a namespace -->
         <namespace>/</namespace>
         <!-- Remap the default topic -->
-        <remapping>cmd_vel:=cmd_vel_chassis</remapping>
+        <remapping>cmd_vel:=cmd_vel</remapping>
         <remapping>odom:=odom</remapping>
       </ros>
 

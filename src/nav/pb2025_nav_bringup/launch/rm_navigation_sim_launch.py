@@ -55,6 +55,8 @@ def generate_launch_description():
     use_respawn = LaunchConfiguration("use_respawn")
     use_rviz = LaunchConfiguration("use_rviz")
     use_simulator = LaunchConfiguration("use_simulator")
+    lidar_xyz = LaunchConfiguration("lidar_xyz")
+    lidar_rpy = LaunchConfiguration("lidar_rpy")
     rviz_config_file = LaunchConfiguration("rviz_config_file")
 
     declare_namespace_cmd = DeclareLaunchArgument(
@@ -119,6 +121,18 @@ def generate_launch_description():
         description="Whether to start pb_rm_simulation (set false if Gazebo is already running)",
     )
 
+    declare_lidar_xyz_cmd = DeclareLaunchArgument(
+        "lidar_xyz",
+        default_value="-0.038 0 0.433",
+        description="MID360 相对 base_link 的位置（透传给 pb_rm_simulation）",
+    )
+
+    declare_lidar_rpy_cmd = DeclareLaunchArgument(
+        "lidar_rpy",
+        default_value="3.14 0 0",
+        description="MID360 相对 base_link 的姿态；实车倒装 3.14 0 0，正装 0 0 0",
+    )
+
     declare_rviz_config_file_cmd = DeclareLaunchArgument(
         "rviz_config_file",
         default_value=os.path.join(bringup_dir, "rviz", "nav2_default_view.rviz"),
@@ -140,6 +154,8 @@ def generate_launch_description():
             launch_arguments={
                 "world": world,
                 "use_sim_time": use_sim_time,
+                "lidar_xyz": lidar_xyz,
+                "lidar_rpy": lidar_rpy,
             }.items(),
         )
     else:
@@ -186,6 +202,8 @@ def generate_launch_description():
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_use_rviz_cmd)
     ld.add_action(declare_use_simulator_cmd)
+    ld.add_action(declare_lidar_xyz_cmd)
+    ld.add_action(declare_lidar_rpy_cmd)
     ld.add_action(declare_rviz_config_file_cmd)
 
     ld.add_action(start_simulator_cmd)

@@ -64,9 +64,27 @@ def generate_launch_description():
     bringup_dir = get_package_share_directory('pb_rm_simulation')
     pkg_gazebo_ros = get_package_share_directory('gazebo_ros')
 
-    # Specify xacro path
-    default_robot_description = Command(['xacro ', os.path.join(
-    get_package_share_directory('pb_rm_simulation'), 'urdf', 'simulation_waking_robot.xacro')])
+    # 雷达安装外参：由 launch 决定，xacro 只提供中性默认
+    declare_lidar_xyz_cmd = DeclareLaunchArgument(
+        'lidar_xyz',
+        default_value='-0.038 0 0.433',
+        description='MID360 相对 base_link 的位置（实车倒装 -0.038 0 0.433；正装可用 0 0 0.15）'
+    )
+
+    declare_lidar_rpy_cmd = DeclareLaunchArgument(
+        'lidar_rpy',
+        default_value='3.14 0 0',
+        description='MID360 相对 base_link 的姿态（实车倒装 3.14 0 0；正装 0 0 0）'
+    )
+
+    # Specify xacro path + 雷达挂点参数（值含空格，必须带引号传给 xacro）
+    default_robot_description = Command([
+        'xacro ',
+        os.path.join(get_package_share_directory('pb_rm_simulation'),
+                     'urdf', 'simulation_waking_robot.xacro'),
+        ' xyz:="', LaunchConfiguration('lidar_xyz'), '"',
+        ' rpy:="', LaunchConfiguration('lidar_rpy'), '"',
+    ])
 
     # Create the launch configuration variables
     use_sim_time = LaunchConfiguration('use_sim_time')
@@ -179,6 +197,8 @@ def generate_launch_description():
     ld.add_action(declare_use_sim_time_cmd)
     ld.add_action(declare_world_cmd)
     ld.add_action(declare_rviz_config_file_cmd)
+    ld.add_action(declare_lidar_xyz_cmd)
+    ld.add_action(declare_lidar_rpy_cmd)
     ld.add_action(declare_robot_description_cmd)
     ld.add_action(gazebo_client_launch)
     ld.add_action(start_joint_state_publisher_cmd)
