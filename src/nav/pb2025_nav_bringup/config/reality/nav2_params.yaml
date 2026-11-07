@@ -200,6 +200,8 @@ pointcloud_to_laserscan:
     range_max: 10.0
     use_inf: true
 
+
+
 slam_toolbox:
   ros__parameters:
     # https://github.com/SteveMacenski/slam_toolbox/tree/humble?#configuration
