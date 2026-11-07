@@ -145,17 +145,19 @@ def generate_launch_description():
         allow_substs=True,
     )
 
-    start_robot_state_publisher_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(launch_dir, "robot_state_publisher_launch.py")
-        ),
-        # NOTE: This startup file is only used when the navigation module is standalone
-        condition=IfCondition(use_robot_state_pub),
-        launch_arguments={
-            "namespace": namespace,
-            "use_sim_time": use_sim_time,
-        }.items(),
-    )   
+    # 静态外参：base_link -> front_mid360（雷达装在云台上，z = 0.140 + 0.433，roll 180°）
+    start_static_tf_base_link_to_lidar = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="static_tf_base_link_to_lidar",
+        output="screen",
+        namespace=namespace,
+        arguments=[
+            "--x", "-0.038", "--y", "0", "--z", "0.573",
+            "--roll", "3.14159265", "--pitch", "0", "--yaw", "0",
+            "--frame-id", "base_link", "--child-frame-id", "front_mid360",
+        ],
+    )
 
     start_livox_ros_driver2_node = Node(
         package="livox_ros_driver2",
@@ -242,7 +244,7 @@ def generate_launch_description():
     ld.add_action(declare_use_respawn_cmd)
 
     # Add the actions to launch all of the navigation nodes
-    ld.add_action(start_robot_state_publisher_cmd)
+    ld.add_action(start_static_tf_base_link_to_lidar)
     ld.add_action(start_livox_ros_driver2_node)
     ld.add_action(bringup_cmd)
     ld.add_action(rviz_cmd)
