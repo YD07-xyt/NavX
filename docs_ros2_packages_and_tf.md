@@ -4,7 +4,7 @@
 > **分析时间**：2026-11-07
 > **依据**：`src/` 源码、launch、yaml、xacro/SDF、脚本；不含 `build/`、`install/` 生成物。
 > **约定**：标 **已核实** 的结论有源码行号支撑；标 **推测** 的是从代码结构推断、未实测；标 **待确认** 的需要你确认后我再补写。
-> **后续**：精简改造方案见 [docs/tf_simplification_plan.md](docs/tf_simplification_plan.md)（目标 TF 只保留 `map → odom → base_link → front_mid360`）。
+> **后续**：精简改造方案见 [docs/tf_simplification_plan.md](docs/tf_simplification_plan.md)（目标 TF 只保留 `map → odom → base_link → livox_frame`）。
 > **规模**：`src/` 下共 30 个 `package.xml`（`src/location/z-localization` 为新引入的独立 git 子工程，含 5 个包）。
 
 ---
@@ -14,7 +14,7 @@
 NavX 是一套 **RoboMaster 哨兵/步兵的 Nav2 导航工作区**，定位链路是
 **Livox MID360（倾斜安装） → Point-LIO（激光惯性里程计） → loam_interface（雷达系→odom 系补偿） → small_gicp（先验点云重定位，发 map→odom） → Nav2（MPPI + SmacPlanner2D） → fake_vel_transform（速度参考系解耦） → serial（串口+socket，内含行为树决策）**。
 
-TF 由 **三个非 URDF 节点 + 一个 URDF 节点** 拼成：`small_gicp` 发 `map→odom`，`sensor_scan_generation` 发 `odom→base_footprint`，`fake_vel_transform` 发 `gimbal_yaw→gimbal_yaw_fake`，`robot_state_publisher` 用 URDF 补齐 `base_footprint→chassis→gimbal_*→front_mid360`。**动态段只有这 4 处，其余全是 URDF 的 fixed joint**；`point_lio` 自己的 TF 被显式关闭。
+TF 由 **三个非 URDF 节点 + 一个 URDF 节点** 拼成：`small_gicp` 发 `map→odom`，`sensor_scan_generation` 发 `odom→base_footprint`，`fake_vel_transform` 发 `gimbal_yaw→gimbal_yaw_fake`，`robot_state_publisher` 用 URDF 补齐 `base_footprint→chassis→gimbal_*→livox_frame`。**动态段只有这 4 处，其余全是 URDF 的 fixed joint**；`point_lio` 自己的 TF 被显式关闭。
 
 ---
 
@@ -102,7 +102,7 @@ graph LR
 
 | 包 | 版本 | 路径 | 职责 | 状态 |
 |---|---|---|---|---|
-| `livox_ros_driver2` | 1.1.0（源码 1.2.4） | `src/nav/livox_ros_driver2` | Livox MID360 驱动。**本地扩展了 `kAllMsg(4)`**：CustomMsg 发 `livox/lidar`，同时 PointCloud2 发 `livox/lidar/pointcloud`（`src/lddc.cpp:470-475`）；`livox/imu` 发 IMU（header.frame_id 在驱动里硬编码 `livox_frame`，point_lio 不使用该字段）；`frame_id: front_mid360`、`publish_freq: 10.0`；内嵌 Livox-SDK2 | ✅ |
+| `livox_ros_driver2` | 1.1.0（源码 1.2.4） | `src/nav/livox_ros_driver2` | Livox MID360 驱动。**本地扩展了 `kAllMsg(4)`**：CustomMsg 发 `livox/lidar`，同时 PointCloud2 发 `livox/lidar/pointcloud`（`src/lddc.cpp:470-475`）；`livox/imu` 发 IMU（header.frame_id 在驱动里硬编码 `livox_frame`，point_lio 不使用该字段）；`frame_id: livox_frame`、`publish_freq: 10.0`；内嵌 Livox-SDK2 | ✅ |
 | `serial` | 0.0.0 | `src/io/serial_driver` | 串口/Unix socket 双向桥（`SendData`/`ReceiveData`，帧头 `"MB"`，CRC16）；内置 `rm_decision` 行为树 + 旧 FSM；发布 `/goal_pose` 或调 `navigate_to_pose` action | ⚠️ 独立启动 |
 | `rm_interfaces` | 1.0.0 | `src/rm_interfaces` | 6 个 msg（`GameStatus`/`RobotStatus`/`RmData`/`BtData`/`Nav2Aim`/`Aim2Nav`） | ❌ 全仓无引用（依赖被注释） |
 
@@ -113,7 +113,7 @@ graph LR
 | 包 | 版本 | 路径 | 职责 | 状态 |
 |---|---|---|---|---|
 | `point_lio` | 1.0.0 | `src/nav/point_lio` | 激光-惯性里程计（`pointlio_mapping`）；输出 `aft_mapped_to_init`（Odometry，`camera_init`→`body`）与 `cloud_registered`（`camera_init` 系）；**`tf_send_en: False`**，内部 `camera_init/body/aft_mapped` 帧不进 TF 树 | ✅ |
-| `loam_interface` | 1.3.1 | `src/nav/pcl_process/loam_interface` | 把 point_lio 输出从 `lidar_odom`（`camera_init`）系换到 `odom` 系：`lidar_odometry`（child=`front_mid360`）、`registered_scan`（frame=`odom`）；用 `odom→lidar_odom` 常量外参做一次初始化补偿 | ✅ |
+| `loam_interface` | 1.3.1 | `src/nav/pcl_process/loam_interface` | 把 point_lio 输出从 `lidar_odom`（`camera_init`）系换到 `odom` 系：`lidar_odometry`（child=`livox_frame`）、`registered_scan`（frame=`odom`）；用 `odom→lidar_odom` 常量外参做一次初始化补偿 | ✅ |
 | `sensor_scan_generation` | 1.3.1 | `src/nav/pcl_process/sensor_scan_generation` | **TF 关键节点**：同步 `lidar_odometry`+`registered_scan`，发布 `odom→base_footprint` TF、`odometry`（`odom→gimbal_yaw`）、`sensor_scan`（雷达系点云） | ✅ |
 | `small_gicp_relocalization` | 1.0.4 | `src/nav/pcl_process/small_gicp_relocalization` | 先验 PCD + 累积 scan 做 GICP 配准（2 Hz），**20 Hz 广播 `map→odom`**；支持 `initialpose` 手动给定初值 | ✅（`slam:=False` 时） |
 | `terrain_analysis` | 0.0.1 | `src/nav/pcl_process/terrain_analysis` | 4 m 内地形分析，障碍物离地高度写入 `intensity`；订阅 `odometry`/`registered_scan`，发布 `terrain_map`（frame=`odom`） | ✅ |
@@ -195,7 +195,7 @@ flowchart LR
 | `aft_mapped_to_init` / `cloud_registered` | Odometry / PointCloud2 | point_lio → loam_interface |
 | `lidar_odometry` / `registered_scan` | Odometry / PointCloud2 | loam_interface → sensor_scan_generation、small_gicp、terrain_analysis(_ext) |
 | `odometry` | Odometry（`odom→gimbal_yaw`） | sensor_scan_generation → terrain_analysis(_ext)、fake_vel_transform、controller_server、bt_navigator |
-| `sensor_scan` | PointCloud2（`front_mid360` 系） | sensor_scan_generation → 下游感知（当前未见订阅者，推测备用） |
+| `sensor_scan` | PointCloud2（`livox_frame` 系） | sensor_scan_generation → 下游感知（当前未见订阅者，推测备用） |
 | `terrain_map` / `terrain_map_ext` | PointCloud2（`odom` 系） | terrain_analysis(_ext) → costmap 的 `observation_sources` |
 | `cmd_vel_controller` → `cmd_vel_nav2_result` → `cmd_vel` | Twist | controller_server → velocity_smoother → fake_vel_transform → serial |
 | `/goal_pose` | PoseStamped（frame `map`） | serial(决策) → nav2（`pub_model=publisher` 时）；另一路直接调 `navigate_to_pose` action |
@@ -252,9 +252,9 @@ graph TD
 **`sensor_scan_generation`**（`sensor_scan_generation.cpp:62-87`）：
 
 ```cpp
-tf_odom_to_lidar       = odometry_msg->pose                    // odom→front_mid360
-tf_lidar_to_chassis    = lookup(front_mid360, base_footprint)
-tf_lidar_to_robot_base = lookup(front_mid360, gimbal_yaw)
+tf_odom_to_lidar       = odometry_msg->pose                    // odom→livox_frame
+tf_lidar_to_chassis    = lookup(livox_frame, base_footprint)
+tf_lidar_to_robot_base = lookup(livox_frame, gimbal_yaw)
 tf_odom_to_chassis     = tf_odom_to_lidar * tf_lidar_to_chassis
 tf_odom_to_robot_base  = tf_odom_to_lidar * tf_lidar_to_robot_base
 publishTransform(tf_odom_to_chassis, header.frame_id, base_footprint)  // 唯一的 TF 输出
@@ -262,7 +262,7 @@ publishOdometry (tf_odom_to_robot_base, header.frame_id, gimbal_yaw)   // 只发
 sensor_scan = TF(lidar_frame, inverse(tf_odom_to_lidar)) * registered_scan
 ```
 
-即：**TF 只发 `odom→base_footprint`**；`odom→gimbal_yaw` 走 `odometry` 话题。它依赖 `robot_state_publisher` 先出 `front_mid360↔base_footprint` 和 `front_mid360↔gimbal_yaw` 的查询结果——**URDF 没起来 / 关节没起来时，`getTransform` 会返回单位阵并打 WARN**（`:98-101`），TF 静默退化。
+即：**TF 只发 `odom→base_footprint`**；`odom→gimbal_yaw` 走 `odometry` 话题。它依赖 `robot_state_publisher` 先出 `livox_frame↔base_footprint` 和 `livox_frame↔gimbal_yaw` 的查询结果——**URDF 没起来 / 关节没起来时，`getTransform` 会返回单位阵并打 WARN**（`:98-101`），TF 静默退化。
 
 **两者分工（一句话）**：
 
@@ -270,7 +270,7 @@ sensor_scan = TF(lidar_frame, inverse(tf_odom_to_lidar)) * registered_scan
 |---|---|---|
 | 本质 | **常量重锚定**：LIO 世界系 `camera_init` → `odom`（原点=启动时的车体） | **每帧换基座**：雷达位姿 → 车体位姿 |
 | 数学 | `T_odom_lidar = T_base_lidar(常量) · T_camera_body(t)` | `T_odom_base = T_odom_lidar(t) · T_lidar_base(t)` |
-| 外参来源 | 启动时查一次 TF 后缓存 | **每帧**查 URDF TF（`front_mid360↔base_footprint`、`front_mid360↔gimbal_yaw`） |
+| 外参来源 | 启动时查一次 TF 后缓存 | **每帧**查 URDF TF（`livox_frame↔base_footprint`、`livox_frame↔gimbal_yaw`） |
 | 输出 TF | 无 | 唯一一条 `odom→base_footprint` |
 | 输出话题 | `lidar_odometry`、`registered_scan`（odom 系） | `odometry`（odom→gimbal_yaw）、`sensor_scan`（雷达系，**无订阅者**） |
 | 依赖 | 启动时 `robot_state_publisher` 在线一次 | 每帧都依赖 URDF TF；`/joint_states` 缺失时静默退化 |
@@ -343,7 +343,7 @@ sensor_scan = TF(lidar_frame, inverse(tf_odom_to_lidar)) * registered_scan
 | `gimbal_pitch_odom` | 云台 pitch（仿真用） | `gimbal_yaw_odom` | `robot_state_publisher`（URDF，fixed） | — |
 | `gimbal_yaw` | 云台 yaw（实际基座） | `gimbal_pitch_odom` | `robot_state_publisher`（URDF，revolute `gimbal_yaw_joint`，z 轴） | **Nav2/里程计里的"机器人基座"** |
 | `gimbal_pitch` | 云台 pitch | `gimbal_yaw` | `robot_state_publisher`（URDF，revolute `gimbal_pitch_joint`，y 轴） | 相机挂载点 |
-| `front_mid360` | 雷达 | `gimbal_yaw` | `robot_state_publisher`（URDF，fixed `front_livox_joint`） | `pose=-0.038 0 0.433 3.14 0 0`（z 抬升 0.433 m，roll 180°）；`livox` 驱动的 `frame_id` |
+| `livox_frame` | 雷达 | `gimbal_yaw` | `robot_state_publisher`（URDF，fixed `front_livox_joint`） | `pose=-0.038 0 0.433 3.14 0 0`（z 抬升 0.433 m，roll 180°）；`livox` 驱动的 `frame_id` |
 | `front_industrial_camera` | 工业相机 | `gimbal_pitch` | `robot_state_publisher`（URDF，fixed） | `pose=0.1 0 0.045` |
 | `front_industrial_camera_optical_frame` | 相机光学系 | `front_industrial_camera` | `robot_state_publisher`（URDF，fixed） | `-pi/2, 0, -pi/2` |
 | `gimbal_yaw_fake` | 伪基座（yaw 锁零） | `gimbal_yaw` | `fake_vel_transform`（50 Hz） | 平移 0、yaw=`-yaw(odometry)`；**所有 Nav2 组件的 `robot_base_frame`** |
@@ -376,13 +376,13 @@ sensor_scan = TF(lidar_frame, inverse(tf_odom_to_lidar)) * registered_scan
 | `light_indicator` | `chassis` | `light_indicator_joint` | fixed | `-0.207 0 0.1` |
 | `speed_monitor` | `gimbal_pitch` | `speed_monitor_joint` | fixed | `0.07 0 0` |
 | `front_rplidar_a2` | `chassis` | `front_rplidar_a2_joint` | fixed | **仅 `simulation_robot`**，`0.155 0 0.1` |
-| `front_mid360` | **`gimbal_yaw`**（实车）/ `chassis`（仿真） | `front_livox_joint` | fixed | sentry `-0.038 0 0.433` / `3.14 0 0`；sim `0.16 0 0.18` / `0.5236 0 1.5708` |
+| `livox_frame` | **`gimbal_yaw`**（实车）/ `chassis`（仿真） | `front_livox_joint` | fixed | sentry `-0.038 0 0.433` / `3.14 0 0`；sim `0.16 0 0.18` / `0.5236 0 1.5708` |
 | `front_industrial_camera` | `gimbal_pitch` | `front_industrial_camera_joint` | fixed | `0.1 0 0.045`（infantry `0.017 0 0.0577`） |
 | `front_industrial_camera_optical_frame` | `front_industrial_camera` | `front_industrial_camera_optical_joint` | fixed | `0 0 0` / `-1.5708 0 -1.5708` |
 
 三个容易踩的点：
 
-1. **link 名与 joint 名不一致**：link 是 `front_mid360`，joint 却叫 `front_livox_joint`（`mid360/model.sdf.xmacro:5-10`）。
+1. **link 名与 joint 名不一致**：link 是 `livox_frame`，joint 却叫 `front_livox_joint`（`mid360/model.sdf.xmacro:5-10`）。
 2. **4 个轮子也是 revolute**，会进 `/joint_states`（值为 0）→ `robot_state_publisher` 一共发 **7 条动态 TF**，不是 3 条。
 3. **仿真与实车的雷达挂点不同**：仿真挂在 `chassis`（`pose=0.16 0 0.18`，rpy `0.5236 0 1.5708`，即 roll 30°、yaw 90°）；实车挂在 `gimbal_yaw`（`pose=-0.038 0 0.433`，roll 180°）。**仿真调好的参数不能直接上实车**。
 
@@ -394,7 +394,7 @@ sensor_scan = TF(lidar_frame, inverse(tf_odom_to_lidar)) * registered_scan
 | `map` → `odom` | `slam_toolbox` | 建图时按 scan 更新 | `slam_launch.py:142-156` | `map_frame`/`odom_frame` |
 | `map` → `odom` | `static_transform_publisher`（单位阵） | 静态 | `slam_launch.py:173-196`；`map.sh`；`tf2.bash` | frame 名写死 |
 | `odom` → `base_footprint` | `sensor_scan_generation` | 随 `lidar_odometry`（≈10 Hz） | `sensor_scan_generation.cpp:79-80, 104-114` | `base_frame` 参数；**父 frame 取 odometry 的 `header.frame_id`** |
-| `base_footprint` → … → `front_mid360` 全链 | `robot_state_publisher` | `/tf_static`（fixed）+ `/tf`（revolute，200 Hz） | `robot_description_launch.py:78-89` + URDF | URDF/xmacro |
+| `base_footprint` → … → `livox_frame` 全链 | `robot_state_publisher` | `/tf_static`（fixed）+ `/tf`（revolute，200 Hz） | `robot_description_launch.py:78-89` + URDF | URDF/xmacro |
 | `gimbal_yaw` → `gimbal_yaw_fake` | `fake_vel_transform` | 50 Hz | `fake_vel_transform.cpp:135-144` | `robot_base_frame` / `fake_robot_base_frame` |
 | （话题）`odom`→`gimbal_yaw` | `sensor_scan_generation` | 随同步回调 | `sensor_scan_generation.cpp:81-82, 116-158` | **只发 Odometry 话题，不发 TF** |
 
@@ -412,7 +412,7 @@ graph TD
   gpo((gimbal_pitch_odom))
   gy((gimbal_yaw))
   gp((gimbal_pitch))
-  lidar((front_mid360))
+  lidar((livox_frame))
   cam((front_industrial_camera))
   camo((front_industrial_camera_optical_frame))
   fake((gimbal_yaw_fake))
@@ -435,8 +435,8 @@ graph TD
 | 组件 | global_frame | robot_base_frame | 备注 |
 |---|---|---|---|
 | `bt_navigator` | `map` | `gimbal_yaw_fake` | `odom_topic: odometry` |
-| `local_costmap` | `odom` | `gimbal_yaw_fake` | 观察源 `terrain_map`，`sensor_frame: front_mid360` |
-| `global_costmap` | `map` | `gimbal_yaw_fake` | 观察源 `terrain_map_ext`，`sensor_frame: front_mid360` |
+| `local_costmap` | `odom` | `gimbal_yaw_fake` | 观察源 `terrain_map`，`sensor_frame: livox_frame` |
+| `global_costmap` | `map` | `gimbal_yaw_fake` | 观察源 `terrain_map_ext`，`sensor_frame: livox_frame` |
 | `controller_server` / `planner_server` / `behavior_server` | — | `gimbal_yaw_fake` | `odom_topic: odometry` |
 | `slam_toolbox`（建图） | `map` | `base_footprint` | `odom_frame: odom`、`scan_topic: obstacle_scan` |
 | `pointcloud_to_laserscan` | — | `target_frame: base_footprint` | 建图模式 |
@@ -472,7 +472,7 @@ graph TD
   map((map)) -->|"static_transform_publisher 单位阵<br/>（slam_launch.py:173）"| odom((odom))
   map -->|"slam_toolbox（同帧更新）"| odom
   odom -->|"sensor_scan_generation"| bf((base_footprint))
-  bf -->|robot_state_publisher| rest["chassis → gimbal_* → front_mid360"]
+  bf -->|robot_state_publisher| rest["chassis → gimbal_* → livox_frame"]
   bf -->|fake_vel_transform| fake((gimbal_yaw_fake))
 ```
 
@@ -528,7 +528,7 @@ ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
 
 **要接入 NavX，至少需要**（据两栈 frame 约定差异整理）：
 
-1. **补静态 TF**：`imu→gimbal_yaw`（或 `body→chassis`）、以及 `odom→base_footprint` 的替代物。现栈的 `sensor_scan_generation` 依赖 `front_mid360↔base_footprint`，z-localization 的 `imu` 没有这条链。
+1. **补静态 TF**：`imu→gimbal_yaw`（或 `body→chassis`）、以及 `odom→base_footprint` 的替代物。现栈的 `sensor_scan_generation` 依赖 `livox_frame↔base_footprint`，z-localization 的 `imu` 没有这条链。
 2. **改话题 remap**：z-localization 原生话题是 `/odometry`、`/lidar_odometry`、`/frontend/frame`、`/localization/odometry`；`loam_interface` 用的是 `/lidar_odometry`、`/registered_scan`。走 legacy 模式（`/Odometry`、`/Odometry_scan_end`、`/cloud_registered`）也需要 remap。
 3. **先验地图转换**：用 `build_pcd_map_bundle` 把现有单张 PCD 转成关键帧包。
 4. **nav2 参数**：`odom`/`base_footprint`/`robot_base_frame` 的含义要重新对齐（z-localization 的 `odom` 是 LIO 世界系，不是 Nav2 的连续里程计系）。

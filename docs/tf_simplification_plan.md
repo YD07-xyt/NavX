@@ -21,7 +21,7 @@
 所以新树只有：
 
 ```
-map ──(重定位)──> odom ──(里程计 + 一个常量外参)──> base_link ──(静态安装外参)──> front_mid360
+map ──(重定位)──> odom ──(里程计 + 一个常量外参)──> base_link ──(静态安装外参)──> livox_frame
 ```
 
 ---
@@ -39,7 +39,7 @@ graph TD
   gyo --> gpo((gimbal_pitch_odom))
   gpo --> gy((gimbal_yaw))
   gy --> gp((gimbal_pitch))
-  gy --> lidar((front_mid360))
+  gy --> lidar((livox_frame))
   gy --> fake((gimbal_yaw_fake))
   ch --> armor["armor×4 / wheels×4 / light / speed_monitor"]
 ```
@@ -50,7 +50,7 @@ graph TD
 graph LR
   map((map)) -->|"重定位<br/>small_gicp 或 z-local backend"| odom((odom))
   odom -->|"TF 桥：里程计 × 常量外参"| base_link((base_link))
-  base_link -->|"静态：雷达安装外参<br/>z=0.573 · roll=180°"| lidar((front_mid360))
+  base_link -->|"静态：雷达安装外参<br/>z=0.573 · roll=180°"| lidar((livox_frame))
 ```
 
 **无 `chassis`、无 `gimbal_*`、无 `base_footprint`、无 `*_fake`、无 URDF。**
@@ -64,9 +64,9 @@ graph LR
 | `map` | 先验地图世界系 | 名义帧：`map_server` 只提供地图数据，**没有节点发 `map` 的 TF**（它是树的根） | 静态地图 |
 | `odom` | 连续里程计系（无跳变） | 重定位节点（`small_gicp` 或 z-local backend） | 20 Hz / 随帧 |
 | `base_link` | **云台 yaw 轴在地面的投影**：原点在 z=0，yaw = 云台 yaw | TF 桥节点（新增） | 随里程计 ≈10 Hz |
-| `front_mid360` | 雷达坐标系（Livox 驱动 `frame_id`） | 静态 TF | `/tf_static` |
+| `livox_frame` | 雷达坐标系（Livox 驱动 `frame_id`） | 静态 TF | `/tf_static` |
 
-### 唯一的静态外参（`base_link → front_mid360`）
+### 唯一的静态外参（`base_link → livox_frame`）
 
 | 项 | 值 | 推导 |
 |---|---|---|
@@ -84,7 +84,7 @@ graph LR
 ros2 run tf2_ros static_transform_publisher \
   --x -0.038 --y 0.0 --z 0.573 \
   --roll 3.14159265 --pitch 0.0 --yaw 0.0 \
-  --frame-id base_link --child-frame-id front_mid360
+  --frame-id base_link --child-frame-id livox_frame
 ```
 
 ---
@@ -111,20 +111,20 @@ TF 桥节点只认一个契约，两个后端都必须满足：
 | # | 提供物 | 要求 |
 |---|---|---|
 | 1 | `map → odom` TF | 唯一一条外部 TF；**不得**再发 `odom → 车体` 的 TF |
-| 2 | 里程计话题 | `nav_msgs/Odometry`，pose = `odom → source_frame`（source = `front_mid360` 或 `imu`） |
+| 2 | 里程计话题 | `nav_msgs/Odometry`，pose = `odom → source_frame`（source = `livox_frame` 或 `imu`） |
 | 3 | 点云（可选） | 供 `terrain_analysis` 使用；可在 source 系或 odom 系 |
 
 ### 4.1 路径 A：point_lio + small_gicp（保留现状最小改动）
 
 | 步骤 | 节点 | 说明 |
 |---|---|---|
-| 1 | `livox_ros_driver2` | `/livox/lidar`(CustomMsg) + `/livox/imu`，`frame_id: front_mid360` |
+| 1 | `livox_ros_driver2` | `/livox/lidar`(CustomMsg) + `/livox/imu`，`frame_id: livox_frame` |
 | 2 | `point_lio` | `tf_send_en: False`（已经是）；输出 `aft_mapped_to_init`、`cloud_registered` |
-| 3 | `loam_interface` | 把 `lidar_odom → odom`，输出 `lidar_odometry`（**child = front_mid360**）与 `registered_scan`（odom 系） |
-| 4 | `small_gicp_relocalization` | 输出 `map → odom`；`base_frame: base_link`、`lidar_frame: front_mid360` |
-| 5 | **TF 桥（新增）** | 订阅 `lidar_odometry` + 外参 `base_link→front_mid360` → 发 `odom → base_link` 与 `/odom` |
+| 3 | `loam_interface` | 把 `lidar_odom → odom`，输出 `lidar_odometry`（**child = livox_frame**）与 `registered_scan`（odom 系） |
+| 4 | `small_gicp_relocalization` | 输出 `map → odom`；`base_frame: base_link`、`lidar_frame: livox_frame` |
+| 5 | **TF 桥（新增）** | 订阅 `lidar_odometry` + 外参 `base_link→livox_frame` → 发 `odom → base_link` 与 `/odom` |
 
-TF 桥输入外参 = `base_link → front_mid360`，与静态 TF 同一组数（`-0.038, 0, 0.573, π, 0, 0`），内部求逆即可。
+TF 桥输入外参 = `base_link → livox_frame`，与静态 TF 同一组数（`-0.038, 0, 0.573, π, 0, 0`），内部求逆即可。
 
 ### 4.2 路径 B：z-localization
 
@@ -178,7 +178,7 @@ graph LR
 | 项 | 要求 |
 |---|---|
 | 话题 | `/lidar_odometry`（Odometry）+ `/registered_scan`（PointCloud2） |
-| 里程计 | `header.frame_id = odom`，`child_frame_id = source`（`front_mid360` 或 `imu`），pose = `T_odom_source` |
+| 里程计 | `header.frame_id = odom`，`child_frame_id = source`（`livox_frame` 或 `imu`），pose = `T_odom_source` |
 | 点云 | 坐标必须在 **odom 系**（`terrain_analysis` 不看 `frame_id`，只看数值） |
 | TF | 不发 `odom→source`；重定位只发 `map→odom` |
 
@@ -225,7 +225,7 @@ imu → base_link : x=0.027  y=-0.02329  z=0.61712  roll=π  pitch=0  yaw=0
 ```yaml
 sensor_scan_generation:
   ros__parameters:
-    lidar_frame: "front_mid360"
+    lidar_frame: "livox_frame"
     base_frame: "base_link"          # 原 base_footprint
     robot_base_frame: "base_link"    # 原 gimbal_yaw
 ```
@@ -351,7 +351,7 @@ sensor_scan_generation:
 | `small_gicp.robot_base_frame` | `gimbal_yaw` | `base_link` |
 | `pointcloud_to_laserscan.target_frame` | `base_footprint` | `base_link` |
 | `slam_toolbox.base_frame` | `base_footprint` | `base_link` |
-| `costmap.observation_sources.*.sensor_frame` | `front_mid360` | 不变（靠静态 TF） |
+| `costmap.observation_sources.*.sensor_frame` | `livox_frame` | 不变（靠静态 TF） |
 | `fake_vel_transform.*` | 存在 | **整段删除** |
 | `sensor_scan_generation.*` | `base_frame: base_footprint`、`robot_base_frame: gimbal_yaw` | 两处都改 `base_link`（**整段保留**） |
 
@@ -418,11 +418,11 @@ wz_send = wz + spin_speed_;    // spin_speed_ 来自 cmd_spin (example_interface
 ## 11. 验证清单
 
 ```bash
-# 1) TF 树只应有三条边（map→odom、odom→base_link、base_link→front_mid360）
+# 1) TF 树只应有三条边（map→odom、odom→base_link、base_link→livox_frame）
 ros2 run tf2_tools view_frames
 ros2 run tf2_ros tf2_echo map base_link
 ros2 run tf2_ros tf2_echo odom base_link
-ros2 run tf2_ros tf2_echo base_link front_mid360     # 必须是静态、数值恒定
+ros2 run tf2_ros tf2_echo base_link livox_frame     # 必须是静态、数值恒定
 
 # 2) 频率与一致性
 ros2 topic hz /odom                                  # ≈10 Hz
@@ -455,13 +455,13 @@ ros2 run tf2_ros tf2_echo odom base_link
 | 4 | z_location 点云在 body 系 | `terrain_analysis` 会当成 odom 系点用，导致障碍物错位 | TF 桥开 `transform_cloud: true` |
 | 5 | `map→odom` 用未来 0.1 s 时间戳 | 跨 TF 查询偶发 extrapolation | 保留 0.1 s `transform_tolerance`，或改回当前时间 |
 | 6 | 删 `rmoss_gz_resources`/`pb2025_robot_description` 后无法跑 Gazebo | 仿真链路断 | 若还要仿真，把这两个包与 sim launch 单独保留 |
-| 7 | `small_gicp` 启动时要查 `base_link↔front_mid360` | 静态 TF 未起来时地图摆错（代码里会死等） | 保证 static TF 先于 small_gicp 启动（launch 顺序/Timer） |
+| 7 | `small_gicp` 启动时要查 `base_link↔livox_frame` | 静态 TF 未起来时地图摆错（代码里会死等） | 保证 static TF 先于 small_gicp 启动（launch 顺序/Timer） |
 
 ### 12.2 待确认
 
 1. **自旋时云台是"保持指向"还是"整机同转"？**（决定 §9 选 A/B，是本方案成立与否的关键）
 2. **还需要 Gazebo 仿真吗？**（决定 `pb2025_robot_description`/`rmoss_gz_resources`/`ign_sim_pointcloud_tool` 是删还是留）
-3. **雷达 frame 名要不要顺便从 `front_mid360` 改成 `lidar`？**（改则要同步驱动 yaml、静态 TF、costmap `sensor_frame`、small_gicp `lidar_frame`）
+3. **雷达 frame 名要不要顺便从 `livox_frame` 改成 `lidar`？**（改则要同步驱动 yaml、静态 TF、costmap `sensor_frame`、small_gicp `lidar_frame`）
 4. **下位机的"云台系"是否就是 yaw=0 时车头朝前？** 若是，`cmd_vel` 直连即可；若下位机期望的是"底盘系 + 单独云台角"，则 `cmd_vel` 还要按云台-底盘夹角旋转一次（那就要么让下位机做，要么在 serial 里用云台角补偿）。
 5. **`base_link` 的 z 取 0（地面）还是 0.14（云台安装高）？** 已按你选的"地面投影"设计；若下游有按高度取点的逻辑需同步。
 
@@ -473,7 +473,7 @@ ros2 run tf2_ros tf2_echo odom base_link
 livox_ros_driver2  ──/livox/lidar(CustomMsg), /livox/imu──┐
                                                           ▼
 point_lio ──aft_mapped_to_init, cloud_registered──► loam_interface
-                                                          │ /lidar_odometry (odom→front_mid360)
+                                                          │ /lidar_odometry (odom→livox_frame)
                                                           │ /registered_scan   (odom)
                                                           ▼
 small_gicp_relocalization ──TF map→odom──┐     sensor_scan_generation
@@ -482,7 +482,7 @@ small_gicp_relocalization ──TF map→odom──┐     sensor_scan_generatio
                                           ▼        ▼
                             terrain_analysis(_ext) ──/terrain_map(_ext)──► nav2 costmaps
                                                                               │
-                                          static TF base_link→front_mid360    │
+                                          static TF base_link→livox_frame    │
                                                                               ▼
                                                        nav2 (map/odom/base_link)
                                                                               │ /cmd_vel（云台系）
@@ -556,7 +556,7 @@ Node(
     name="static_tf_base_link_to_lidar", output="screen",
     arguments=["--x", "-0.038", "--y", "0", "--z", "0.573",
                "--roll", "3.14159265", "--pitch", "0", "--yaw", "0",
-               "--frame-id", "base_link", "--child-frame-id", "front_mid360"],
+               "--frame-id", "base_link", "--child-frame-id", "livox_frame"],
 )
 ```
 
@@ -566,7 +566,7 @@ Node(
 - `velocity_smoother` 输出改 `("cmd_vel_smoothed", "cmd_vel")`
 - `behavior_server` 的 `("cmd_vel", "cmd_vel_nav2_result")` 改为 `("cmd_vel", "cmd_vel")`
 
-**验收**：`view_frames` 只剩 `map→odom→base_link→front_mid360`；`/odometry` 的 `child_frame_id=base_link`；能正常导航到点。
+**验收**：`view_frames` 只剩 `map→odom→base_link→livox_frame`；`/odometry` 的 `child_frame_id=base_link`；能正常导航到点。
 
 > ⚠️ C2 之后**自旋会失效**（`spin_speed` 原本加在 fake 里），C3 恢复。另外 `base_link` 由 z=0.14 变为 z=0，`terrain_analysis` 的高度基准整体下移 0.14 m，首次上车要复核低矮障碍检测（必要时把 `minRelZ` 回调）。
 

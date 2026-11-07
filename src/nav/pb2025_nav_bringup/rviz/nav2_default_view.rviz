@@ -82,7 +82,7 @@ Visualization Manager:
           Value: false
         front_left_wheel:
           Value: false
-        front_mid360:
+        livox_frame:
           Value: true
         front_right_wheel:
           Value: false
@@ -137,7 +137,7 @@ Visualization Manager:
                 gimbal_yaw_odom:
                   gimbal_pitch_odom:
                     gimbal_yaw:
-                      front_mid360:
+                      livox_frame:
                         {}
                       gimbal_pitch:
                         front_industrial_camera:

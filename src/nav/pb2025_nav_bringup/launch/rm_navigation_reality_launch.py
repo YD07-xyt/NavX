@@ -145,7 +145,7 @@ def generate_launch_description():
         allow_substs=True,
     )
 
-    # 静态外参：base_link -> front_mid360（雷达装在云台上，z = 0.140 + 0.433，roll 180°）
+    # 静态外参：base_link -> livox_frame（雷达装在云台上，z = 0.140 + 0.433，roll 180°）
     start_static_tf_base_link_to_lidar = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
@@ -155,7 +155,7 @@ def generate_launch_description():
         arguments=[
             "--x", "-0.038", "--y", "0", "--z", "0.573",
             "--roll", "3.14159265", "--pitch", "0", "--yaw", "0",
-            "--frame-id", "base_link", "--child-frame-id", "front_mid360",
+            "--frame-id", "base_link", "--child-frame-id", "livox_frame",
         ],
     )
 
