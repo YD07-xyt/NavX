@@ -136,15 +136,6 @@ def generate_launch_description():
         "use_rviz", default_value="True", description="Whether to start RVIZ"
     )
 
-    start_velodyne_convert_tool = Node(
-        package="ign_sim_pointcloud_tool",
-        executable="ign_sim_pointcloud_tool_node",
-        name="ign_sim_pointcloud_tool",
-        output="screen",
-        namespace=namespace,
-        parameters=[configured_params],
-    )
-
     rviz_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(launch_dir, "rviz_launch.py")),
         condition=IfCondition(use_rviz),
@@ -196,7 +187,6 @@ def generate_launch_description():
     ld.add_action(declare_use_respawn_cmd)
 
     # Add the actions to launch all of the navigation nodes
-    ld.add_action(start_velodyne_convert_tool)
     ld.add_action(bringup_cmd)
     ld.add_action(joy_teleop_cmd)
     ld.add_action(rviz_cmd)
