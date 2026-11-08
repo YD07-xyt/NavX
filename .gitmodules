@@ -1,0 +1,6 @@
+[submodule "src/decision"]
+	path = src/decision
+	url = git@github.com:YD07-xyt/MA_2027_deicison.git
+[submodule "src/navigation"]
+	path = src/navigation
+	url = git@github.com:YD07-xyt/MA_2027_nav.git
