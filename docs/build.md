@@ -95,12 +95,20 @@ or
 ### utils 依赖
 ```bash
 sudo apt update
-sudo apt install -y build-essential cmake git libgoogle-glog-dev libgflags-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev  libspdlog-dev  libeigen3-dev libboost-all-dev libyaml-cpp-dev libpcl-dev libopencv-dev libceres-dev
+sudo apt install -y build-essential cmake git libgoogle-glog-dev libgflags-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev  libspdlog-dev  libeigen3-dev libboost-all-dev libyaml-cpp-dev libpcl-dev libopencv-dev libceres-dev libeigen3-dev
 ``` 
 
 ### location
 
 #### z-localization
+
+依赖Eigen ≥ 3.3、GTSAM 4.2.x、PCL、yaml-cpp、nanoflann
+```sh
+sudo apt update
+sudo apt install -y  libyaml-cpp-dev libpcl-dev libeigen3-dev
+```
+
+GTSAM 4.2.x
 ```sh
 https://github.com/borglab/gtsam.git v4.2x
 cd ./gtsam
@@ -129,17 +137,19 @@ make
 sudo make install
 ```
 
-GTSAM ceres
-
-### gcopter
+### MA_nav
 
 #### planner
 
-ompl
+ompl(不使用)
 ```bash
 sudo apt install libompl-dev ompl-demos
 ```
 
+#### test
+```sh
+sudo apt install libbenchmark-dev
+```
 #### contoller
 
 ##### lmpc 
@@ -167,7 +177,6 @@ sudo make install
 
 
 casadi（不需要）
-
 ```bash
 git clone https://github.com/casadi/casadi.git
 cd ./casadi
@@ -180,8 +189,14 @@ sudo make install
 ### bt decision
 
 behaviortree_cpp
+
 nlohmann_json
 
 ### serial_driver
 
 Boost::Asio
+
+```sh
+sudo apt update
+sudo apt install libboost-all-dev
+```

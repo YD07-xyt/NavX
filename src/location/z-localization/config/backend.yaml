@@ -17,20 +17,21 @@ common:
   # ZLIO 去畸变点云位于 IMU 局部坐标系。
   input_cloud_in_local_frame: true
   body:
+    #xyz -0.038, 0, 0.433; rpy 3.14, 0, 0
     rotation:
       # sensor 到 body 固定外参的滚转角，单位为度。
-      roll_deg: -14.94
+      roll_deg: 180
       # sensor 到 body 固定外参的俯仰角，单位为度。
-      pitch_deg: 0.523
+      pitch_deg: 0.0
       # sensor 到 body 固定外参的偏航角，单位为度。
-      yaw_deg: -150.6
+      yaw_deg: 0.0
     offset:
       # sensor 原点指向 body 原点的 X 分量，在 body 系表达，单位为米。
-      x: -0.098
+      x: 0.038
       # sensor 原点指向 body 原点的 Y 分量，在 body 系表达，单位为米。
-      y: 0.094
+      y: 0.0
       # sensor 原点指向 body 原点的 Z 分量，在 body 系表达，单位为米。
-      z: 0.0
+      z: -0.433
     # 车体输出坐标系名称。
     frame: body
   scan_context:

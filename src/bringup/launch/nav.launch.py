@@ -20,51 +20,37 @@ def generate_launch_description():
         arguments=['--ros-args', '--log-level', 'info']
     )
 
-    # pkg_terrain_analysis = get_package_share_directory('terrain_analysis_map')
-    # terrain_analysis_config_yaml = os.path.join(pkg_terrain_analysis, 'config', 'param.yaml')
-  
-    # terrain_analysis_node = Node(
-    #     package="terrain_analysis_map",
-    #     executable="terrain_analysis_map_node",
-    #     name="terrain_analysis_map_node",
-    #     output="screen",
-    #     respawn=True,
-    #     respawn_delay=2.0,
-    #     #arguments=["--ros-args", "--log-level", log_level],
-    #     parameters=[terrain_analysis_config_yaml],
-    # )
 
     # 获取功能包路径
-    rog_map_pkg_share = get_package_share_directory('rog_map')
-    rog_map_params_file = os.path.join(rog_map_pkg_share, 'config', 'rog_map.yaml')
-    rog_map_node=Node(
-            package='rog_map',
-            executable='rog_map_node',
-            name='rog_map_node',
-            output='screen',
-            parameters=[{'config_path': rog_map_params_file}]
-        )
-    ld = LaunchDescription()
-
-    # 获取功能包路径
-    gcopter_pkg_share = get_package_share_directory('gcopter')
+    ma_nav_pkg_share = get_package_share_directory('ma_nav')
     
     # 默认参数文件路径（可选，如果不存在可注释）
-    gcopter_params_file = os.path.join(gcopter_pkg_share, 'config', 'global_planning.yaml')
+    ma_nav_params_file = os.path.join(ma_nav_pkg_share, 'config', 'planner.yaml')
     
     # 全局规划节点
-    global_planner_node = Node(
-        package='gcopter',
-        executable='global_planning',
-        name='global_planning_node',
+    ma_nav_node = Node(
+        package='ma_nav',
+        executable='ma_nav',
+        name='ma_nav_node',
         output='screen',
         emulate_tty=True,
-        parameters=[gcopter_params_file],
+        parameters=[{
+            'planner_params_path': ma_nav_params_file
+        }]
     )
 
+    # 启动 RViz2 可视化
+    rviz_config = os.path.join(ma_nav_pkg_share, 'config', 'nav.rviz')
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        arguments=['-d', rviz_config],
+        output='screen'
+    )
+    ld = LaunchDescription()
     ld.add_action(super_lio_node)
-    #ld.add_action(terrain_analysis_node)
-    ld.add_action(global_planner_node)
-    ld.add_action(rog_map_node)
+    ld.add_action(ma_nav_node)
+    ld.add_action(rviz_node)
 
     return ld

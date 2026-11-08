@@ -8,9 +8,9 @@ from launch_ros.actions import Node
 def generate_launch_description():
     # 参数文件路径
     params_file = PathJoinSubstitution([
-        FindPackageShare('bringup'),   # 包名
+        FindPackageShare('bringup'), 
         'config',
-        'nav2_params.yaml'                  # 参数文件名
+        'nav2_params.yaml'        
     ])
 
     # 使用 nav2_bringup 的 bringup_launch.py

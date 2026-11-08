@@ -15,7 +15,7 @@ swapon --show
 free -h
 ```
 
-swapon --show 应该能看到 /swapfile 这一行，free -h 的 Swap 一栏应显示约 38Gi。
+swapon --show 应该能看到 /swapfile 这一行，free -h 的 Swap 一栏应显示约 ___ Gi。
 
 ### 第二步：写入 /etc/fstab 实现永久启用
 先检查是否已有旧的 swap 条目（避免重复或冲突）：

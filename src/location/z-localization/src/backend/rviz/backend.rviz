@@ -5,35 +5,28 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /01 Environment1
-        - /02 Localization1
-        - /03 Maps1
-        - /04 Pose Graph1
-        - /05 Registration Debug1
+        - /TF1
+        - /TF1/Frames1
       Splitter Ratio: 0.5
-    Tree Height: 760
+    Tree Height: 499
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
     Expanded:
       - /Publish Point1
     Name: Tool Properties
-    Splitter Ratio: 0.588679
+    Splitter Ratio: 0.5886790156364441
   - Class: rviz_common/Views
     Expanded:
       - /Current View1
     Name: Views
     Splitter Ratio: 0.5
-Preferences:
-  PromptSaveOnExit: false
-Toolbars:
-  toolButtonStyle: 2
 Visualization Manager:
   Class: ""
   Displays:
     - Class: rviz_common/Group
       Displays:
-        - Alpha: 0.35
+        - Alpha: 0.3499999940395355
           Cell Size: 1
           Class: rviz_default_plugins/Grid
           Color: 120; 125; 132
@@ -55,8 +48,7 @@ Visualization Manager:
           Enabled: true
           Name: Map origin axes
           Namespaces:
-            map_axes: true
-          Queue Size: 1
+            {}
           Topic:
             Depth: 1
             Durability Policy: Transient Local
@@ -79,7 +71,7 @@ Visualization Manager:
             {}
           Update Interval: 0
           Value: true
-      Enabled: true
+      Enabled: false
       Name: 01 Environment
     - Class: rviz_common/Group
       Displays:
@@ -90,7 +82,7 @@ Visualization Manager:
           Color: 255; 190; 40
           Covariance:
             Orientation:
-              Alpha: 0.35
+              Alpha: 0.3499999940395355
               Color: 255; 170; 0
               Color Style: Unique
               Frame: Local
@@ -107,9 +99,9 @@ Visualization Manager:
           Head Length: 0.30000001192092896
           Head Radius: 0.10000000149011612
           Name: Body pose and covariance
-          Shape: Axes
           Shaft Length: 0.699999988079071
           Shaft Radius: 0.05000000074505806
+          Shape: Axes
           Topic:
             Depth: 20
             Durability Policy: Volatile
@@ -122,8 +114,7 @@ Visualization Manager:
           Enabled: true
           Name: Localization state
           Namespaces:
-            localization_status: true
-          Queue Size: 1
+            {}
           Topic:
             Depth: 1
             Durability Policy: Transient Local
@@ -136,8 +127,7 @@ Visualization Manager:
           Enabled: true
           Name: UWB-derived body position
           Namespaces:
-            uwb_position: true
-          Queue Size: 1
+            {}
           Topic:
             Depth: 1
             Durability Policy: Transient Local
@@ -146,7 +136,7 @@ Visualization Manager:
             Reliability Policy: Reliable
             Value: /backend_node/uwb_position
           Value: true
-        - Alpha: 0.9
+        - Alpha: 0.8999999761581421
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
             Max Value: 20
@@ -161,10 +151,11 @@ Visualization Manager:
           Enabled: true
           Invert Rainbow: false
           Max Color: 255; 245; 200
+          Max Intensity: 0
           Min Color: 40; 120; 255
+          Min Intensity: 0
           Name: Current registered scan
           Position Transformer: XYZ
-          Queue Size: 1
           Selectable: false
           Size (Pixels): 2
           Size (m): 0.029999999329447746
@@ -172,10 +163,10 @@ Visualization Manager:
           Topic:
             Depth: 1
             Durability Policy: Volatile
+            Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /localization/lio_world_cloud
-          Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
           Value: true
@@ -202,16 +193,16 @@ Visualization Manager:
           Topic:
             Depth: 1
             Durability Policy: Transient Local
+            Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /backend_node/optimized_path
-          Unreliable: false
           Value: true
-      Enabled: true
+      Enabled: false
       Name: 02 Localization
     - Class: rviz_common/Group
       Displays:
-        - Alpha: 0.7
+        - Alpha: 0.699999988079071
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
             Max Value: 20
@@ -226,10 +217,11 @@ Visualization Manager:
           Enabled: true
           Invert Rainbow: false
           Max Color: 255; 235; 80
+          Max Intensity: 0
           Min Color: 35; 80; 255
+          Min Intensity: 0
           Name: Active map (prior or runtime)
           Position Transformer: XYZ
-          Queue Size: 1
           Selectable: false
           Size (Pixels): 2
           Size (m): 0.029999999329447746
@@ -237,18 +229,18 @@ Visualization Manager:
           Topic:
             Depth: 1
             Durability Policy: Transient Local
+            Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /backend_node/rviz_map
-          Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
           Value: true
-      Enabled: true
+      Enabled: false
       Name: 03 Maps
     - Class: rviz_common/Group
       Displays:
-        - Alpha: 0.85
+        - Alpha: 0.8500000238418579
           Buffer Length: 1
           Class: rviz_default_plugins/Path
           Color: 255; 135; 30
@@ -271,17 +263,16 @@ Visualization Manager:
           Topic:
             Depth: 1
             Durability Policy: Transient Local
+            Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /backend_node/odom_path
-          Unreliable: false
           Value: true
         - Class: rviz_default_plugins/Marker
           Enabled: true
           Name: Accepted loop edges
           Namespaces:
-            loop_edges: true
-          Queue Size: 1
+            {}
           Topic:
             Depth: 1
             Durability Policy: Transient Local
@@ -290,11 +281,11 @@ Visualization Manager:
             Reliability Policy: Reliable
             Value: /backend_node/loop_edges
           Value: true
-      Enabled: true
+      Enabled: false
       Name: 04 Pose Graph
     - Class: rviz_common/Group
       Displays:
-        - Alpha: 0.35
+        - Alpha: 0.3499999940395355
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
             Max Value: 10
@@ -309,10 +300,11 @@ Visualization Manager:
           Enabled: true
           Invert Rainbow: false
           Max Color: 40; 215; 255
+          Max Intensity: 4096
           Min Color: 40; 215; 255
+          Min Intensity: 0
           Name: Registration target submap
           Position Transformer: XYZ
-          Queue Size: 1
           Selectable: false
           Size (Pixels): 2
           Size (m): 0.03500000014901161
@@ -320,10 +312,10 @@ Visualization Manager:
           Topic:
             Depth: 1
             Durability Policy: Transient Local
+            Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /backend_node/debug/target
-          Unreliable: false
           Use Fixed Frame: true
           Use rainbow: false
           Value: true
@@ -342,10 +334,11 @@ Visualization Manager:
           Enabled: true
           Invert Rainbow: false
           Max Color: 255; 65; 175
+          Max Intensity: 4096
           Min Color: 255; 65; 175
+          Min Intensity: 0
           Name: Aligned source scan
           Position Transformer: XYZ
-          Queue Size: 1
           Selectable: false
           Size (Pixels): 3
           Size (m): 0.04500000178813934
@@ -353,19 +346,45 @@ Visualization Manager:
           Topic:
             Depth: 1
             Durability Policy: Transient Local
+            Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /backend_node/debug/aligned_source
-          Unreliable: false
           Use Fixed Frame: true
           Use rainbow: false
           Value: true
-      Enabled: true
+      Enabled: false
       Name: 05 Registration Debug
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: false
+        body:
+          Value: true
+        imu:
+          Value: true
+        map:
+          Value: true
+        odom:
+          Value: true
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+      Tree:
+        map:
+          body:
+            {}
+          odom:
+            imu:
+              {}
+      Update Interval: 0
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 24; 27; 32
-    Default Light: true
     Fixed Frame: map
     Frame Rate: 30
   Name: root
@@ -392,7 +411,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 35
+      Distance: 2.2542757987976074
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -407,23 +426,24 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7853981852531433
+      Pitch: 0.23539838194847107
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.7853981852531433
+      Yaw: 5.007261753082275
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1000
+  Height: 1016
   Hide Left Dock: false
   Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd0000000100000000000001cb0000039efc0200000004fb000000100044006900730070006c006100790073010000003d00000230000000c900fffffffb0000001200530065006c0065006300740069006f006e01000002730000005c0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007301000002d50000005c0000005c00fffffffb0000000a005600690065007700730100000337000000a4000000a400ffffff000005690000039e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:
-    collapsed: true
+    collapsed: false
   Views:
     collapsed: false
-  Width: 1680
-  X: 80
-  Y: 40
+  Width: 1850
+  X: 70
+  Y: 27
